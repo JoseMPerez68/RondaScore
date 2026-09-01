@@ -1,0 +1,1614 @@
+<title>Carioca</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap');
+
+:root {
+  --felt:      #1d4433;
+  --felt-dark: #152f25;
+  --felt-mid:  #2a5c46;
+  --gold:      #c99228;
+  --gold-lt:   #e6b84a;
+  --bg:        #f7f3ed;
+  --surface:   #ffffff;
+  --border:    #e5e0d8;
+  --text:      #1c2820;
+  --muted:     #6b7b72;
+  --red:       #c0392b;
+  --red-lt:    #fce8e6;
+  --green-acc: #27805a;
+  --green-lt:  #e8f5ee;
+
+  --nav-h:    60px;
+  --hdr-h:    56px;
+  --r-card:   14px;
+  --shadow:   0 2px 12px rgba(0,0,0,.08);
+  --shadow-md:0 4px 24px rgba(0,0,0,.12);
+
+  --ff-display: 'Playfair Display', Georgia, serif;
+  --ff-ui:      'DM Sans', system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:      #0f1f18;
+    --surface: #182e22;
+    --border:  #2a3f32;
+    --text:    #e8f0eb;
+    --muted:   #8aa596;
+    --felt:    #0d2418;
+    --felt-dark:#081910;
+    --red-lt:  #2a1210;
+    --green-lt:#0e2218;
+    --shadow:  0 2px 12px rgba(0,0,0,.4);
+    --shadow-md:0 4px 24px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:      #0f1f18;
+  --surface: #182e22;
+  --border:  #2a3f32;
+  --text:    #e8f0eb;
+  --muted:   #8aa596;
+  --felt:    #0d2418;
+  --felt-dark:#081910;
+  --red-lt:  #2a1210;
+  --green-lt:#0e2218;
+  --shadow:  0 2px 12px rgba(0,0,0,.4);
+  --shadow-md:0 4px 24px rgba(0,0,0,.5);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overscroll-behavior:none}
+body{
+  font-family:var(--ff-ui);
+  background:var(--bg);
+  color:var(--text);
+  max-width:430px;
+  margin:0 auto;
+  min-height:100%;
+  position:relative;
+  -webkit-tap-highlight-color:transparent;
+}
+#app{
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+}
+
+/* ── HEADER ── */
+.app-hdr{
+  position:sticky;top:0;z-index:100;
+  background:var(--felt-dark);
+  height:var(--hdr-h);
+  display:flex;align-items:center;
+  padding:0 16px;gap:8px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.hdr-suit{
+  font-size:20px;opacity:.3;letter-spacing:-2px;color:#fff;
+  user-select:none;
+}
+.hdr-titles{flex:1}
+.hdr-main{
+  font-family:var(--ff-display);
+  font-size:17px;color:#fff;line-height:1;
+}
+.hdr-sub{
+  font-size:11px;color:rgba(255,255,255,.55);
+  margin-top:2px;font-weight:500;
+}
+.hdr-btn{
+  background:none;border:none;
+  color:rgba(255,255,255,.75);
+  font-size:22px;cursor:pointer;
+  width:36px;height:36px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:8px;
+  transition:background .15s;
+}
+.hdr-btn:hover{background:rgba(255,255,255,.1)}
+
+/* ── CONTENT ── */
+.content{
+  flex:1;
+  overflow-y:auto;
+  padding-bottom:calc(var(--nav-h) + 20px);
+}
+.view{padding:16px 14px;animation:fadeUp .18s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ── BOTTOM NAV ── */
+.bot-nav{
+  position:fixed;bottom:0;
+  left:50%;transform:translateX(-50%);
+  width:100%;max-width:430px;
+  height:var(--nav-h);
+  background:var(--felt-dark);
+  display:flex;justify-content:space-around;align-items:center;
+  border-top:1px solid rgba(255,255,255,.08);
+  z-index:200;
+}
+.nav-item{
+  flex:1;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  color:rgba(255,255,255,.45);
+  cursor:pointer;
+  font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;
+  padding:6px 4px;
+  transition:color .15s;
+  user-select:none;
+}
+.nav-item.active{color:var(--gold)}
+.nav-icon{font-size:21px;line-height:1;position:relative}
+.nav-dot{
+  position:absolute;top:-2px;right:-4px;
+  width:7px;height:7px;background:var(--gold);
+  border-radius:50%;
+  border:1.5px solid var(--felt-dark);
+}
+
+/* ── CARDS ── */
+.card{
+  background:var(--surface);
+  border-radius:var(--r-card);
+  box-shadow:var(--shadow);
+  padding:16px;
+  margin-bottom:12px;
+}
+.card-label{
+  font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;
+  color:var(--muted);margin-bottom:12px;
+}
+
+/* ── BUTTONS ── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:13px 22px;
+  border-radius:10px;border:none;
+  font-family:var(--ff-ui);font-size:15px;font-weight:600;
+  cursor:pointer;
+  transition:all .12s;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+  text-decoration:none;
+}
+.btn-primary{background:var(--green-acc);color:#fff}
+.btn-primary:active{background:#1f6647}
+.btn-gold{background:var(--gold);color:#fff}
+.btn-gold:active{filter:brightness(.92)}
+.btn-ghost{background:transparent;color:var(--green-acc);border:1.5px solid var(--green-acc)}
+.btn-danger{background:var(--red);color:#fff}
+.btn-danger:active{filter:brightness(.9)}
+.btn-muted{background:var(--border);color:var(--text)}
+.btn-block{width:100%;justify-content:center}
+.btn-sm{padding:8px 14px;font-size:13px;border-radius:8px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* ── INPUTS ── */
+.field{margin-bottom:14px}
+.field-label{display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px}
+.inp{
+  width:100%;
+  padding:12px 14px;
+  border:1.5px solid var(--border);
+  border-radius:10px;
+  font-family:var(--ff-ui);font-size:16px;
+  color:var(--text);background:var(--surface);
+  outline:none;transition:border .15s;
+}
+.inp:focus{border-color:var(--green-acc)}
+
+/* ── OVERLAY / MODAL ── */
+.overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.55);
+  z-index:400;
+  display:flex;align-items:flex-end;justify-content:center;
+}
+.modal{
+  background:var(--surface);
+  border-radius:22px 22px 0 0;
+  width:100%;max-width:430px;
+  max-height:92vh;overflow-y:auto;
+  padding:8px 16px 36px;
+}
+.modal-pull{width:40px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 16px}
+.modal-title{
+  font-family:var(--ff-display);
+  font-size:20px;font-weight:700;
+  text-align:center;margin-bottom:6px;
+}
+.modal-hint{font-size:13px;color:var(--muted);text-align:center;margin-bottom:18px}
+.modal-actions{display:flex;gap:10px;margin-top:20px}
+.modal-actions .btn{flex:1}
+
+/* ── PLAYER AVATAR ── */
+.av{
+  width:36px;height:36px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:700;font-size:14px;
+  flex-shrink:0;
+}
+.av-sm{width:28px;height:28px;font-size:12px}
+.av-lg{width:44px;height:44px;font-size:18px}
+
+/* ── PLAYER CHIPS (selector) ── */
+.player-chips{display:flex;flex-wrap:wrap;gap:8px}
+.player-chip{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 14px 8px 8px;
+  border:1.5px solid var(--border);
+  border-radius:40px;
+  background:var(--surface);
+  cursor:pointer;
+  transition:all .12s;
+  font-size:14px;font-weight:500;
+}
+.player-chip.sel{border-color:var(--green-acc);background:var(--green-lt)}
+
+/* ── GAME TYPE CARD ── */
+.gt-card{
+  display:flex;align-items:center;gap:14px;
+  padding:16px;
+  border:2px solid var(--border);
+  border-radius:var(--r-card);
+  background:var(--surface);
+  cursor:pointer;
+  transition:all .12s;
+  margin-bottom:10px;
+}
+.gt-card.sel{border-color:var(--green-acc);background:var(--green-lt)}
+.gt-icon{font-size:30px}
+.gt-name{font-size:16px;font-weight:600}
+.gt-desc{font-size:12px;color:var(--muted);margin-top:2px}
+.gt-check{margin-left:auto;font-size:20px;color:var(--green-acc)}
+
+/* ── COMBO SELECT LIST ── */
+.combo-sel-item{
+  display:flex;align-items:center;gap:12px;
+  padding:11px 0;
+  border-bottom:1px solid var(--border);
+  cursor:pointer;
+}
+.combo-sel-item:last-child{border-bottom:none}
+.check-box{
+  width:22px;height:22px;
+  border-radius:6px;
+  border:2px solid var(--border);
+  background:var(--surface);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:#fff;
+  flex-shrink:0;
+  transition:all .12s;
+}
+.check-box.on{background:var(--green-acc);border-color:var(--green-acc)}
+
+/* ── COMBO BADGE (pip style) ── */
+.pip{
+  display:inline-flex;align-items:center;justify-content:center;
+  font-family:var(--ff-display);
+  font-size:11px;font-weight:700;
+  padding:3px 9px;
+  border-radius:4px;
+  border:1.5px solid;
+  white-space:nowrap;
+  letter-spacing:.3px;
+  min-width:32px;
+}
+.pip-done{background:var(--green-acc);color:#fff;border-color:var(--green-acc)}
+.pip-open{background:var(--surface);color:var(--muted);border-color:var(--border)}
+.pip-current{background:var(--gold);color:#fff;border-color:var(--gold)}
+
+/* ── ROUND COMBO HIGHLIGHT ── */
+.combo-hero{
+  background:linear-gradient(145deg,var(--felt-dark),var(--felt-mid));
+  border-radius:var(--r-card);
+  padding:20px;
+  margin-bottom:14px;
+  text-align:center;
+  position:relative;overflow:hidden;
+}
+.combo-hero::before{
+  content:'♠ ♥ ♦ ♣';
+  position:absolute;
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  font-size:60px;color:rgba(255,255,255,.04);
+  white-space:nowrap;
+  pointer-events:none;
+  user-select:none;
+}
+.combo-hero-num{font-size:11px;color:rgba(255,255,255,.6);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.combo-hero-short{
+  font-family:var(--ff-display);
+  font-size:38px;color:#fff;line-height:1;margin-bottom:4px;
+}
+.combo-hero-name{font-size:14px;color:rgba(255,255,255,.8);font-weight:500}
+.progress-track{height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin-top:14px;overflow:hidden}
+.progress-fill{height:100%;background:var(--gold);border-radius:2px;transition:width .4s}
+
+/* ── SCORE TABLE ── */
+.score-rows{}
+.score-row{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 0;
+  border-bottom:1px solid var(--border);
+}
+.score-row:last-child{border-bottom:none}
+.score-rank{font-size:15px;width:22px;text-align:center;flex-shrink:0}
+.score-name{flex:1;font-size:15px;font-weight:500}
+.score-val{
+  font-size:22px;font-weight:700;
+  font-variant-numeric:tabular-nums;
+  min-width:52px;text-align:right;
+  color:var(--text);
+}
+.score-val.zero{color:var(--green-acc)}
+.score-delta{
+  font-size:12px;font-weight:600;color:var(--red);
+  min-width:28px;text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+
+/* ── ROUND ENTRY ── */
+.entry-row{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:12px;
+}
+.entry-name{flex:1;font-size:14px;font-weight:500}
+.crown-btn{
+  width:36px;height:36px;border-radius:50%;
+  border:2px solid var(--border);background:var(--surface);
+  font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .12s;
+  flex-shrink:0;
+}
+.crown-btn.on{background:var(--gold);border-color:var(--gold)}
+.score-inp{
+  width:72px;
+  padding:10px 6px;
+  border:1.5px solid var(--border);
+  border-radius:8px;
+  font-family:var(--ff-ui);font-size:20px;font-weight:700;
+  text-align:center;
+  color:var(--red);
+  background:var(--red-lt);
+  outline:none;
+  -moz-appearance:textfield;
+  transition:border .12s;
+}
+.score-inp:focus{border-color:var(--red)}
+.score-inp::-webkit-inner-spin-button,
+.score-inp::-webkit-outer-spin-button{-webkit-appearance:none}
+.score-zero{
+  width:72px;
+  padding:10px 6px;
+  text-align:center;
+  font-size:20px;font-weight:700;
+  color:var(--green-acc);
+  background:var(--green-lt);
+  border-radius:8px;
+}
+
+/* ── TABS ── */
+.tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:16px}
+.tab{
+  flex:1;padding:10px;text-align:center;
+  font-size:13px;font-weight:600;color:var(--muted);
+  cursor:pointer;
+  border-bottom:2px solid transparent;margin-bottom:-2px;
+  transition:all .12s;
+}
+.tab.on{color:var(--green-acc);border-bottom-color:var(--green-acc)}
+
+/* ── LIBRE COMBO TABLE ── */
+.libre-tbl{width:100%;border-collapse:collapse}
+.libre-tbl th{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);padding:4px 6px;text-align:center;font-weight:600}
+.libre-tbl th.combo-col{text-align:left}
+.libre-tbl td{padding:7px 6px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:13px}
+.libre-tbl tr:last-child td{border-bottom:none}
+.libre-tbl td.combo-col{text-align:left}
+.toggle{
+  width:26px;height:26px;
+  border-radius:6px;border:2px solid var(--border);
+  background:var(--surface);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  margin:0 auto;font-size:13px;font-weight:700;color:#fff;
+  transition:all .12s;
+}
+.toggle.on{background:var(--green-acc);border-color:var(--green-acc)}
+
+/* ── ROUND DETAIL TABLE ── */
+.round-tbl{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.round-tbl th{padding:4px 6px;text-align:center;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:600}
+.round-tbl th.lft{text-align:left}
+.round-tbl td{padding:7px 6px;border-top:1px solid var(--border);text-align:center}
+.round-tbl td.lft{text-align:left}
+.round-tbl td.win{color:var(--green-acc);font-weight:600}
+.round-tbl tr.tot-row td{font-weight:700;border-top:2px solid var(--border);background:var(--bg)}
+.rnd-short{font-family:var(--ff-display);font-size:11px;color:var(--muted);margin-left:4px}
+
+/* ── LIST ITEMS ── */
+.list-item{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 0;
+  border-bottom:1px solid var(--border);
+}
+.list-item:last-child{border-bottom:none}
+.list-body{flex:1}
+.list-title{font-size:15px;font-weight:500}
+.list-sub{font-size:12px;color:var(--muted);margin-top:1px}
+.list-acts{display:flex;gap:6px}
+.icon-btn{
+  width:32px;height:32px;border-radius:8px;
+  border:1.5px solid var(--border);background:var(--surface);
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;
+  transition:background .12s;
+}
+.icon-btn:hover{background:var(--bg)}
+.icon-btn.del{border-color:var(--red);color:var(--red)}
+
+/* ── HISTORY ITEMS ── */
+.hist-item{
+  background:var(--surface);
+  border-radius:var(--r-card);
+  box-shadow:var(--shadow);
+  padding:14px;
+  margin-bottom:10px;
+  cursor:pointer;
+  transition:box-shadow .12s;
+}
+.hist-item:active{box-shadow:var(--shadow-md)}
+.hist-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.type-tag{
+  font-size:11px;font-weight:600;
+  background:var(--felt-dark);color:#fff;
+  padding:3px 9px;border-radius:20px;
+  text-transform:uppercase;letter-spacing:.4px;
+}
+.hist-date{font-size:12px;color:var(--muted)}
+.hist-winner{font-size:16px;font-weight:600;margin-bottom:6px}
+.hist-meta{display:flex;align-items:center;justify-content:space-between}
+.av-row{display:flex;gap:4px}
+.hist-rnds{font-size:12px;color:var(--muted)}
+
+/* ── BANNER ── */
+.game-banner{
+  background:linear-gradient(135deg,var(--felt-mid),var(--felt-dark));
+  border-radius:var(--r-card);
+  padding:18px;
+  margin-bottom:14px;
+  display:flex;align-items:center;gap:14px;
+  cursor:pointer;
+  box-shadow:var(--shadow-md);
+}
+.banner-body{flex:1}
+.banner-lbl{font-size:11px;color:rgba(255,255,255,.6);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px}
+.banner-title{font-family:var(--ff-display);font-size:19px;color:#fff;line-height:1.1;margin-bottom:2px}
+.banner-meta{font-size:12px;color:rgba(255,255,255,.65)}
+.banner-arrow{font-size:22px;color:rgba(255,255,255,.5)}
+
+/* ── HOME PLAYERS ── */
+.home-players{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
+.home-player{display:flex;flex-direction:column;align-items:center;gap:4px}
+.home-player-name{font-size:11px;color:var(--muted);text-align:center;max-width:48px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ── SECTION HEADER ── */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px}
+.sec-hdr-title{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.link-btn{background:none;border:none;color:var(--green-acc);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--ff-ui)}
+
+/* ── FAB ── */
+.fab{
+  position:fixed;
+  bottom:calc(var(--nav-h) + 14px);right:16px;
+  width:54px;height:54px;
+  border-radius:50%;
+  background:var(--gold);color:#fff;
+  border:none;font-size:26px;
+  cursor:pointer;
+  box-shadow:0 4px 20px rgba(0,0,0,.3);
+  z-index:300;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .12s;
+  touch-action:manipulation;
+}
+.fab:active{transform:scale(.93)}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty-ico{font-size:52px;margin-bottom:12px}
+.empty-title{font-size:18px;font-weight:600;color:var(--text);margin-bottom:8px}
+
+/* ── STEP INDICATORS ── */
+.steps{display:flex;gap:6px;justify-content:center;margin-bottom:18px}
+.step-dot{width:28px;height:4px;border-radius:2px;background:var(--border);transition:background .2s}
+.step-dot.on{background:var(--green-acc)}
+
+/* ── ROUNDS PILL TRACK ── */
+.round-pills{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.round-pill{
+  display:flex;align-items:center;gap:4px;
+  background:var(--bg);
+  border-radius:20px;padding:4px 10px;
+  font-size:12px;font-weight:500;
+}
+.round-pill-num{font-weight:700;color:var(--muted)}
+.round-pill-crown{font-size:11px}
+
+/* ── GAME DROPDOWN MENU ── */
+.game-menu{
+  position:fixed;top:var(--hdr-h);right:0;
+  z-index:300;
+  background:var(--surface);
+  border-radius:0 0 0 12px;
+  box-shadow:var(--shadow-md);
+  padding:6px 0;
+  min-width:200px;
+  max-width:250px;
+}
+.gm-item{
+  display:block;width:100%;
+  padding:12px 18px;
+  background:none;border:none;
+  text-align:left;font-family:var(--ff-ui);font-size:14px;font-weight:500;
+  color:var(--text);cursor:pointer;
+  transition:background .1s;
+}
+.gm-item:hover{background:var(--bg)}
+.gm-item.danger{color:var(--red)}
+
+/* ── CONFIRM DIALOG ── */
+.confirm-modal{padding:24px}
+.confirm-msg{font-size:15px;text-align:center;margin-bottom:20px;line-height:1.5}
+
+/* ── DIVIDER ── */
+.divider{height:1px;background:var(--border);margin:14px 0}
+</style>
+
+<div id="app">
+
+  <!-- ===== CONFIRM DIALOG ===== -->
+  <div class="overlay" v-if="confirmDlg" @click.self="confirmDlg=null">
+    <div class="modal" style="border-radius:22px;max-height:auto;margin:auto">
+      <p class="confirm-msg">{{ confirmDlg.msg }}</p>
+      <div class="modal-actions">
+        <button class="btn btn-muted" @click="confirmDlg=null">Cancelar</button>
+        <button class="btn btn-danger" @click="confirmDlg.ok()">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== NEW GAME SETUP ===== -->
+  <div class="overlay" v-if="setup.step > 0" @click.self="closeSetup">
+    <div class="modal">
+      <div class="modal-pull"></div>
+      <div class="steps">
+        <div class="step-dot" :class="{on:setup.step>=1}"></div>
+        <div class="step-dot" :class="{on:setup.step>=2}"></div>
+        <div class="step-dot" v-if="setupIsLibre" :class="{on:setup.step>=3}"></div>
+      </div>
+
+      <!-- Step 1: game type -->
+      <div v-if="setup.step===1">
+        <h2 class="modal-title">Tipo de juego</h2>
+        <p class="modal-hint">¿Qué modalidad van a jugar?</p>
+        <div v-for="gt in gameTypes" :key="gt.id"
+          class="gt-card" :class="{sel:setup.gameTypeId===gt.id}"
+          @click="setup.gameTypeId=gt.id">
+          <span class="gt-icon">{{gt.icon}}</span>
+          <div>
+            <div class="gt-name">{{gt.name}}</div>
+            <div class="gt-desc">{{gt.desc}}</div>
+          </div>
+          <span v-if="setup.gameTypeId===gt.id" class="gt-check">✓</span>
+        </div>
+        <button class="btn btn-primary btn-block" :disabled="!setup.gameTypeId" @click="setupNext" style="margin-top:8px">Siguiente →</button>
+      </div>
+
+      <!-- Step 2: players -->
+      <div v-else-if="setup.step===2">
+        <h2 class="modal-title">Jugadores</h2>
+        <p class="modal-hint">Selecciona 2 o más jugadores</p>
+        <div v-if="players.length===0" class="empty" style="padding:20px 0">
+          <p style="margin-bottom:12px">No hay jugadores. Ve a Ajustes para agregar.</p>
+          <button class="btn btn-ghost btn-sm" @click="closeSetup();nav('settings');stab='players'">Ir a Ajustes</button>
+        </div>
+        <div class="player-chips" v-else>
+          <div v-for="p in players" :key="p.id"
+            class="player-chip" :class="{sel:setup.pIds.includes(p.id)}"
+            @click="toggleSetupPlayer(p.id)">
+            <div class="av av-sm" :style="{background:p.color}">{{ini(p.name)}}</div>
+            {{p.name}}
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-muted" @click="setup.step--">← Atrás</button>
+          <button class="btn btn-primary" :disabled="setup.pIds.length<2" @click="setupNext">Siguiente →</button>
+        </div>
+      </div>
+
+      <!-- Step 3: combinations (libre only) -->
+      <div v-else-if="setup.step===3">
+        <h2 class="modal-title">Combinaciones</h2>
+        <p class="modal-hint">Elige qué combinaciones incluir</p>
+        <div v-if="libreCombos.length===0" class="empty" style="padding:20px 0">
+          <p style="margin-bottom:12px">Sin combinaciones libres. Ve a Ajustes → Combinaciones.</p>
+          <button class="btn btn-ghost btn-sm" @click="closeSetup();nav('settings');stab='combos'">Ir a Ajustes</button>
+        </div>
+        <div v-else>
+          <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+            <button class="link-btn" @click="setup.cIds=libreCombos.map(c=>c.id)">Todas</button>
+            <button class="link-btn" @click="setup.cIds=[]">Ninguna</button>
+          </div>
+          <div v-for="c in libreCombos" :key="c.id"
+            class="combo-sel-item"
+            @click="toggleSetupCombo(c.id)">
+            <div class="check-box" :class="{on:setup.cIds.includes(c.id)}">{{setup.cIds.includes(c.id)?'✓':''}}</div>
+            <span class="pip pip-done" style="font-size:10px;padding:2px 7px">{{c.short}}</span>
+            <span style="flex:1;font-size:14px">{{c.name}}</span>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-muted" @click="setup.step--">← Atrás</button>
+          <button class="btn btn-primary" :disabled="setup.cIds.length===0" @click="startGame">Iniciar partida</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ROUND ENTRY ===== -->
+  <div class="overlay" v-if="showRound">
+    <div class="modal">
+      <div class="modal-pull"></div>
+      <h2 class="modal-title">{{roundTitle}}</h2>
+      <p class="modal-hint">👑 Toca la corona del ganador · ingresa las penalizaciones</p>
+      <div v-for="pid in game.pIds" :key="pid" class="entry-row">
+        <div class="av" :style="{background:pColor(pid)}">{{ini(pName(pid))}}</div>
+        <div class="entry-name">{{pName(pid)}}</div>
+        <button class="crown-btn" :class="{on:roundWinner===pid}" @click="setWinner(pid)">
+          {{roundWinner===pid?'👑':'○'}}
+        </button>
+        <div v-if="roundWinner===pid" class="score-zero">0</div>
+        <input v-else type="number" inputmode="numeric" pattern="[0-9]*"
+          class="score-inp" :value="roundScores[pid]||0"
+          @input="roundScores[pid]=parseInt($event.target.value)||0"
+          min="0" placeholder="0">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-muted" @click="showRound=false">Cancelar</button>
+        <button class="btn btn-primary" @click="saveRound">Guardar ronda</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PLAYER EDIT ===== -->
+  <div class="overlay" v-if="pModal.open" @click.self="pModal.open=false">
+    <div class="modal" style="border-radius:22px;margin:auto">
+      <div class="modal-pull"></div>
+      <h2 class="modal-title">{{pModal.id?'Editar jugador':'Nuevo jugador'}}</h2>
+      <div class="field">
+        <label class="field-label">Nombre</label>
+        <input class="inp" v-model="pModal.name" maxlength="20" placeholder="Nombre del jugador" @keyup.enter="savePlayer" autofocus>
+      </div>
+      <div class="field" v-if="!pModal.id">
+        <label class="field-label">Color</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div v-for="c in COLORS" :key="c"
+            @click="pModal.color=c"
+            :style="{width:'32px',height:'32px',borderRadius:'50%',background:c,cursor:'pointer',outline:pModal.color===c?'3px solid var(--text)':'none',outlineOffset:'2px'}">
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-muted" @click="pModal.open=false">Cancelar</button>
+        <button class="btn btn-primary" :disabled="!pModal.name.trim()" @click="savePlayer">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== COMBO EDIT ===== -->
+  <div class="overlay" v-if="cModal.open" @click.self="cModal.open=false">
+    <div class="modal" style="border-radius:22px;margin:auto">
+      <div class="modal-pull"></div>
+      <h2 class="modal-title">{{cModal.id?'Editar combinación':'Nueva combinación'}}</h2>
+      <div class="field">
+        <label class="field-label">Nombre</label>
+        <input class="inp" v-model="cModal.name" maxlength="50" placeholder="Ej: Dos tríos y una escalera">
+      </div>
+      <div class="field">
+        <label class="field-label">Abreviación</label>
+        <input class="inp" v-model="cModal.short" maxlength="8" placeholder="Ej: 2T+1E">
+      </div>
+      <div class="field" v-if="!cModal.id">
+        <label class="field-label">Tipo de juego</label>
+        <div style="display:flex;gap:8px">
+          <span v-for="gt in gameTypes" :key="gt.id"
+            @click="cModal.gtId=gt.id"
+            :class="['btn btn-sm',cModal.gtId===gt.id?'btn-primary':'btn-muted']"
+            style="cursor:pointer">{{gt.name}}</span>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-muted" @click="cModal.open=false">Cancelar</button>
+        <button class="btn btn-primary" :disabled="!cModal.name.trim()" @click="saveCombo">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-hdr">
+    <span class="hdr-suit" aria-hidden="true">♠♥</span>
+    <div class="hdr-titles">
+      <div class="hdr-main">Carioca</div>
+      <div class="hdr-sub" v-if="hasGame">
+        {{gameTypeName(game.gtId)}} · Ronda {{game.round+1}}/{{game.cIds.length}}
+      </div>
+    </div>
+    <button v-if="view==='game' && hasGame" class="hdr-btn" @click="showMenu=!showMenu">⋮</button>
+  </header>
+
+  <!-- game overflow menu -->
+  <div v-if="showMenu" style="position:fixed;inset:0;z-index:250" @click="showMenu=false">
+    <div class="game-menu" @click.stop>
+      <button class="gm-item" @click="showMenu=false;manualFinish()">🏁 Terminar partida ahora</button>
+      <button class="gm-item danger" @click="showMenu=false;abandonGame()">🗑 Abandonar partida</button>
+    </div>
+  </div>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <main class="content">
+
+    <!-- ========= HOME ========= -->
+    <section class="view" v-show="view==='home'">
+
+      <!-- Active game banner -->
+      <div v-if="hasGame" class="game-banner" @click="nav('game')">
+        <div class="banner-body">
+          <div class="banner-lbl">Partida en curso</div>
+          <div class="banner-title">{{gameTypeName(game.gtId)}}</div>
+          <div class="banner-meta">Ronda {{game.round+1}} · {{game.pIds.length}} jugadores</div>
+        </div>
+        <div class="banner-arrow">▶</div>
+      </div>
+
+      <!-- New game CTA -->
+      <button v-else class="btn btn-primary btn-block" style="font-size:16px;padding:16px;margin-bottom:14px" @click="openSetup">🎴 Nueva partida</button>
+
+      <!-- Players card -->
+      <div class="card" v-if="players.length>0">
+        <div class="card-label">Jugadores</div>
+        <div class="home-players">
+          <div v-for="p in players.slice(0,8)" :key="p.id" class="home-player">
+            <div class="av" :style="{background:p.color}">{{ini(p.name)}}</div>
+            <div class="home-player-name">{{p.name}}</div>
+          </div>
+        </div>
+        <button v-if="hasGame" class="btn btn-ghost btn-sm btn-block" style="margin-top:12px" @click="nav('game')">Ir a la partida →</button>
+      </div>
+      <div class="card" v-else>
+        <div class="empty" style="padding:12px 0">
+          <div class="empty-ico">🃏</div>
+          <div class="empty-title">¡Bienvenido!</div>
+          <p style="margin-bottom:16px">Agrega jugadores para comenzar</p>
+          <button class="btn btn-primary btn-sm" @click="nav('settings');stab='players'">Configurar jugadores</button>
+        </div>
+      </div>
+
+      <!-- Recent history -->
+      <template v-if="finishedGames.length>0">
+        <div class="sec-hdr">
+          <span class="sec-hdr-title">Últimas partidas</span>
+          <button class="link-btn" @click="nav('history')">Ver todo →</button>
+        </div>
+        <div v-for="g in finishedGames.slice(0,3)" :key="g.id"
+          class="hist-item" @click="viewGame(g)">
+          <div class="hist-top">
+            <span class="type-tag">{{gameTypeName(g.gtId)}}</span>
+            <span class="hist-date">{{fDate(g.date)}}</span>
+          </div>
+          <div class="hist-winner">🏆 {{pName(g.winner)}}</div>
+          <div class="hist-meta">
+            <div class="av-row">
+              <div v-for="pid in g.pIds.slice(0,6)" :key="pid" class="av av-sm" :style="{background:pColor(pid)}">{{ini(pName(pid))}}</div>
+            </div>
+            <span class="hist-rnds">{{g.rounds.length}} rondas</span>
+          </div>
+        </div>
+      </template>
+    </section>
+
+    <!-- ========= GAME ========= -->
+    <section class="view" v-show="view==='game'">
+      <div v-if="!hasGame" class="empty">
+        <div class="empty-ico">🎴</div>
+        <div class="empty-title">Sin partida activa</div>
+        <button class="btn btn-primary" style="margin-top:12px" @click="openSetup">Nueva partida</button>
+      </div>
+
+      <div v-else>
+        <!-- Current combination hero -->
+        <div class="combo-hero" v-if="curCombo">
+          <div class="combo-hero-num">Ronda {{game.round+1}} de {{game.cIds.length}}</div>
+          <div class="combo-hero-short">{{curCombo.short}}</div>
+          <div class="combo-hero-name">{{curCombo.name}}</div>
+          <div class="progress-track"><div class="progress-fill" :style="{width:gameProgress+'%'}"></div></div>
+        </div>
+        <div class="combo-hero" v-else>
+          <div class="combo-hero-num">Carioca Libre</div>
+          <div class="combo-hero-short" style="font-size:28px">Ronda {{game.round+1}}</div>
+          <div class="combo-hero-name">{{game.cIds.length}} combinaciones activas</div>
+        </div>
+
+        <!-- Tabs for libre mode -->
+        <div class="tabs" v-if="isLibre">
+          <div class="tab" :class="{on:gtab==='scores'}" @click="gtab='scores'">Puntajes</div>
+          <div class="tab" :class="{on:gtab==='combos'}" @click="gtab='combos'">Combinaciones</div>
+        </div>
+
+        <!-- SCORES tab -->
+        <div class="card" v-show="!isLibre || gtab==='scores'">
+          <div class="card-label">Puntuación acumulada</div>
+          <div class="score-rows">
+            <div v-for="(p,i) in sortedPlayers" :key="p.id" class="score-row">
+              <span class="score-rank">
+                <template v-if="i===0">🥇</template>
+                <template v-else-if="i===1">🥈</template>
+                <template v-else-if="i===2">🥉</template>
+                <template v-else><span style="font-size:13px;color:var(--muted);font-weight:600">{{i+1}}</span></template>
+              </span>
+              <div class="av" :style="{background:p.color}">{{ini(p.name)}}</div>
+              <div class="score-name">{{p.name}}</div>
+              <div class="score-delta" v-if="lastDeltas[p.id]">+{{lastDeltas[p.id]}}</div>
+              <div class="score-val" :class="{zero:totals[p.id]===0}">{{totals[p.id]}}</div>
+            </div>
+          </div>
+
+          <!-- Round pills -->
+          <div v-if="game.rounds.length>0" style="margin-top:12px">
+            <div class="card-label" style="margin-bottom:6px">Rondas jugadas</div>
+            <div class="round-pills">
+              <div v-for="(r,i) in game.rounds" :key="i" class="round-pill">
+                <span class="round-pill-num">{{i+1}}</span>
+                <span class="round-pill-crown">👑</span>
+                <span>{{pName(r.winner)}}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COMBINATIONS tab (libre only) -->
+        <div class="card" v-show="isLibre && gtab==='combos'">
+          <div class="card-label">Estado de combinaciones</div>
+          <div style="overflow-x:auto">
+            <table class="libre-tbl">
+              <thead>
+                <tr>
+                  <th class="combo-col">Combinación</th>
+                  <th v-for="pid in game.pIds" :key="pid">
+                    <div class="av av-sm" :style="{background:pColor(pid),margin:'0 auto'}">{{ini(pName(pid))}}</div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="c in gameCombos" :key="c.id">
+                  <td class="combo-col">
+                    <span class="pip pip-done" style="font-size:10px;padding:2px 7px;margin-right:6px">{{c.short}}</span>{{c.name}}
+                  </td>
+                  <td v-for="pid in game.pIds" :key="pid">
+                    <div class="toggle" :class="{on:combosDone[pid]&&combosDone[pid].includes(c.id)}"
+                      @click="toggleComboDone(pid,c.id)">
+                      {{combosDone[pid]&&combosDone[pid].includes(c.id)?'✓':''}}
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin-top:10px;text-align:center">
+            Toca una celda para marcar/desmarcar la combinación completada
+          </p>
+        </div>
+
+        <!-- Round detail (fixed mode) -->
+        <div class="card" v-if="!isLibre && game.rounds.length>0">
+          <div class="card-label">Detalle por ronda</div>
+          <div style="overflow-x:auto">
+            <table class="round-tbl">
+              <thead>
+                <tr>
+                  <th class="lft">Ronda</th>
+                  <th v-for="pid in game.pIds" :key="pid">
+                    <div class="av av-sm" :style="{background:pColor(pid),margin:'0 auto'}">{{ini(pName(pid))}}</div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(r,i) in game.rounds" :key="i">
+                  <td class="lft">
+                    <span style="font-variant-numeric:tabular-nums;font-weight:600">R{{i+1}}</span>
+                    <span class="rnd-short">{{getComboShort(r.cId)}}</span>
+                  </td>
+                  <td v-for="pid in game.pIds" :key="pid"
+                    :class="{win:r.winner===pid}">
+                    {{r.scores[pid]||0}}
+                  </td>
+                </tr>
+                <tr class="tot-row">
+                  <td class="lft">Total</td>
+                  <td v-for="pid in game.pIds" :key="pid">{{totals[pid]}}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- FAB -->
+      <button v-if="hasGame" class="fab" @click="openRound" title="Registrar ronda">+</button>
+    </section>
+
+    <!-- ========= HISTORY ========= -->
+    <section class="view" v-show="view==='history'">
+
+      <!-- Detail view -->
+      <div v-if="detailGame">
+        <button class="btn btn-muted btn-sm" style="margin-bottom:12px" @click="detailGame=null">← Volver</button>
+        <div class="card">
+          <div class="hist-top" style="margin-bottom:12px">
+            <span class="type-tag">{{gameTypeName(detailGame.gtId)}}</span>
+            <span class="hist-date">{{fDate(detailGame.date)}}</span>
+          </div>
+          <div class="card-label">Resultado final</div>
+          <div class="score-rows">
+            <div v-for="(p,i) in sortedPlayersOfGame(detailGame)" :key="p.id" class="score-row">
+              <span class="score-rank">
+                <template v-if="i===0">🥇</template>
+                <template v-else-if="i===1">🥈</template>
+                <template v-else-if="i===2">🥉</template>
+                <template v-else><span style="font-size:13px;color:var(--muted);font-weight:600">{{i+1}}</span></template>
+              </span>
+              <div class="av" :style="{background:p.color}">{{ini(p.name)}}</div>
+              <div class="score-name">{{p.name}}</div>
+              <div class="score-val" :class="{zero:(detailGame.final||{})[p.id]===0}">{{(detailGame.final||{})[p.id]||0}}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Round detail -->
+        <div class="card" v-if="detailGame.rounds&&detailGame.rounds.length>0">
+          <div class="card-label">Detalle de rondas</div>
+          <div style="overflow-x:auto">
+            <table class="round-tbl">
+              <thead>
+                <tr>
+                  <th class="lft">Ronda</th>
+                  <th v-for="pid in detailGame.pIds" :key="pid">
+                    <div class="av av-sm" :style="{background:pColor(pid),margin:'0 auto'}">{{ini(pName(pid))}}</div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(r,i) in detailGame.rounds" :key="i">
+                  <td class="lft">
+                    <span style="font-weight:600">R{{i+1}}</span>
+                    <span class="rnd-short">{{getComboShort(r.cId)}}</span>
+                  </td>
+                  <td v-for="pid in detailGame.pIds" :key="pid" :class="{win:r.winner===pid}">
+                    {{r.scores[pid]||0}}
+                  </td>
+                </tr>
+                <tr class="tot-row">
+                  <td class="lft">Total</td>
+                  <td v-for="pid in detailGame.pIds" :key="pid">{{(detailGame.final||{})[pid]||0}}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Libre combinations -->
+        <div class="card" v-if="detailGame.gtId!=='carioca'&&detailGame.doneMap">
+          <div class="card-label">Combinaciones completadas</div>
+          <div v-for="pid in detailGame.pIds" :key="pid" style="margin-bottom:14px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <div class="av av-sm" :style="{background:pColor(pid)}">{{ini(pName(pid))}}</div>
+              <strong>{{pName(pid)}}</strong>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px">
+              <span v-for="cid in (detailGame.doneMap[pid]||[])" :key="cid" class="pip pip-done">{{getComboShort(cid)}}</span>
+              <span v-if="!(detailGame.doneMap[pid]||[]).length" style="font-size:13px;color:var(--muted)">Ninguna</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- List view -->
+      <div v-else>
+        <div v-if="finishedGames.length===0" class="empty">
+          <div class="empty-ico">📋</div>
+          <div class="empty-title">Sin historial</div>
+          <p>Tus partidas completadas aparecerán aquí</p>
+        </div>
+        <div v-for="g in finishedGames" :key="g.id"
+          class="hist-item" @click="viewGame(g)">
+          <div class="hist-top">
+            <span class="type-tag">{{gameTypeName(g.gtId)}}</span>
+            <span class="hist-date">{{fDate(g.date)}}</span>
+          </div>
+          <div class="hist-winner">🏆 {{pName(g.winner)}}</div>
+          <div class="hist-meta">
+            <div class="av-row">
+              <div v-for="pid in g.pIds.slice(0,6)" :key="pid" class="av av-sm" :style="{background:pColor(pid)}">{{ini(pName(pid))}}</div>
+            </div>
+            <span class="hist-rnds">{{g.rounds.length}} rondas</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========= SETTINGS ========= -->
+    <section class="view" v-show="view==='settings'">
+      <div class="tabs">
+        <div class="tab" :class="{on:stab==='players'}" @click="stab='players'">Jugadores</div>
+        <div class="tab" :class="{on:stab==='combos'}" @click="stab='combos'">Combinaciones</div>
+      </div>
+
+      <!-- PLAYERS -->
+      <div v-show="stab==='players'">
+        <button class="btn btn-primary btn-block" style="margin-bottom:14px" @click="openAddPlayer">+ Agregar jugador</button>
+        <div v-if="players.length===0" class="empty" style="padding:20px 0">
+          <p>Agrega jugadores para comenzar a jugar</p>
+        </div>
+        <div class="card" v-else>
+          <div v-for="p in players" :key="p.id" class="list-item">
+            <div class="av" :style="{background:p.color}">{{ini(p.name)}}</div>
+            <div class="list-body">
+              <div class="list-title">{{p.name}}</div>
+            </div>
+            <div class="list-acts">
+              <button class="icon-btn" @click="openEditPlayer(p.id)" title="Editar">✏️</button>
+              <button class="icon-btn del" @click="delPlayer(p.id)" title="Eliminar">🗑</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COMBINATIONS -->
+      <div v-show="stab==='combos'">
+        <!-- Carioca fixed -->
+        <div class="sec-hdr">
+          <span class="sec-hdr-title">Carioca (fijas)</span>
+          <button class="link-btn" @click="resetCarCombos" style="font-size:12px">Restablecer</button>
+        </div>
+        <div class="card">
+          <div v-for="(c,i) in cariocaCombos" :key="c.id" class="list-item">
+            <span style="font-size:12px;font-weight:700;color:var(--muted);width:18px;text-align:center;flex-shrink:0">{{i+1}}</span>
+            <span class="pip pip-current" style="font-size:10px;padding:2px 7px;flex-shrink:0">{{c.short}}</span>
+            <div class="list-body"><div class="list-title">{{c.name}}</div></div>
+            <div class="list-acts">
+              <button class="icon-btn" @click="openEditCombo(c.id)">✏️</button>
+              <button class="icon-btn del" @click="delCombo(c.id)">🗑</button>
+            </div>
+          </div>
+          <div v-if="cariocaCombos.length===0" style="padding:10px 0;text-align:center;color:var(--muted);font-size:13px">
+            Sin combinaciones. <button class="link-btn" @click="resetCarCombos">Restablecer predeterminadas</button>
+          </div>
+        </div>
+
+        <!-- Libre -->
+        <div class="sec-hdr">
+          <span class="sec-hdr-title">Carioca Libre</span>
+          <button class="link-btn" @click="openAddCombo('libre')">+ Agregar</button>
+        </div>
+        <div class="card">
+          <div v-for="c in libreCombos" :key="c.id" class="list-item">
+            <span class="pip pip-done" style="font-size:10px;padding:2px 7px;flex-shrink:0">{{c.short}}</span>
+            <div class="list-body"><div class="list-title">{{c.name}}</div></div>
+            <div class="list-acts">
+              <button class="icon-btn" @click="openEditCombo(c.id)">✏️</button>
+              <button class="icon-btn del" @click="delCombo(c.id)">🗑</button>
+            </div>
+          </div>
+          <div v-if="libreCombos.length===0" style="padding:10px 0;text-align:center;color:var(--muted);font-size:13px">
+            Sin combinaciones libres. Toca "+ Agregar" para crear una.
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== BOTTOM NAV ===== -->
+  <nav class="bot-nav">
+    <div class="nav-item" :class="{active:view==='home'}" @click="nav('home')">
+      <span class="nav-icon">🏠</span>Inicio
+    </div>
+    <div class="nav-item" :class="{active:view==='game'}" @click="nav('game')">
+      <span class="nav-icon" style="position:relative">🎴<span v-if="hasGame" class="nav-dot"></span></span>Partida
+    </div>
+    <div class="nav-item" :class="{active:view==='history'}" @click="nav('history')">
+      <span class="nav-icon">📋</span>Historial
+    </div>
+    <div class="nav-item" :class="{active:view==='settings'}" @click="nav('settings')">
+      <span class="nav-icon">⚙️</span>Ajustes
+    </div>
+  </nav>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.21/vue.global.prod.min.js"></script>
+<script>
+const { createApp } = Vue;
+
+const DEF_COMBOS = [
+  {id:'c1',gtId:'carioca',order:1,name:'Dos tríos',short:'2T'},
+  {id:'c2',gtId:'carioca',order:2,name:'Un trío y una escalera',short:'1T+1E'},
+  {id:'c3',gtId:'carioca',order:3,name:'Dos escaleras',short:'2E'},
+  {id:'c4',gtId:'carioca',order:4,name:'Tres tríos',short:'3T'},
+  {id:'c5',gtId:'carioca',order:5,name:'Dos tríos y una escalera',short:'2T+1E'},
+  {id:'c6',gtId:'carioca',order:6,name:'Dos escaleras y un trío',short:'2E+1T'},
+  {id:'c7',gtId:'carioca',order:7,name:'Tres escaleras',short:'3E'},
+  {id:'c8',gtId:'carioca',order:8,name:'Cuatro tríos',short:'4T'},
+  {id:'c9',gtId:'carioca',order:9,name:'Escala sucia',short:'SD'},
+  {id:'c10',gtId:'carioca',order:10,name:'Escalera limpia',short:'SL'},
+];
+
+const DEF_GTS = [
+  {id:'carioca',name:'Carioca',mode:'fixed',icon:'🃏',desc:'10 rondas con combinaciones en orden fijo'},
+  {id:'libre',name:'Carioca Libre',mode:'libre',icon:'🎴',desc:'Combinaciones seleccionadas, en cualquier orden'},
+];
+
+const COLORS = ['#e74c3c','#3498db','#e67e22','#9b59b6','#27ae60','#0891b2','#d35400','#c0392b'];
+
+createApp({
+  data(){
+    return {
+      view:'home',
+      stab:'players',     // settings tab
+      gtab:'scores',      // game tab
+      showMenu:false,
+
+      // Setup wizard
+      setup:{step:0,gameTypeId:'',pIds:[],cIds:[]},
+
+      // Round entry
+      showRound:false,
+      roundWinner:'',
+      roundScores:{},
+
+      // Player modal
+      pModal:{open:false,id:null,name:'',color:COLORS[0]},
+
+      // Combo modal
+      cModal:{open:false,id:null,name:'',short:'',gtId:'libre'},
+
+      // Confirm
+      confirmDlg:null,
+
+      // History detail
+      detailGame:null,
+
+      // Persisted
+      players:[],
+      gameTypes:[...DEF_GTS],
+      combos:[...DEF_COMBOS],
+      games:[],
+      game:null,      // current active game
+      lastCfg:{gtId:'carioca',pIds:[],cIds:[]},
+
+      COLORS,
+    };
+  },
+
+  computed:{
+    hasGame(){ return !!this.game && this.game.status==='active'; },
+
+    isLibre(){ return this.hasGame && this.game.gtId !== 'carioca'; },
+
+    curCombo(){
+      if(!this.hasGame) return null;
+      if(this.isLibre) return null;
+      const idx = this.game.round;
+      const cid = this.game.cIds[idx];
+      return this.combos.find(c=>c.id===cid)||null;
+    },
+
+    gameProgress(){
+      if(!this.hasGame) return 0;
+      return Math.round((this.game.round/this.game.cIds.length)*100);
+    },
+
+    totals(){
+      if(!this.hasGame) return {};
+      const t={};
+      for(const pid of this.game.pIds) t[pid]=0;
+      for(const r of this.game.rounds){
+        for(const [pid,v] of Object.entries(r.scores)){
+          t[pid]=(t[pid]||0)+v;
+        }
+      }
+      return t;
+    },
+
+    lastDeltas(){
+      if(!this.hasGame||!this.game.rounds.length) return {};
+      const last = this.game.rounds[this.game.rounds.length-1];
+      const d={};
+      for(const [pid,v] of Object.entries(last.scores)){
+        if(v>0) d[pid]=v;
+      }
+      return d;
+    },
+
+    sortedPlayers(){
+      if(!this.hasGame) return [];
+      const t=this.totals;
+      return this.game.pIds
+        .map(id=>this.players.find(p=>p.id===id)||{id,name:'?',color:'#999'})
+        .sort((a,b)=>t[a.id]-t[b.id]);
+    },
+
+    gameCombos(){
+      if(!this.hasGame) return [];
+      return this.game.cIds.map(id=>this.combos.find(c=>c.id===id)).filter(Boolean);
+    },
+
+    combosDone(){
+      if(!this.hasGame) return {};
+      return this.game.doneMap||{};
+    },
+
+    cariocaCombos(){
+      return this.combos.filter(c=>c.gtId==='carioca').sort((a,b)=>a.order-b.order);
+    },
+
+    libreCombos(){
+      return this.combos.filter(c=>c.gtId==='libre');
+    },
+
+    finishedGames(){
+      return [...this.games].filter(g=>g.status==='finished').sort((a,b)=>new Date(b.date)-new Date(a.date));
+    },
+
+    setupIsLibre(){
+      return this.setup.gameTypeId !== 'carioca';
+    },
+
+    roundTitle(){
+      if(!this.hasGame) return 'Ronda';
+      if(this.curCombo) return this.curCombo.name;
+      return 'Ronda '+(this.game.round+1);
+    },
+  },
+
+  methods:{
+    // nav
+    nav(v){ this.view=v; this.detailGame=null; this.showMenu=false; },
+
+    // utils
+    uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); },
+    ini(name){ return name?name.charAt(0).toUpperCase():'?'; },
+
+    pName(id){
+      const p=this.players.find(x=>x.id===id);
+      return p?p.name:'Desconocido';
+    },
+    pColor(id){
+      const p=this.players.find(x=>x.id===id);
+      return p?p.color:'#999';
+    },
+    gameTypeName(id){
+      const g=this.gameTypes.find(x=>x.id===id);
+      return g?g.name:id;
+    },
+    getComboShort(id){
+      if(!id) return '';
+      const c=this.combos.find(x=>x.id===id);
+      return c?c.short:'';
+    },
+    fDate(d){
+      return new Date(d).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'});
+    },
+
+    // ── SETUP ──
+    openSetup(){
+      this.setup={
+        step:1,
+        gameTypeId:this.lastCfg.gtId||'carioca',
+        pIds:[...(this.lastCfg.pIds||[])].filter(id=>this.players.some(p=>p.id===id)),
+        cIds:[...(this.lastCfg.cIds||[])].filter(id=>this.combos.some(c=>c.id===id)),
+      };
+    },
+    closeSetup(){ this.setup.step=0; },
+
+    setupNext(){
+      const s=this.setup;
+      if(s.step===1){
+        if(!s.gameTypeId) return;
+        s.step=2;
+      } else if(s.step===2){
+        if(s.pIds.length<2) return;
+        if(this.setupIsLibre){
+          if(!s.cIds.length) s.cIds=this.libreCombos.map(c=>c.id);
+          s.step=3;
+        } else {
+          this.startGame();
+        }
+      }
+    },
+
+    toggleSetupPlayer(id){
+      const i=this.setup.pIds.indexOf(id);
+      if(i>=0) this.setup.pIds.splice(i,1);
+      else this.setup.pIds.push(id);
+    },
+    toggleSetupCombo(id){
+      const i=this.setup.cIds.indexOf(id);
+      if(i>=0) this.setup.cIds.splice(i,1);
+      else this.setup.cIds.push(id);
+    },
+
+    startGame(){
+      const s=this.setup;
+      const gt=this.gameTypes.find(g=>g.id===s.gameTypeId);
+      const cIds = gt&&gt.mode==='fixed'
+        ? this.cariocaCombos.map(c=>c.id)
+        : [...s.cIds];
+
+      const doneMap={};
+      if(gt&&gt.mode!=='fixed'){
+        for(const pid of s.pIds) doneMap[pid]=[];
+      }
+
+      this.game={
+        id:this.uid(),
+        date:new Date().toISOString(),
+        gtId:s.gameTypeId,
+        pIds:[...s.pIds],
+        cIds,
+        rounds:[],
+        doneMap,
+        round:0,
+        status:'active',
+        winner:null,
+        final:null,
+      };
+
+      this.lastCfg={gtId:s.gameTypeId,pIds:[...s.pIds],cIds:[...s.cIds]};
+      this.setup.step=0;
+      this.save();
+      this.nav('game');
+    },
+
+    // ── ROUND ENTRY ──
+    openRound(){
+      this.roundWinner='';
+      this.roundScores={};
+      for(const pid of this.game.pIds) this.roundScores[pid]=0;
+      this.showRound=true;
+    },
+    setWinner(pid){
+      this.roundWinner=pid;
+      this.roundScores[pid]=0;
+    },
+    saveRound(){
+      if(!this.hasGame) return;
+      const scores={};
+      for(const pid of this.game.pIds){
+        scores[pid]=pid===this.roundWinner ? 0 : (parseInt(this.roundScores[pid])||0);
+      }
+      this.game.rounds.push({
+        roundNum:this.game.round+1,
+        cId:this.curCombo?this.curCombo.id:null,
+        winner:this.roundWinner,
+        scores,
+      });
+
+      const isFixed = this.game.gtId==='carioca';
+      const isLast = isFixed && this.game.round >= this.game.cIds.length-1;
+
+      if(isLast){
+        this.showRound=false;
+        this.endGame();
+        return;
+      }
+
+      this.game.round++;
+
+      // Check libre win condition
+      if(!isFixed){
+        const winner=this.game.pIds.find(pid=>{
+          const done=this.game.doneMap[pid]||[];
+          return this.game.cIds.every(cid=>done.includes(cid));
+        });
+        if(winner){
+          this.showRound=false;
+          this.endGame(winner);
+          return;
+        }
+      }
+
+      this.showRound=false;
+      this.save();
+    },
+
+    endGame(forcedWinner){
+      // Calculate final totals
+      const final={};
+      for(const pid of this.game.pIds) final[pid]=0;
+      for(const r of this.game.rounds){
+        for(const [pid,v] of Object.entries(r.scores)){
+          final[pid]=(final[pid]||0)+v;
+        }
+      }
+      // Winner: provided (libre) or lowest score (carioca)
+      const winner=forcedWinner||this.game.pIds.reduce((a,b)=>final[a]<=final[b]?a:b);
+      this.game.status='finished';
+      this.game.winner=winner;
+      this.game.final=final;
+      this.game.endDate=new Date().toISOString();
+      this.games.push({...this.game});
+      this.game=null;
+      this.save();
+      this.nav('history');
+    },
+
+    manualFinish(){
+      const final={};
+      for(const pid of this.game.pIds) final[pid]=0;
+      for(const r of this.game.rounds){
+        for(const [pid,v] of Object.entries(r.scores)){
+          final[pid]=(final[pid]||0)+v;
+        }
+      }
+      const winner=this.game.pIds.reduce((a,b)=>final[a]<=final[b]?a:b);
+      this.confirmDlg={
+        msg:`¿Terminar la partida ahora? Ganador: ${this.pName(winner)} con ${final[winner]} puntos.`,
+        ok:()=>{ this.confirmDlg=null; this.endGame(winner); }
+      };
+    },
+
+    abandonGame(){
+      this.confirmDlg={
+        msg:'¿Abandonar la partida? Se perderán todos los datos.',
+        ok:()=>{ this.confirmDlg=null; this.game=null; this.save(); this.nav('home'); }
+      };
+    },
+
+    // ── LIBRE COMBOS ──
+    toggleComboDone(pid,cid){
+      if(!this.game||!this.game.doneMap) return;
+      const arr=this.game.doneMap[pid]||[];
+      const i=arr.indexOf(cid);
+      if(i>=0) arr.splice(i,1);
+      else arr.push(cid);
+      if(!this.game.doneMap[pid]) this.game.doneMap[pid]=arr;
+      this.save();
+
+      // Check win condition
+      const winner=this.game.pIds.find(p=>{
+        const done=this.game.doneMap[p]||[];
+        return this.game.cIds.every(c=>done.includes(c));
+      });
+      if(winner){
+        this.confirmDlg={
+          msg:`🎉 ¡${this.pName(winner)} completó todas las combinaciones! ¿Terminar la partida?`,
+          ok:()=>{ this.confirmDlg=null; this.endGame(winner); }
+        };
+      }
+    },
+
+    // ── PLAYERS ──
+    openAddPlayer(){
+      const colorIdx=this.players.length%COLORS.length;
+      this.pModal={open:true,id:null,name:'',color:COLORS[colorIdx]};
+    },
+    openEditPlayer(id){
+      const p=this.players.find(x=>x.id===id);
+      if(!p) return;
+      this.pModal={open:true,id,name:p.name,color:p.color};
+    },
+    savePlayer(){
+      if(!this.pModal.name.trim()) return;
+      if(this.pModal.id){
+        const p=this.players.find(x=>x.id===this.pModal.id);
+        if(p){ p.name=this.pModal.name.trim(); }
+      } else {
+        this.players.push({id:this.uid(),name:this.pModal.name.trim(),color:this.pModal.color});
+      }
+      this.pModal.open=false;
+      this.save();
+    },
+    delPlayer(id){
+      this.confirmDlg={
+        msg:'¿Eliminar este jugador?',
+        ok:()=>{ this.players=this.players.filter(p=>p.id!==id); this.save(); this.confirmDlg=null; }
+      };
+    },
+
+    // ── COMBOS ──
+    openAddCombo(gtId){
+      this.cModal={open:true,id:null,name:'',short:'',gtId:gtId||'libre'};
+    },
+    openEditCombo(id){
+      const c=this.combos.find(x=>x.id===id);
+      if(!c) return;
+      this.cModal={open:true,id,name:c.name,short:c.short,gtId:c.gtId};
+    },
+    saveCombo(){
+      if(!this.cModal.name.trim()) return;
+      if(this.cModal.id){
+        const c=this.combos.find(x=>x.id===this.cModal.id);
+        if(c){ c.name=this.cModal.name.trim(); c.short=this.cModal.short.trim()||c.name.slice(0,4); }
+      } else {
+        const maxOrder=Math.max(0,...this.combos.filter(c=>c.gtId===this.cModal.gtId).map(c=>c.order||0));
+        this.combos.push({
+          id:this.uid(),
+          gtId:this.cModal.gtId,
+          order:maxOrder+1,
+          name:this.cModal.name.trim(),
+          short:this.cModal.short.trim()||this.cModal.name.slice(0,4),
+        });
+      }
+      this.cModal.open=false;
+      this.save();
+    },
+    delCombo(id){
+      this.confirmDlg={
+        msg:'¿Eliminar esta combinación?',
+        ok:()=>{ this.combos=this.combos.filter(c=>c.id!==id); this.save(); this.confirmDlg=null; }
+      };
+    },
+    resetCarCombos(){
+      this.confirmDlg={
+        msg:'¿Restaurar las combinaciones de Carioca a los valores predeterminados?',
+        ok:()=>{
+          this.combos=this.combos.filter(c=>c.gtId!=='carioca');
+          this.combos=[...DEF_COMBOS,...this.combos];
+          this.save(); this.confirmDlg=null;
+        }
+      };
+    },
+
+    // ── HISTORY ──
+    viewGame(g){ this.detailGame=g; this.nav('history'); },
+    sortedPlayersOfGame(g){
+      if(!g) return [];
+      const f=g.final||{};
+      return g.pIds.map(id=>this.players.find(p=>p.id===id)||{id,name:'?',color:'#999'})
+        .sort((a,b)=>(f[a.id]||0)-(f[b.id]||0));
+    },
+
+    // ── PERSISTENCE ──
+    save(){
+      try{
+        const d={players:this.players,combos:this.combos,games:this.games,game:this.game,lastCfg:this.lastCfg};
+        localStorage.setItem('carioca_v1',JSON.stringify(d));
+      }catch(e){}
+    },
+    load(){
+      try{
+        const raw=localStorage.getItem('carioca_v1');
+        if(!raw) return;
+        const d=JSON.parse(raw);
+        if(d.players) this.players=d.players;
+        if(d.combos) this.combos=d.combos;
+        else this.combos=[...DEF_COMBOS];
+        if(d.games) this.games=d.games;
+        if(d.game) this.game=d.game;
+        if(d.lastCfg) this.lastCfg=d.lastCfg;
+      }catch(e){
+        this.combos=[...DEF_COMBOS];
+      }
+    },
+  },
+
+  mounted(){
+    this.load();
+  }
+}).mount('#app');
+</script>
