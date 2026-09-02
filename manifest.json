@@ -1,0 +1,13 @@
+{
+  "name": "Carioca",
+  "short_name": "Carioca",
+  "description": "Anotador de partidas de Carioca",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#152f25",
+  "theme_color": "#152f25",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
