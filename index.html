@@ -1,5 +1,6 @@
 <title>Carioca</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'">
 <meta name="theme-color" content="#152f25">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1225,7 +1226,9 @@ body{
 
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.21/vue.global.prod.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.21/vue.global.prod.min.js"
+  integrity="sha384-wdamyDHEiblYHsu/XTokGtIeFekZu7xN37Yvkl0NZ7PnhwRB+nwE1ByT7VlwiypE"
+  crossorigin="anonymous"></script>
 <script>
 const { createApp } = Vue;
 
@@ -1777,21 +1780,76 @@ createApp({
     load(){
       try{
         const raw=localStorage.getItem('carioca_v1');
-        if(!raw) return;
+        if(!raw||raw.length>500000) return; // guard against bloated payloads
         const d=JSON.parse(raw);
-        if(d.players) this.players=d.players;
-        if(d.combos){
-          const loaded=d.combos.map((c,i)=>({active:true,order:i+1,...c}));
-          // re-number to ensure unique sequential orders
+        // Schema guards: reject non-object or unexpected types
+        if(!d||typeof d!=='object'||Array.isArray(d)) return;
+
+        if(Array.isArray(d.players)){
+          this.players=d.players.slice(0,20).map(p=>({
+            id:String(p.id||'').slice(0,20),
+            name:String(p.name||'').slice(0,20),
+            color:typeof p.color==='string'&&/^#[0-9a-f]{6}$/i.test(p.color)?p.color:'#888888',
+          }));
+        }
+        if(Array.isArray(d.combos)){
+          const loaded=d.combos.slice(0,100).map((c,i)=>({
+            active:true, order:i+1,
+            id:String(c.id||'').slice(0,20),
+            name:String(c.name||'').slice(0,50),
+            short:String(c.short||'').slice(0,8),
+            pips:Math.max(0,Math.min(99,parseInt(c.pips)||0)),
+            ...typeof c.active==='boolean'?{active:c.active}:{},
+            ...typeof c.order==='number'?{order:c.order}:{},
+          }));
           const sorted=[...loaded].sort((a,b)=>a.order-b.order);
           sorted.forEach((c,i)=>{ c.order=i+1; });
           this.combos=sorted;
         } else {
           this.combos=DEF_COMBOS.map(c=>({...c,active:true}));
         }
-        if(d.games) this.games=d.games;
-        if(d.game) this.game=d.game;
-        if(d.lastCfg) this.lastCfg=d.lastCfg;
+
+        const sanitizeGame=g=>{
+          if(!g||typeof g!=='object') return null;
+          const pIds=Array.isArray(g.pIds)?g.pIds.slice(0,10).map(x=>String(x).slice(0,20)):[];
+          const cIds=Array.isArray(g.cIds)?g.cIds.slice(0,100).map(x=>String(x).slice(0,20)):[];
+          const rounds=Array.isArray(g.rounds)?g.rounds.slice(0,200).map(r=>{
+            const scores={};
+            if(r.scores&&typeof r.scores==='object'){
+              for(const [k,v] of Object.entries(r.scores)){
+                scores[String(k).slice(0,20)]=Math.max(0,Math.min(9999,parseInt(v)||0));
+              }
+            }
+            return {roundNum:parseInt(r.roundNum)||0,cId:String(r.cId||'').slice(0,20),winner:String(r.winner||'').slice(0,20),scores};
+          }):[];
+          return {
+            id:String(g.id||'').slice(0,20),
+            date:typeof g.date==='string'?g.date.slice(0,30):'',
+            gtId:String(g.gtId||'').slice(0,20),
+            status:['active','paused','finished'].includes(g.status)?g.status:'active',
+            pIds, cIds, rounds,
+            round:Math.max(0,Math.min(999,parseInt(g.round)||0)),
+            winner:g.winner?String(g.winner).slice(0,20):null,
+            final:g.final&&typeof g.final==='object'?g.final:null,
+            doneMap:g.doneMap&&typeof g.doneMap==='object'?g.doneMap:{},
+            pauseDate:g.pauseDate?String(g.pauseDate).slice(0,30):undefined,
+          };
+        };
+
+        if(Array.isArray(d.games)){
+          this.games=d.games.slice(0,500).map(sanitizeGame).filter(Boolean);
+        }
+        if(d.game){
+          const g=sanitizeGame(d.game);
+          if(g) this.game=g;
+        }
+        if(d.lastCfg&&typeof d.lastCfg==='object'){
+          this.lastCfg={
+            gtId:String(d.lastCfg.gtId||'carioca').slice(0,20),
+            pIds:Array.isArray(d.lastCfg.pIds)?d.lastCfg.pIds.slice(0,10).map(x=>String(x).slice(0,20)):[],
+            cIds:Array.isArray(d.lastCfg.cIds)?d.lastCfg.cIds.slice(0,100).map(x=>String(x).slice(0,20)):[],
+          };
+        }
       }catch(e){
         this.combos=DEF_COMBOS.map(c=>({...c,active:true}));
       }
