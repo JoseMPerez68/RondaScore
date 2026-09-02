@@ -470,7 +470,7 @@ body{
   transition:box-shadow .12s;
 }
 .hist-item:active{box-shadow:var(--shadow-md)}
-.hist-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.hist-top{display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap}
 .type-tag{
   font-size:11px;font-weight:600;
   background:var(--felt-dark);color:#fff;
@@ -547,6 +547,20 @@ body{
 }
 .round-pill-num{font-weight:700;color:var(--muted)}
 .round-pill-crown{font-size:11px}
+
+/* ── STATUS BADGES ── */
+.status-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.3px;flex-shrink:0}
+.status-badge.finished{background:var(--green-lt);color:var(--green-acc)}
+.status-badge.paused{background:#fff3e0;color:#c75000}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .status-badge.paused{background:#2a1200;color:#ff8c42}}
+:root[data-theme="dark"] .status-badge.paused{background:#2a1200;color:#ff8c42}
+
+/* ── PAUSED GAMES LIST ── */
+.paused-list{margin-bottom:14px}
+.paused-item{display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:var(--r-card);padding:12px 14px;margin-bottom:8px;border:1.5px dashed var(--border)}
+.paused-item-body{flex:1;min-width:0}
+.paused-item-title{font-weight:600;font-size:14px}
+.paused-item-meta{font-size:12px;color:var(--muted);margin-top:2px}
 
 /* ── GAME DROPDOWN MENU ── */
 .game-menu{
@@ -805,7 +819,8 @@ body{
   <div v-if="showMenu" style="position:fixed;inset:0;z-index:250" @click="showMenu=false">
     <div class="game-menu" @click.stop>
       <button class="gm-item" @click="showMenu=false;manualFinish()">🏁 Terminar partida ahora</button>
-      <button class="gm-item danger" @click="showMenu=false;abandonGame()">🗑 Abandonar partida</button>
+      <button class="gm-item" @click="showMenu=false;pauseGame()">⏸ Pausar partida</button>
+      <button class="gm-item danger" @click="showMenu=false;deleteGame()">🗑 Eliminar partida</button>
     </div>
   </div>
 
@@ -816,17 +831,33 @@ body{
     <section class="view" v-show="view==='home'">
 
       <!-- Active game banner -->
-      <div v-if="hasGame" class="game-banner" @click="nav('game')">
+      <div v-if="hasGame" class="game-banner" @click="nav('game')" style="margin-bottom:10px">
         <div class="banner-body">
-          <div class="banner-lbl">Partida en curso</div>
+          <div class="banner-lbl">Partida activa ahora</div>
           <div class="banner-title">{{gameTypeName(game.gtId)}}</div>
           <div class="banner-meta">Ronda {{game.round+1}} · {{game.pIds.length}} jugadores</div>
         </div>
         <div class="banner-arrow">▶</div>
       </div>
 
+      <!-- Paused games -->
+      <div v-if="pausedGames.length>0" class="paused-list">
+        <div class="sec-hdr" style="margin-bottom:8px">
+          <span class="sec-hdr-title">⏸ Partidas pausadas</span>
+        </div>
+        <div v-for="g in pausedGames" :key="g.id" class="paused-item">
+          <div class="paused-item-body">
+            <div class="paused-item-title">{{gameTypeName(g.gtId)}}</div>
+            <div class="paused-item-meta">
+              {{g.pIds.length}} jugadores · {{g.rounds.length}} rondas · {{fDate(g.date)}}
+            </div>
+          </div>
+          <button class="btn btn-primary btn-sm" @click="resumeGame(g)">Reanudar</button>
+        </div>
+      </div>
+
       <!-- New game CTA -->
-      <button v-else class="btn btn-primary btn-block" style="font-size:16px;padding:16px;margin-bottom:14px" @click="openSetup">🎴 Nueva partida</button>
+      <button class="btn btn-primary btn-block" style="font-size:16px;padding:16px;margin-bottom:14px" @click="openSetup">🎴 Nueva partida</button>
 
       <!-- Players card -->
       <div class="card" v-if="players.length>0">
@@ -1078,23 +1109,29 @@ body{
 
       <!-- List view -->
       <div v-else>
-        <div v-if="finishedGames.length===0" class="empty">
+        <div v-if="allHistoryGames.length===0" class="empty">
           <div class="empty-ico">📋</div>
           <div class="empty-title">Sin historial</div>
-          <p>Tus partidas completadas aparecerán aquí</p>
+          <p>Tus partidas aparecerán aquí</p>
         </div>
-        <div v-for="g in finishedGames" :key="g.id"
-          class="hist-item" @click="viewGame(g)">
+        <div v-for="g in allHistoryGames" :key="g.id"
+          class="hist-item"
+          @click="g.status==='paused' ? resumeGame(g) : viewGame(g)">
           <div class="hist-top">
             <span class="type-tag">{{gameTypeName(g.gtId)}}</span>
-            <span class="hist-date">{{fDate(g.date)}}</span>
+            <span class="status-badge" :class="g.status==='finished'?'finished':'paused'">
+              {{g.status==='finished'?'✓ Finalizada':'⏸ Interrumpida'}}
+            </span>
+            <span class="hist-date" style="margin-left:auto">{{fDate(g.date)}}</span>
           </div>
-          <div class="hist-winner">🏆 {{pName(g.winner)}}</div>
+          <div class="hist-winner" v-if="g.status==='finished'">🏆 {{pName(g.winner)}}</div>
+          <div class="hist-winner" v-else style="color:var(--muted);font-style:italic">Ronda {{g.round+1}} de {{g.cIds.length}} — Toca para reanudar</div>
           <div class="hist-meta">
             <div class="av-row">
               <div v-for="pid in g.pIds.slice(0,6)" :key="pid" class="av av-sm" :style="{background:pColor(pid)}">{{ini(pName(pid))}}</div>
             </div>
             <span class="hist-rnds">{{g.rounds.length}} rondas</span>
+            <button v-if="g.status==='paused'" class="icon-btn del" style="margin-left:8px" @click.stop="deleteFromHistory(g)" title="Eliminar">🗑</button>
           </div>
         </div>
       </div>
@@ -1334,6 +1371,12 @@ createApp({
     finishedGames(){
       return [...this.games].filter(g=>g.status==='finished').sort((a,b)=>new Date(b.date)-new Date(a.date));
     },
+    pausedGames(){
+      return [...this.games].filter(g=>g.status==='paused').sort((a,b)=>new Date(b.date)-new Date(a.date));
+    },
+    allHistoryGames(){
+      return [...this.games].filter(g=>g.status==='finished'||g.status==='paused').sort((a,b)=>new Date(b.date)-new Date(a.date));
+    },
 
     setupIsLibre(){
       return this.setup.gameTypeId !== 'carioca';
@@ -1414,6 +1457,11 @@ createApp({
     },
 
     startGame(){
+      // Auto-pause any active game before starting a new one
+      if(this.game){
+        this.games.push({...this.game, status:'paused', pauseDate:new Date().toISOString()});
+        this.game=null;
+      }
       const s=this.setup;
       const gt=this.gameTypes.find(g=>g.id===s.gameTypeId);
       const cIds = gt&&gt.mode==='fixed'
@@ -1533,10 +1581,32 @@ createApp({
       };
     },
 
-    abandonGame(){
+    pauseGame(){
+      if(!this.game) return;
+      this.games.push({...this.game, status:'paused', pauseDate:new Date().toISOString()});
+      this.game=null;
+      this.save();
+      this.nav('home');
+    },
+    deleteGame(){
       this.confirmDlg={
-        msg:'¿Abandonar la partida? Se perderán todos los datos.',
+        msg:'¿Eliminar la partida permanentemente? Se perderán todos los datos.',
         ok:()=>{ this.confirmDlg=null; this.game=null; this.save(); this.nav('home'); }
+      };
+    },
+    resumeGame(g){
+      if(this.game){
+        this.games.push({...this.game, status:'paused', pauseDate:new Date().toISOString()});
+      }
+      this.game={...g, status:'active'};
+      this.games=this.games.filter(x=>x.id!==g.id);
+      this.save();
+      this.nav('game');
+    },
+    deleteFromHistory(g){
+      this.confirmDlg={
+        msg:'¿Eliminar esta partida del historial?',
+        ok:()=>{ this.games=this.games.filter(x=>x.id!==g.id); this.confirmDlg=null; this.save(); }
       };
     },
 
