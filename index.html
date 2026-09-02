@@ -513,10 +513,11 @@ body{
   box-shadow:0 4px 20px rgba(0,0,0,.3);
   z-index:300;
   display:flex;align-items:center;justify-content:center;
-  transition:transform .12s;
+  transition:transform .12s, right .2s, left .2s;
   touch-action:manipulation;
 }
 .fab:active{transform:scale(.93)}
+.fab.fab-left{right:auto;left:16px}
 
 /* ── EMPTY STATE ── */
 .empty{text-align:center;padding:48px 20px;color:var(--muted)}
@@ -567,6 +568,56 @@ body{
 
 /* ── DIVIDER ── */
 .divider{height:1px;background:var(--border);margin:14px 0}
+
+/* ── DRAG HANDLE ── */
+.drag-handle{
+  font-size:18px;color:var(--muted);
+  padding:4px 2px;
+  flex-shrink:0;
+  cursor:grab;
+  user-select:none;
+  touch-action:none;
+  line-height:1;
+  opacity:.6;
+}
+.drag-handle:active{cursor:grabbing}
+.combo-drag-item{transition:background .1s,opacity .15s}
+.combo-drag-item.drag-over{
+  background:var(--green-lt);
+  border-radius:10px;
+  outline:2px solid var(--green-acc);
+  outline-offset:-1px;
+}
+.combo-drag-item.is-dragging{opacity:.35}
+
+/* ── COMBO ACTIVE TOGGLE ── */
+.combo-toggle{
+  width:42px;height:24px;
+  border-radius:12px;
+  border:none;
+  cursor:pointer;
+  position:relative;
+  flex-shrink:0;
+  transition:background .2s;
+  background:var(--border);
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+}
+.combo-toggle::after{
+  content:'';
+  position:absolute;
+  top:3px;left:3px;
+  width:18px;height:18px;
+  border-radius:50%;
+  background:#fff;
+  transition:transform .2s;
+  box-shadow:0 1px 4px rgba(0,0,0,.25);
+}
+.combo-toggle.on{background:var(--green-acc)}
+.combo-toggle.on::after{transform:translateX(18px)}
+
+.list-item.inactive{opacity:.38}
+.list-item.inactive .list-title{text-decoration:line-through;color:var(--muted)}
 </style>
 
 <div id="app">
@@ -723,15 +774,6 @@ body{
         <label class="field-label">Abreviación</label>
         <input class="inp" v-model="cModal.short" maxlength="8" placeholder="Ej: 2T+1E">
       </div>
-      <div class="field" v-if="!cModal.id">
-        <label class="field-label">Tipo de juego</label>
-        <div style="display:flex;gap:8px">
-          <span v-for="gt in gameTypes" :key="gt.id"
-            @click="cModal.gtId=gt.id"
-            :class="['btn btn-sm',cModal.gtId===gt.id?'btn-primary':'btn-muted']"
-            style="cursor:pointer">{{gt.name}}</span>
-        </div>
-      </div>
       <div class="modal-actions">
         <button class="btn btn-muted" @click="cModal.open=false">Cancelar</button>
         <button class="btn btn-primary" :disabled="!cModal.name.trim()" @click="saveCombo">Guardar</button>
@@ -867,21 +909,21 @@ body{
             </div>
           </div>
 
-          <!-- Round pills -->
-          <div v-if="game.rounds.length>0" style="margin-top:12px">
-            <div class="card-label" style="margin-bottom:6px">Rondas jugadas</div>
-            <div class="round-pills">
-              <div v-for="(r,i) in game.rounds" :key="i" class="round-pill">
-                <span class="round-pill-num">{{i+1}}</span>
-                <span class="round-pill-crown">👑</span>
-                <span>{{pName(r.winner)}}</span>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- COMBINATIONS tab (libre only) -->
         <div class="card" v-show="isLibre && gtab==='combos'">
+          <!-- Mini score summary -->
+          <div style="display:flex;gap:8px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+            <div v-for="p in sortedPlayers" :key="p.id"
+              style="flex:1;display:flex;align-items:center;gap:7px;background:var(--bg);border-radius:10px;padding:7px 10px">
+              <div class="av av-sm" :style="{background:p.color}">{{ini(p.name)}}</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{p.name}}</div>
+              </div>
+              <div style="font-size:18px;font-weight:700;font-variant-numeric:tabular-nums" :style="{color: totals[p.id]===0?'var(--green-acc)':'var(--text)'}">{{totals[p.id]}}</div>
+            </div>
+          </div>
           <div class="card-label">Estado de combinaciones</div>
           <div style="overflow-x:auto">
             <table class="libre-tbl">
@@ -913,8 +955,8 @@ body{
           </p>
         </div>
 
-        <!-- Round detail (fixed mode) -->
-        <div class="card" v-if="!isLibre && game.rounds.length>0">
+        <!-- Round detail (fixed + libre) -->
+        <div class="card" v-if="game.rounds.length>0 && (!isLibre || gtab==='scores')">
           <div class="card-label">Detalle por ronda</div>
           <div style="overflow-x:auto">
             <table class="round-tbl">
@@ -930,7 +972,7 @@ body{
                 <tr v-for="(r,i) in game.rounds" :key="i">
                   <td class="lft">
                     <span style="font-variant-numeric:tabular-nums;font-weight:600">R{{i+1}}</span>
-                    <span class="rnd-short">{{getComboShort(r.cId)}}</span>
+                    <span v-if="!isLibre" class="rnd-short">{{getComboShort(r.cId)}}</span>
                   </td>
                   <td v-for="pid in game.pIds" :key="pid"
                     :class="{win:r.winner===pid}">
@@ -947,8 +989,8 @@ body{
         </div>
       </div>
 
-      <!-- FAB -->
-      <button v-if="hasGame" class="fab" @click="openRound" title="Registrar ronda">+</button>
+      <!-- FAB: se mueve a la izquierda en pestaña Combinaciones para no tapar casillas -->
+      <button v-if="hasGame" class="fab" :class="{'fab-left': isLibre && gtab==='combos'}" @click="openRound" title="Registrar ronda">+</button>
     </section>
 
     <!-- ========= HISTORY ========= -->
@@ -1079,42 +1121,40 @@ body{
 
       <!-- COMBINATIONS -->
       <div v-show="stab==='combos'">
-        <!-- Carioca fixed -->
-        <div class="sec-hdr">
-          <span class="sec-hdr-title">Carioca (fijas)</span>
-          <button class="link-btn" @click="resetCarCombos" style="font-size:12px">Restablecer</button>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <button class="btn btn-primary btn-sm" @click="openAddCombo">+ Agregar</button>
+          <button class="link-btn" @click="resetCombos" style="font-size:12px">Restablecer</button>
         </div>
-        <div class="card">
-          <div v-for="(c,i) in cariocaCombos" :key="c.id" class="list-item">
-            <span style="font-size:12px;font-weight:700;color:var(--muted);width:18px;text-align:center;flex-shrink:0">{{i+1}}</span>
-            <span class="pip pip-current" style="font-size:10px;padding:2px 7px;flex-shrink:0">{{c.short}}</span>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.5">
+          Activa o desactiva combinaciones con el interruptor. Arrastra <strong>⠿</strong> para reordenar.
+        </p>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px">
+          {{activeCombosCount}} de {{allCombos.length}} activas
+        </div>
+        <div class="card" style="padding:4px 10px">
+          <div v-for="(c, i) in allCombos" :key="c.id"
+            class="list-item combo-drag-item"
+            :class="{inactive: c.active===false, 'drag-over': dragState.toIdx===i && dragState.fromIdx!==i && dragState.active, 'is-dragging': dragState.fromIdx===i && dragState.active}"
+            :data-combo-idx="i"
+            @dragover.prevent="dragState.toIdx=i"
+            @dragleave.self="dragState.toIdx=null"
+            @drop.prevent="dropCombo">
+            <!-- drag handle -->
+            <div class="drag-handle"
+              draggable="true"
+              @dragstart="desktopDragStart($event, i)"
+              @touchstart.prevent="touchDragStart($event, i)">⠿</div>
+            <span style="font-size:11px;font-weight:700;color:var(--muted);width:16px;text-align:center;flex-shrink:0">{{i+1}}</span>
+            <span class="pip" :class="c.active===false?'pip-open':'pip-current'" style="font-size:10px;padding:2px 7px;flex-shrink:0">{{c.short}}</span>
             <div class="list-body"><div class="list-title">{{c.name}}</div></div>
             <div class="list-acts">
+              <button class="combo-toggle" :class="{on: c.active!==false}" @click="toggleComboActive(c.id)" :title="c.active!==false?'Activa':'Inactiva'"></button>
               <button class="icon-btn" @click="openEditCombo(c.id)">✏️</button>
               <button class="icon-btn del" @click="delCombo(c.id)">🗑</button>
             </div>
           </div>
-          <div v-if="cariocaCombos.length===0" style="padding:10px 0;text-align:center;color:var(--muted);font-size:13px">
-            Sin combinaciones. <button class="link-btn" @click="resetCarCombos">Restablecer predeterminadas</button>
-          </div>
-        </div>
-
-        <!-- Libre -->
-        <div class="sec-hdr">
-          <span class="sec-hdr-title">Carioca Libre</span>
-          <button class="link-btn" @click="openAddCombo('libre')">+ Agregar</button>
-        </div>
-        <div class="card">
-          <div v-for="c in libreCombos" :key="c.id" class="list-item">
-            <span class="pip pip-done" style="font-size:10px;padding:2px 7px;flex-shrink:0">{{c.short}}</span>
-            <div class="list-body"><div class="list-title">{{c.name}}</div></div>
-            <div class="list-acts">
-              <button class="icon-btn" @click="openEditCombo(c.id)">✏️</button>
-              <button class="icon-btn del" @click="delCombo(c.id)">🗑</button>
-            </div>
-          </div>
-          <div v-if="libreCombos.length===0" style="padding:10px 0;text-align:center;color:var(--muted);font-size:13px">
-            Sin combinaciones libres. Toca "+ Agregar" para crear una.
+          <div v-if="allCombos.length===0" style="padding:16px 0;text-align:center;color:var(--muted);font-size:13px">
+            Sin combinaciones. <button class="link-btn" @click="resetCombos">Restablecer predeterminadas</button>
           </div>
         </div>
       </div>
@@ -1189,6 +1229,9 @@ createApp({
       // Confirm
       confirmDlg:null,
 
+      // Drag reorder state
+      dragState:{ active:false, fromIdx:null, toIdx:null },
+
       // History detail
       detailGame:null,
 
@@ -1262,13 +1305,23 @@ createApp({
       return this.game.doneMap||{};
     },
 
-    cariocaCombos(){
-      return this.combos.filter(c=>c.gtId==='carioca').sort((a,b)=>a.order-b.order);
+    allCombos(){
+      return [...this.combos].sort((a,b)=>(a.order||0)-(b.order||0));
     },
 
-    libreCombos(){
-      return this.combos.filter(c=>c.gtId==='libre');
+    activeCombos(){
+      return this.allCombos.filter(c=>c.active!==false);
     },
+
+    activeCombosCount(){
+      return this.activeCombos.length;
+    },
+
+    // aliases kept for backward compat with game logic
+    cariocaCombos(){ return this.allCombos; },
+    libreCombos(){ return this.activeCombos; },
+    activeCariocaCombos(){ return this.activeCombos; },
+    activeLibreCombos(){ return this.activeCombos; },
 
     finishedGames(){
       return [...this.games].filter(g=>g.status==='finished').sort((a,b)=>new Date(b.date)-new Date(a.date));
@@ -1333,7 +1386,7 @@ createApp({
       } else if(s.step===2){
         if(s.pIds.length<2) return;
         if(this.setupIsLibre){
-          if(!s.cIds.length) s.cIds=this.libreCombos.map(c=>c.id);
+          if(!s.cIds.length) s.cIds=this.activeLibreCombos.map(c=>c.id);
           s.step=3;
         } else {
           this.startGame();
@@ -1356,7 +1409,7 @@ createApp({
       const s=this.setup;
       const gt=this.gameTypes.find(g=>g.id===s.gameTypeId);
       const cIds = gt&&gt.mode==='fixed'
-        ? this.cariocaCombos.map(c=>c.id)
+        ? this.activeCariocaCombos.map(c=>c.id)
         : [...s.cIds];
 
       const doneMap={};
@@ -1531,8 +1584,62 @@ createApp({
     },
 
     // ── COMBOS ──
-    openAddCombo(gtId){
-      this.cModal={open:true,id:null,name:'',short:'',gtId:gtId||'libre'};
+    toggleComboActive(id){
+      const c=this.combos.find(x=>x.id===id);
+      if(!c) return;
+      c.active = c.active===false ? true : false;
+      this.save();
+    },
+
+    // drag reorder — desktop
+    desktopDragStart(e, idx){
+      e.dataTransfer.effectAllowed='move';
+      this.dragState={ active:true, fromIdx:idx, toIdx:idx };
+    },
+    dropCombo(){
+      this.commitDrag();
+    },
+
+    // drag reorder — touch
+    touchDragStart(e, idx){
+      this.dragState={ active:true, fromIdx:idx, toIdx:idx };
+      const self=this;
+      self._tmHandler=(ev)=>{
+        ev.preventDefault();
+        const t=ev.touches[0];
+        const el=document.elementFromPoint(t.clientX, t.clientY);
+        if(el){
+          const item=el.closest('[data-combo-idx]');
+          if(item){
+            const ti=parseInt(item.dataset.comboIdx);
+            if(!isNaN(ti)) self.dragState.toIdx=ti;
+          }
+        }
+      };
+      self._teHandler=()=>{
+        document.removeEventListener('touchmove', self._tmHandler);
+        document.removeEventListener('touchend', self._teHandler);
+        self.commitDrag();
+      };
+      document.addEventListener('touchmove', self._tmHandler, {passive:false});
+      document.addEventListener('touchend', self._teHandler);
+    },
+
+    commitDrag(){
+      const { fromIdx, toIdx }=this.dragState;
+      if(fromIdx!==null && toIdx!==null && fromIdx!==toIdx){
+        const sorted=[...this.combos].sort((a,b)=>(a.order||0)-(b.order||0));
+        const [moved]=sorted.splice(fromIdx,1);
+        sorted.splice(toIdx,0,moved);
+        sorted.forEach((c,i)=>{ c.order=i+1; });
+        this.combos=[...sorted];
+        this.save();
+      }
+      this.dragState={ active:false, fromIdx:null, toIdx:null };
+    },
+
+    openAddCombo(){
+      this.cModal={open:true,id:null,name:'',short:'',gtId:'carioca'};
     },
     openEditCombo(id){
       const c=this.combos.find(x=>x.id===id);
@@ -1545,13 +1652,13 @@ createApp({
         const c=this.combos.find(x=>x.id===this.cModal.id);
         if(c){ c.name=this.cModal.name.trim(); c.short=this.cModal.short.trim()||c.name.slice(0,4); }
       } else {
-        const maxOrder=Math.max(0,...this.combos.filter(c=>c.gtId===this.cModal.gtId).map(c=>c.order||0));
+        const maxOrder=Math.max(0,...this.combos.map(c=>c.order||0));
         this.combos.push({
           id:this.uid(),
-          gtId:this.cModal.gtId,
           order:maxOrder+1,
           name:this.cModal.name.trim(),
           short:this.cModal.short.trim()||this.cModal.name.slice(0,4),
+          active:true,
         });
       }
       this.cModal.open=false;
@@ -1563,12 +1670,11 @@ createApp({
         ok:()=>{ this.combos=this.combos.filter(c=>c.id!==id); this.save(); this.confirmDlg=null; }
       };
     },
-    resetCarCombos(){
+    resetCombos(){
       this.confirmDlg={
-        msg:'¿Restaurar las combinaciones de Carioca a los valores predeterminados?',
+        msg:'¿Restaurar todas las combinaciones a los valores predeterminados? Se perderán las combinaciones personalizadas.',
         ok:()=>{
-          this.combos=this.combos.filter(c=>c.gtId!=='carioca');
-          this.combos=[...DEF_COMBOS,...this.combos];
+          this.combos=[...DEF_COMBOS.map(c=>({...c,active:true}))];
           this.save(); this.confirmDlg=null;
         }
       };
@@ -1596,19 +1702,30 @@ createApp({
         if(!raw) return;
         const d=JSON.parse(raw);
         if(d.players) this.players=d.players;
-        if(d.combos) this.combos=d.combos;
-        else this.combos=[...DEF_COMBOS];
+        if(d.combos){
+          const loaded=d.combos.map((c,i)=>({active:true,order:i+1,...c}));
+          // re-number to ensure unique sequential orders
+          const sorted=[...loaded].sort((a,b)=>a.order-b.order);
+          sorted.forEach((c,i)=>{ c.order=i+1; });
+          this.combos=sorted;
+        } else {
+          this.combos=DEF_COMBOS.map(c=>({...c,active:true}));
+        }
         if(d.games) this.games=d.games;
         if(d.game) this.game=d.game;
         if(d.lastCfg) this.lastCfg=d.lastCfg;
       }catch(e){
-        this.combos=[...DEF_COMBOS];
+        this.combos=DEF_COMBOS.map(c=>({...c,active:true}));
       }
     },
   },
 
   mounted(){
     this.load();
+    // Cancel drag if mouse released outside a drop target
+    document.addEventListener('dragend', ()=>{
+      if(this.dragState.active) this.dragState={ active:false, fromIdx:null, toIdx:null };
+    });
   }
 }).mount('#app');
 </script>
