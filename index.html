@@ -641,15 +641,59 @@ body{
 
 .list-item.inactive{opacity:.38}
 .list-item.inactive .list-title{text-decoration:line-through;color:var(--muted)}
+
+/* ── STICKY FIRST COLUMN ── */
+.round-tbl td.lft,.round-tbl th.lft{position:sticky;left:0;background:var(--surface);z-index:1}
+.round-tbl tr.tot-row td.lft{background:var(--bg)}
+.libre-tbl td.combo-col,.libre-tbl th.combo-col{position:sticky;left:0;background:var(--surface);z-index:1;min-width:90px}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:calc(var(--nav-h) + 16px);left:50%;transform:translateX(-50%);
+  background:var(--felt-dark);color:#fff;
+  padding:10px 22px;border-radius:20px;
+  font-size:13px;font-weight:600;
+  z-index:600;pointer-events:none;white-space:nowrap;
+  box-shadow:var(--shadow-md);
+  animation:toastIn .2s ease;
+}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* ── BANNER SCORES ── */
+.banner-scores{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+.banner-score-item{display:flex;align-items:center;gap:5px}
+.banner-score-val{color:rgba(255,255,255,.9);font-size:14px;font-weight:700;font-variant-numeric:tabular-nums}
+
+/* ── NAV DIM ── */
+.nav-item-dim{opacity:.38}
+
+/* ── TOGGLE TOUCH ── */
+.toggle{touch-action:manipulation}
+.crown-btn{min-width:44px;min-height:44px;width:44px;height:44px}
+
+/* ── LIBRE PROGRESS ── */
+.libre-prog-row{display:flex;align-items:center;gap:7px;margin-top:7px}
+.libre-prog-bar-wrap{flex:1;height:4px;background:rgba(255,255,255,.15);border-radius:2px;overflow:hidden}
+.libre-prog-bar{height:100%;background:var(--gold);border-radius:2px;transition:width .4s}
+.libre-prog-pct{font-size:11px;color:rgba(255,255,255,.7);min-width:32px;text-align:right}
+
+/* ── THEME TOGGLE ── */
+.theme-btns{display:flex;gap:8px}
 </style>
 
 <div id="app">
+
+  <!-- ===== TOAST ===== -->
+  <div v-if="toast" class="toast">{{toast}}</div>
 
   <!-- ===== CONFIRM DIALOG ===== -->
   <div class="overlay" v-if="confirmDlg" @click.self="confirmDlg=null">
     <div class="modal" style="border-radius:22px;max-height:auto;margin:auto">
       <p class="confirm-msg">{{ confirmDlg.msg }}</p>
-      <div class="modal-actions">
+      <div v-if="confirmDlg.info" class="modal-actions">
+        <button class="btn btn-primary btn-block" @click="confirmDlg.ok()">Entendido</button>
+      </div>
+      <div v-else class="modal-actions">
         <button class="btn btn-muted" @click="confirmDlg=null">Cancelar</button>
         <button class="btn btn-danger" @click="confirmDlg.ok()">Confirmar</button>
       </div>
@@ -685,16 +729,19 @@ body{
 
       <!-- Step 2: players -->
       <div v-else-if="setup.step===2">
-        <h2 class="modal-title">Jugadores</h2>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <h2 class="modal-title" style="margin:0">Jugadores</h2>
+          <button class="btn btn-ghost btn-sm" @click="openAddPlayerFromSetup">+ Nuevo</button>
+        </div>
         <p class="modal-hint">Selecciona 2 o más jugadores</p>
         <div v-if="players.length===0" class="empty" style="padding:20px 0">
-          <p style="margin-bottom:12px">No hay jugadores. Ve a Ajustes para agregar.</p>
-          <button class="btn btn-ghost btn-sm" @click="closeSetup();nav('settings');stab='players'">Ir a Ajustes</button>
+          <p style="margin-bottom:12px">No hay jugadores todavía. Usa el botón "+ Nuevo" de arriba.</p>
         </div>
         <div class="player-chips" v-else>
           <div v-for="p in players" :key="p.id"
             class="player-chip" :class="{sel:setup.pIds.includes(p.id)}"
-            @click="toggleSetupPlayer(p.id)">
+            @click="toggleSetupPlayer(p.id)"
+            role="checkbox" :aria-checked="setup.pIds.includes(p.id)">
             <div class="av av-sm" :style="{background:p.color}">{{ini(p.name)}}</div>
             {{p.name}}
           </div>
@@ -743,7 +790,8 @@ body{
       <div v-for="pid in game.pIds" :key="pid" class="entry-row">
         <div class="av" :style="{background:pColor(pid)}">{{ini(pName(pid))}}</div>
         <div class="entry-name">{{pName(pid)}}</div>
-        <button class="crown-btn" :class="{on:roundWinner===pid}" @click="setWinner(pid)">
+        <button class="crown-btn" :class="{on:roundWinner===pid}" @click="setWinner(pid)"
+          :aria-pressed="roundWinner===pid" :aria-label="'Ganador: ' + pName(pid)">
           {{roundWinner===pid?'👑':'○'}}
         </button>
         <div v-if="roundWinner===pid" class="score-zero">0</div>
@@ -768,12 +816,12 @@ body{
         <label class="field-label">Nombre</label>
         <input class="inp" v-model="pModal.name" maxlength="20" placeholder="Nombre del jugador" @keyup.enter="savePlayer" autofocus>
       </div>
-      <div class="field" v-if="!pModal.id">
+      <div class="field">
         <label class="field-label">Color</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <div v-for="c in COLORS" :key="c"
             @click="pModal.color=c"
-            :style="{width:'32px',height:'32px',borderRadius:'50%',background:c,cursor:'pointer',outline:pModal.color===c?'3px solid var(--text)':'none',outlineOffset:'2px'}">
+            :style="{width:'36px',height:'36px',borderRadius:'50%',background:c,cursor:'pointer',outline:pModal.color===c?'3px solid var(--text)':'none',outlineOffset:'2px'}">
           </div>
         </div>
       </div>
@@ -819,6 +867,7 @@ body{
   <!-- game overflow menu -->
   <div v-if="showMenu" style="position:fixed;inset:0;z-index:250" @click="showMenu=false">
     <div class="game-menu" @click.stop>
+      <button class="gm-item" @click="showMenu=false;undoLastRound()" :disabled="!hasGame||!game.rounds.length" style="opacity:1" :style="{opacity:hasGame&&game.rounds.length?1:.4}">↩ Deshacer última ronda</button>
       <button class="gm-item" @click="showMenu=false;manualFinish()">🏁 Terminar partida ahora</button>
       <button class="gm-item" @click="showMenu=false;pauseGame()">⏸ Pausar partida</button>
       <button class="gm-item danger" @click="showMenu=false;deleteGame()">🗑 Eliminar partida</button>
@@ -837,6 +886,12 @@ body{
           <div class="banner-lbl">Partida activa ahora</div>
           <div class="banner-title">{{gameTypeName(game.gtId)}}</div>
           <div class="banner-meta">Ronda {{game.round+1}} · {{game.pIds.length}} jugadores</div>
+          <div class="banner-scores">
+            <div v-for="pid in game.pIds.slice(0,5)" :key="pid" class="banner-score-item">
+              <div class="av av-sm" :style="{background:pColor(pid)}">{{ini(pName(pid))}}</div>
+              <span class="banner-score-val">{{totals[pid]||0}}</span>
+            </div>
+          </div>
         </div>
         <div class="banner-arrow">▶</div>
       </div>
@@ -856,6 +911,9 @@ body{
           <button class="btn btn-primary btn-sm" @click="resumeGame(g)">Reanudar</button>
         </div>
       </div>
+
+      <!-- Quick start -->
+      <button v-if="canQuickStart" class="btn btn-ghost btn-block" style="margin-bottom:8px" @click="quickStart">🔄 Repetir última configuración</button>
 
       <!-- New game CTA -->
       <button class="btn btn-primary btn-block" style="font-size:16px;padding:16px;margin-bottom:14px" @click="openSetup">🎴 Nueva partida</button>
@@ -923,6 +981,15 @@ body{
           <div class="combo-hero-num">Carioca Libre</div>
           <div class="combo-hero-short" style="font-size:28px">Ronda {{game.round+1}}</div>
           <div class="combo-hero-name">{{game.cIds.length}} combinaciones activas</div>
+          <div style="margin-top:10px">
+            <div v-for="pid in game.pIds.slice(0,4)" :key="pid" class="libre-prog-row">
+              <div class="av av-sm" :style="{background:pColor(pid),flex-shrink:0}">{{ini(pName(pid))}}</div>
+              <div class="libre-prog-bar-wrap">
+                <div class="libre-prog-bar" :style="{width: libreProgress(pid) + '%'}"></div>
+              </div>
+              <span class="libre-prog-pct">{{(game.doneMap[pid]||[]).length}}/{{game.cIds.length}}</span>
+            </div>
+          </div>
         </div>
 
         <!-- Tabs for libre mode -->
@@ -982,7 +1049,12 @@ body{
                   </td>
                   <td v-for="pid in game.pIds" :key="pid">
                     <div class="toggle" :class="{on:combosDone[pid]&&combosDone[pid].includes(c.id)}"
-                      @click="toggleComboDone(pid,c.id)">
+                      @click="toggleComboDone(pid,c.id)"
+                      role="checkbox"
+                      :aria-checked="!!(combosDone[pid]&&combosDone[pid].includes(c.id))"
+                      :aria-label="c.name + ' - ' + pName(pid)"
+                      tabindex="0"
+                      @keydown.space.prevent="toggleComboDone(pid,c.id)">
                       {{combosDone[pid]&&combosDone[pid].includes(c.id)?'✓':''}}
                     </div>
                   </td>
@@ -1038,7 +1110,10 @@ body{
 
       <!-- Detail view -->
       <div v-if="detailGame">
-        <button class="btn btn-muted btn-sm" style="margin-bottom:12px" @click="detailGame=null">← Volver</button>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <button class="btn btn-muted btn-sm" @click="detailGame=null">← Volver</button>
+          <button class="btn btn-ghost btn-sm" @click="shareGame(detailGame)">🔗 Compartir</button>
+        </div>
         <div class="card">
           <div class="hist-top" style="margin-bottom:12px">
             <span class="type-tag">{{gameTypeName(detailGame.gtId)}}</span>
@@ -1115,6 +1190,17 @@ body{
           <div class="empty-title">Sin historial</div>
           <p>Tus partidas aparecerán aquí</p>
         </div>
+        <!-- Player stats -->
+        <div class="card" v-if="topPlayers.length>0" style="margin-bottom:12px">
+          <div class="card-label">Estadísticas de jugadores</div>
+          <div v-for="p in topPlayers" :key="p.id" class="score-row">
+            <div class="av av-sm" :style="{background:p.color}">{{ini(p.name)}}</div>
+            <div class="score-name" style="font-size:14px">{{p.name}}</div>
+            <div style="font-size:12px;color:var(--muted)">{{p.wins}}G / {{p.games}}J</div>
+            <div class="score-val" style="font-size:16px;min-width:44px">{{p.winRate}}%</div>
+          </div>
+        </div>
+
         <div v-for="g in allHistoryGames" :key="g.id"
           class="hist-item"
           @click="g.status==='paused' ? resumeGame(g) : viewGame(g)">
@@ -1140,6 +1226,15 @@ body{
 
     <!-- ========= SETTINGS ========= -->
     <section class="view" v-show="view==='settings'">
+      <!-- Theme toggle -->
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-label">Apariencia</div>
+        <div class="theme-btns">
+          <button class="btn btn-sm" :class="theme==='auto'?'btn-primary':'btn-muted'" @click="setTheme('auto')">Auto</button>
+          <button class="btn btn-sm" :class="theme==='light'?'btn-primary':'btn-muted'" @click="setTheme('light')">☀️ Claro</button>
+          <button class="btn btn-sm" :class="theme==='dark'?'btn-primary':'btn-muted'" @click="setTheme('dark')">🌙 Oscuro</button>
+        </div>
+      </div>
       <div class="tabs">
         <div class="tab" :class="{on:stab==='players'}" @click="stab='players'">Jugadores</div>
         <div class="tab" :class="{on:stab==='combos'}" @click="stab='combos'">Combinaciones</div>
@@ -1194,7 +1289,9 @@ body{
             <span class="pip" :class="c.active===false?'pip-open':'pip-current'" style="font-size:10px;padding:2px 7px;flex-shrink:0">{{c.short}}</span>
             <div class="list-body"><div class="list-title">{{c.name}}</div></div>
             <div class="list-acts">
-              <button class="combo-toggle" :class="{on: c.active!==false}" @click="toggleComboActive(c.id)" :title="c.active!==false?'Activa':'Inactiva'"></button>
+              <button class="combo-toggle" :class="{on: c.active!==false}" @click="toggleComboActive(c.id)"
+            role="switch" :aria-checked="c.active!==false" :aria-label="c.name"
+            :title="c.active!==false?'Activa':'Inactiva'"></button>
               <button class="icon-btn" @click="openEditCombo(c.id)">✏️</button>
               <button class="icon-btn del" @click="delCombo(c.id)">🗑</button>
             </div>
@@ -1209,17 +1306,17 @@ body{
   </main>
 
   <!-- ===== BOTTOM NAV ===== -->
-  <nav class="bot-nav">
-    <div class="nav-item" :class="{active:view==='home'}" @click="nav('home')">
+  <nav class="bot-nav" role="tablist">
+    <div class="nav-item" :class="{active:view==='home'}" @click="nav('home')" role="tab" :aria-selected="view==='home'" aria-label="Inicio">
       <span class="nav-icon">🏠</span>Inicio
     </div>
-    <div class="nav-item" :class="{active:view==='game'}" @click="nav('game')">
+    <div class="nav-item" :class="{active:view==='game','nav-item-dim':!hasGame}" @click="nav('game')" role="tab" :aria-selected="view==='game'" aria-label="Partida">
       <span class="nav-icon" style="position:relative">🎴<span v-if="hasGame" class="nav-dot"></span></span>Partida
     </div>
-    <div class="nav-item" :class="{active:view==='history'}" @click="nav('history')">
+    <div class="nav-item" :class="{active:view==='history'}" @click="nav('history')" role="tab" :aria-selected="view==='history'" aria-label="Historial">
       <span class="nav-icon">📋</span>Historial
     </div>
-    <div class="nav-item" :class="{active:view==='settings'}" @click="nav('settings')">
+    <div class="nav-item" :class="{active:view==='settings'}" @click="nav('settings')" role="tab" :aria-selected="view==='settings'" aria-label="Ajustes">
       <span class="nav-icon">⚙️</span>Ajustes
     </div>
   </nav>
@@ -1277,11 +1374,17 @@ createApp({
       // Confirm
       confirmDlg:null,
 
+      // Toast
+      toast:null,
+
       // Drag reorder state
       dragState:{ active:false, fromIdx:null, toIdx:null },
 
       // History detail
       detailGame:null,
+
+      // Theme
+      theme:'auto',
 
       // Persisted
       players:[],
@@ -1390,6 +1493,31 @@ createApp({
       if(this.curCombo) return this.curCombo.name;
       return 'Ronda '+(this.game.round+1);
     },
+
+    canQuickStart(){
+      if(!this.lastCfg||!this.lastCfg.pIds||this.lastCfg.pIds.length<2) return false;
+      return this.lastCfg.pIds.every(id=>this.players.some(p=>p.id===id));
+    },
+
+    playerStats(){
+      const stats={};
+      for(const p of this.players) stats[p.id]={wins:0,games:0};
+      for(const g of this.finishedGames){
+        for(const pid of g.pIds){
+          if(!stats[pid]) stats[pid]={wins:0,games:0};
+          stats[pid].games++;
+          if(g.winner===pid) stats[pid].wins++;
+        }
+      }
+      return stats;
+    },
+
+    topPlayers(){
+      return this.players
+        .filter(p=>this.playerStats[p.id]&&this.playerStats[p.id].games>0)
+        .map(p=>({...p,...this.playerStats[p.id],winRate:Math.round((this.playerStats[p.id].wins/this.playerStats[p.id].games)*100)}))
+        .sort((a,b)=>b.winRate-a.winRate||b.wins-a.wins);
+    },
   },
 
   methods:{
@@ -1418,7 +1546,17 @@ createApp({
       return c?c.short:'';
     },
     fDate(d){
-      return new Date(d).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'});
+      const dt=new Date(d);
+      const now=new Date();
+      if(dt.toDateString()===now.toDateString()){
+        return 'hoy '+dt.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
+      }
+      return dt.toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'});
+    },
+
+    libreProgress(pid){
+      if(!this.hasGame||!this.game.doneMap||!this.game.cIds.length) return 0;
+      return Math.round(((this.game.doneMap[pid]||[]).length/this.game.cIds.length)*100);
     },
 
     // ── SETUP ──
@@ -1509,14 +1647,32 @@ createApp({
     },
     saveRound(){
       if(!this.hasGame) return;
+
+      // Auto-detect winner from score 0 if none explicitly chosen
+      let winner=this.roundWinner;
+      if(!winner){
+        const zeros=this.game.pIds.filter(pid=>(parseInt(this.roundScores[pid])||0)===0);
+        if(zeros.length===1){
+          winner=zeros[0];
+          this.roundWinner=winner;
+        } else if(zeros.length>1){
+          this.confirmDlg={info:true,msg:'⚠️ Varios jugadores tienen puntuación 0. En Carioca solo el ganador puede tener 0. Por favor completa las puntuaciones.',ok:()=>{this.confirmDlg=null;}};
+          return;
+        } else {
+          this.confirmDlg={info:true,msg:'⚠️ Ningún jugador tiene puntuación 0. Toca la corona 👑 del ganador de la ronda.',ok:()=>{this.confirmDlg=null;}};
+          return;
+        }
+      }
+
       const scores={};
       for(const pid of this.game.pIds){
-        scores[pid]=pid===this.roundWinner ? 0 : (parseInt(this.roundScores[pid])||0);
+        scores[pid]=pid===winner ? 0 : (parseInt(this.roundScores[pid])||0);
       }
+      const roundNum=this.game.round+1;
       this.game.rounds.push({
-        roundNum:this.game.round+1,
+        roundNum,
         cId:this.curCombo?this.curCombo.id:null,
-        winner:this.roundWinner,
+        winner,
         scores,
       });
 
@@ -1545,6 +1701,7 @@ createApp({
       }
 
       this.showRound=false;
+      this.showToast('Ronda '+roundNum+' guardada ✓');
       this.save();
     },
 
@@ -1650,10 +1807,16 @@ createApp({
       if(!this.pModal.name.trim()) return;
       if(this.pModal.id){
         const p=this.players.find(x=>x.id===this.pModal.id);
-        if(p){ p.name=this.pModal.name.trim(); }
+        if(p){ p.name=this.pModal.name.trim(); p.color=this.pModal.color; }
       } else {
-        this.players.push({id:this.uid(),name:this.pModal.name.trim(),color:this.pModal.color});
+        const newId=this.uid();
+        this.players.push({id:newId,name:this.pModal.name.trim(),color:this.pModal.color});
+        // Auto-select in setup step 2 if opened from there
+        if(this._setupReturn&&this.setup.step>0){
+          this.setup.pIds.push(newId);
+        }
       }
+      this._setupReturn=false;
       this.pModal.open=false;
       this.save();
     },
@@ -1662,6 +1825,74 @@ createApp({
         msg:'¿Eliminar este jugador?',
         ok:()=>{ this.players=this.players.filter(p=>p.id!==id); this.save(); this.confirmDlg=null; }
       };
+    },
+
+    openAddPlayerFromSetup(){
+      this._setupReturn=true;
+      const colorIdx=this.players.length%COLORS.length;
+      this.pModal={open:true,id:null,name:'',color:COLORS[colorIdx]};
+    },
+
+    undoLastRound(){
+      if(!this.hasGame||!this.game.rounds.length) return;
+      this.game.rounds.pop();
+      if(this.game.round>0) this.game.round--;
+      this.showToast('Última ronda deshecha');
+      this.save();
+    },
+
+    quickStart(){
+      const cfg=this.lastCfg;
+      if(!cfg||cfg.pIds.length<2) return;
+      if(this.game){
+        this.games.push({...this.game,status:'paused',pauseDate:new Date().toISOString()});
+        this.game=null;
+      }
+      const gt=this.gameTypes.find(g=>g.id===cfg.gtId);
+      const cIds=gt&&gt.mode==='fixed'
+        ? this.activeCariocaCombos.map(c=>c.id)
+        : [...(cfg.cIds||[])].filter(id=>this.combos.some(c=>c.id===id));
+      const doneMap={};
+      if(gt&&gt.mode!=='fixed'){
+        for(const pid of cfg.pIds) doneMap[pid]=[];
+      }
+      this.game={
+        id:this.uid(),date:new Date().toISOString(),
+        gtId:cfg.gtId,pIds:[...cfg.pIds],cIds,
+        rounds:[],doneMap,round:0,status:'active',winner:null,final:null,
+      };
+      this.save();
+      this.nav('game');
+    },
+
+    showToast(msg){
+      this.toast=msg;
+      clearTimeout(this._toastTimer);
+      this._toastTimer=setTimeout(()=>{this.toast=null;},2200);
+    },
+
+    async shareGame(g){
+      if(!g) return;
+      const winner=this.pName(g.winner);
+      const players=g.pIds.map(pid=>`${this.pName(pid)}: ${(g.final||{})[pid]||0} pts`).join('\n');
+      const text=`🃏 Carioca – ${this.gameTypeName(g.gtId)}\n🏆 Ganador: ${winner}\n\n${players}\n\n${g.rounds.length} rondas jugadas`;
+      if(navigator.share){
+        try{ await navigator.share({title:'Carioca',text}); }catch(e){}
+      } else {
+        try{
+          await navigator.clipboard.writeText(text);
+          this.showToast('Resultado copiado ✓');
+        }catch(e){ this.showToast('No se pudo copiar'); }
+      }
+    },
+
+    setTheme(t){
+      this.theme=t;
+      localStorage.setItem('carioca_theme',t);
+      const r=document.documentElement;
+      if(t==='dark') r.setAttribute('data-theme','dark');
+      else if(t==='light') r.setAttribute('data-theme','light');
+      else r.removeAttribute('data-theme');
     },
 
     // ── COMBOS ──
@@ -1858,10 +2089,40 @@ createApp({
 
   mounted(){
     this.load();
+
+    // Apply saved theme
+    const savedTheme=localStorage.getItem('carioca_theme')||'auto';
+    this.theme=savedTheme;
+    const r=document.documentElement;
+    if(savedTheme==='dark') r.setAttribute('data-theme','dark');
+    else if(savedTheme==='light') r.setAttribute('data-theme','light');
+
     // Cancel drag if mouse released outside a drop target
     document.addEventListener('dragend', ()=>{
       if(this.dragState.active) this.dragState={ active:false, fromIdx:null, toIdx:null };
     });
+
+    // Swipe navigation (#17)
+    const views=['home','game','history','settings'];
+    let sx=null,sy=null;
+    const content=document.querySelector('.content');
+    if(content){
+      content.addEventListener('touchstart',(e)=>{
+        if(e.target.closest('.overlay,.modal,.libre-tbl,.round-tbl,.drag-handle')) return;
+        sx=e.touches[0].clientX; sy=e.touches[0].clientY;
+      },{passive:true});
+      content.addEventListener('touchend',(e)=>{
+        if(sx===null) return;
+        const dx=e.changedTouches[0].clientX-sx;
+        const dy=e.changedTouches[0].clientY-sy;
+        if(Math.abs(dx)>70&&Math.abs(dx)>Math.abs(dy)*1.5){
+          const cur=views.indexOf(this.view);
+          if(dx<0&&cur<views.length-1) this.nav(views[cur+1]);
+          else if(dx>0&&cur>0) this.nav(views[cur-1]);
+        }
+        sx=null;
+      },{passive:true});
+    }
   }
 }).mount('#app');
 </script>
