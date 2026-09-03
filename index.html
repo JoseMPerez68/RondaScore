@@ -1933,10 +1933,11 @@ createApp({
     },
 
     async installApp(){
-      if(!this.installPrompt) return;
-      this.installPrompt.prompt();
-      const {outcome} = await this.installPrompt.userChoice;
-      this.installPrompt = null;
+      if(!this._installPrompt) return;
+      this._installPrompt.prompt();
+      const {outcome} = await this._installPrompt.userChoice;
+      this._installPrompt = null;
+      this.installPrompt = false;
       if(outcome==='accepted') this.showToast('¡App instalada!');
     },
 
@@ -2154,12 +2155,16 @@ createApp({
     this.load();
 
     // Capturar prompt de instalación PWA
+    // _installPrompt se guarda fuera de la reactividad de Vue para que
+    // Brave/Chrome reciban el objeto nativo (no un Proxy) al llamar .prompt()
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault();
-      this.installPrompt = e;
+      this._installPrompt = e;   // referencia nativa, sin reactividad
+      this.installPrompt = true; // flag reactivo solo para mostrar el banner
     });
     window.addEventListener('appinstalled', () => {
-      this.installPrompt = null;
+      this._installPrompt = null;
+      this.installPrompt = false;
     });
 
     // Apply saved theme
