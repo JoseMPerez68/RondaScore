@@ -1476,7 +1476,7 @@ body{
         </div>
 
         <!-- Libre combinations -->
-        <div class="card" v-if="detailGame.gtId!=='carioca'&&detailGame.doneMap">
+        <div class="card" v-if="gameTypes.find(x=>x.id===detailGame.gtId)&&gameTypes.find(x=>x.id===detailGame.gtId).mode==='libre'&&detailGame.doneMap">
           <div class="card-label">Combinaciones completadas</div>
           <div v-for="pid in detailGame.pIds" :key="pid" style="margin-bottom:14px">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
@@ -1530,9 +1530,12 @@ body{
           </div>
         </div>
         <!-- Player stats -->
-        <div class="card" v-if="topPlayers.length>0&&!histFilterPlayer&&!histFilterType" style="margin-bottom:12px">
-          <div class="card-label">Estadísticas de jugadores</div>
-          <div v-for="p in topPlayers" :key="p.id" class="score-row">
+        <div class="card" v-if="filteredTopPlayers.length>0" style="margin-bottom:12px">
+          <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:10px">
+            <div class="card-label" style="margin:0">Estadísticas de jugadores</div>
+            <span v-if="histFilterPlayer||histFilterType" style="font-size:11px;color:var(--muted)">(selección)</span>
+          </div>
+          <div v-for="p in filteredTopPlayers" :key="p.id" class="score-row">
             <div class="av av-sm" :style="{background:p.color}">{{ini(p.name)}}</div>
             <div class="score-name" style="font-size:14px">{{p.name}}</div>
             <div style="font-size:12px;color:var(--muted)">{{p.wins}}G / {{p.games}}J</div>
@@ -1985,6 +1988,21 @@ createApp({
       return this.players
         .filter(p=>this.playerStats[p.id]&&this.playerStats[p.id].games>0)
         .map(p=>({...p,...this.playerStats[p.id],winRate:Math.round((this.playerStats[p.id].wins/this.playerStats[p.id].games)*100)}))
+        .sort((a,b)=>b.winRate-a.winRate||b.wins-a.wins);
+    },
+    filteredTopPlayers(){
+      const stats={};
+      const finished=this.filteredHistoryGames.filter(g=>g.status==='finished');
+      for(const g of finished){
+        for(const pid of g.pIds){
+          if(!stats[pid]) stats[pid]={wins:0,games:0};
+          stats[pid].games++;
+          if(g.winner===pid) stats[pid].wins++;
+        }
+      }
+      return this.players
+        .filter(p=>stats[p.id]&&stats[p.id].games>0)
+        .map(p=>({...p,...stats[p.id],winRate:Math.round((stats[p.id].wins/stats[p.id].games)*100)}))
         .sort((a,b)=>b.winRate-a.winRate||b.wins-a.wins);
     },
 
