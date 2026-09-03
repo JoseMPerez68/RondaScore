@@ -673,6 +673,23 @@ body{
   padding:5px 14px;border-radius:14px;font-size:12px;font-weight:700;cursor:pointer;
 }
 
+/* ── INSTALL BANNER ── */
+.install-banner{
+  position:fixed;bottom:calc(var(--nav-h) + 12px);left:12px;right:12px;
+  background:var(--card-bg);border:1.5px solid var(--accent);border-radius:18px;
+  padding:14px 16px;display:flex;align-items:center;gap:12px;
+  box-shadow:var(--shadow-md);z-index:650;
+  animation:toastIn .25s ease;
+}
+.install-banner-icon{font-size:28px;flex-shrink:0}
+.install-banner-text{flex:1;min-width:0}
+.install-banner-text strong{display:block;font-size:14px;font-weight:700;color:var(--text)}
+.install-banner-text span{font-size:12px;color:var(--text-muted)}
+.install-banner-actions{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.install-banner-actions button{border:none;border-radius:12px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer}
+.install-banner-btn{background:var(--accent);color:#fff}
+.install-banner-dismiss{background:transparent;color:var(--text-muted)}
+
 /* ── BANNER SCORES ── */
 .banner-scores{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
 .banner-score-item{display:flex;align-items:center;gap:5px}
@@ -701,6 +718,19 @@ body{
   <div v-if="swUpdate" class="sw-update-bar">
     <span>🆕 Nueva versión disponible</span>
     <button @click="updateApp">Actualizar</button>
+  </div>
+
+  <!-- ===== INSTALL BANNER ===== -->
+  <div v-if="installPrompt" class="install-banner">
+    <div class="install-banner-icon">🃏</div>
+    <div class="install-banner-text">
+      <strong>Instalar Carioca</strong>
+      <span>Accede directo desde tu pantalla de inicio</span>
+    </div>
+    <div class="install-banner-actions">
+      <button class="install-banner-btn" @click="installApp">Instalar</button>
+      <button class="install-banner-dismiss" @click="installPrompt=null">Ahora no</button>
+    </div>
   </div>
 
   <!-- ===== TOAST ===== -->
@@ -1386,6 +1416,9 @@ createApp({
       // SW update
       swUpdate:null,
 
+      // PWA install prompt
+      installPrompt:null,
+
       // Drag reorder state
       dragState:{ active:false, fromIdx:null, toIdx:null },
 
@@ -1899,6 +1932,14 @@ createApp({
       }
     },
 
+    async installApp(){
+      if(!this.installPrompt) return;
+      this.installPrompt.prompt();
+      const {outcome} = await this.installPrompt.userChoice;
+      this.installPrompt = null;
+      if(outcome==='accepted') this.showToast('¡App instalada!');
+    },
+
     updateApp(){
       if(this.swUpdate){
         // Esperar que el nuevo SW tome control, luego recargar
@@ -2111,6 +2152,15 @@ createApp({
 
   mounted(){
     this.load();
+
+    // Capturar prompt de instalación PWA
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      this.installPrompt = e;
+    });
+    window.addEventListener('appinstalled', () => {
+      this.installPrompt = null;
+    });
 
     // Apply saved theme
     const savedTheme=localStorage.getItem('carioca_theme')||'auto';
