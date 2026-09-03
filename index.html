@@ -1330,7 +1330,7 @@ body{
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.21/vue.global.prod.min.js"
-  integrity="sha384-xscEkekms/SQq5SFOOIcbfflRgUup5sdW1duER21mIKxWcHi9Xyv37aIOSrCepJf"
+  integrity="sha384-wdamyDHEiblYHsu/XTokGtIeFekZu7xN37Yvkl0NZ7PnhwRB+nwE1ByT7VlwiypE"
   crossorigin="anonymous"></script>
 <script>
 const { createApp } = Vue;
@@ -1897,9 +1897,11 @@ createApp({
 
     updateApp(){
       if(this.swUpdate){
+        // Esperar que el nuevo SW tome control, luego recargar
+        navigator.serviceWorker.addEventListener('controllerchange',
+          () => window.location.reload(), { once: true });
         this.swUpdate.postMessage('skipWaiting');
       }
-      window.location.reload();
     },
 
     setTheme(t){
@@ -2165,12 +2167,6 @@ if ('serviceWorker' in navigator) {
         });
       });
     }).catch(err => console.warn('SW registro fallido:', err));
-
-    // Cuando el SW activa (skipWaiting), recargar todas las pestañas
-    let refreshing = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!refreshing) { refreshing = true; window.location.reload(); }
-    });
   });
 }
 </script>

@@ -14,7 +14,8 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_VERSION)
       .then(cache => cache.addAll(ASSETS))
-      .then(() => self.skipWaiting()) // activa inmediatamente
+    // NO llamamos skipWaiting aquí: en primera instalación el SW activa solo;
+    // en actualizaciones esperamos que el usuario confirme desde la app.
   );
 });
 
@@ -37,22 +38,9 @@ self.addEventListener('fetch', event => {
   // Solo GET
   if (req.method !== 'GET') return;
 
-  // CDN externos (Vue, Google Fonts): cache-first, sin expirar
-  if (url.origin !== location.origin) {
-    event.respondWith(
-      caches.match(req).then(cached => {
-        if (cached) return cached;
-        return fetch(req).then(res => {
-          if (res.ok) {
-            const clone = res.clone();
-            caches.open(CACHE_VERSION).then(c => c.put(req, clone));
-          }
-          return res;
-        }).catch(() => cached);
-      })
-    );
-    return;
-  }
+  // CDN externos (Vue, Google Fonts): NO interceptar — el browser los maneja
+  // (evita conflictos con connect-src CSP y simplifica la estrategia)
+  if (url.origin !== location.origin) return;
 
   // index.html: network-first para detectar actualizaciones
   if (url.pathname.endsWith('/') || url.pathname.endsWith('index.html')) {
