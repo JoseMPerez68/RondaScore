@@ -1813,13 +1813,17 @@ createApp({
       this.pModal={open:true,id,name:p.name,color:p.color};
     },
     savePlayer(){
-      if(!this.pModal.name.trim()) return;
+      const trimmed=this.pModal.name.trim();
+      if(!trimmed) return;
+      // Validar nombre duplicado (ignorar mayúsculas, ignorar el propio jugador al editar)
+      const dup=this.players.find(x=>x.name.trim().toLowerCase()===trimmed.toLowerCase()&&x.id!==this.pModal.id);
+      if(dup){ this.showToast('Ya existe un jugador con ese nombre'); return; }
       if(this.pModal.id){
         const p=this.players.find(x=>x.id===this.pModal.id);
-        if(p){ p.name=this.pModal.name.trim(); p.color=this.pModal.color; }
+        if(p){ p.name=trimmed; p.color=this.pModal.color; }
       } else {
         const newId=this.uid();
-        this.players.push({id:newId,name:this.pModal.name.trim(),color:this.pModal.color});
+        this.players.push({id:newId,name:trimmed,color:this.pModal.color});
         // Auto-select in setup step 2 if opened from there
         if(this._setupReturn&&this.setup.step>0){
           this.setup.pIds.push(newId);
