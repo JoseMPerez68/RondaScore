@@ -1932,13 +1932,16 @@ createApp({
       }
     },
 
-    async installApp(){
+    installApp(){
       if(!this._installPrompt) return;
-      this._installPrompt.prompt();
-      const {outcome} = await this._installPrompt.userChoice;
+      const p = this._installPrompt;
       this._installPrompt = null;
       this.installPrompt = false;
-      if(outcome==='accepted') this.showToast('¡App instalada!');
+      // Llamar prompt() sincrónicamente dentro del gesture handler
+      p.prompt();
+      p.userChoice.then(({outcome}) => {
+        if(outcome==='accepted') this.showToast('¡App instalada!');
+      }).catch(()=>{});
     },
 
     updateApp(){
