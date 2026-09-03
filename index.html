@@ -1365,6 +1365,10 @@ body{
 <script>
 const { createApp } = Vue;
 
+// Variable de módulo para el prompt de instalación PWA
+// (fuera del sistema reactivo de Vue para evitar proxying)
+let _pwaInstallPrompt = null;
+
 const DEF_COMBOS = [
   {id:'c1',gtId:'carioca',order:1,name:'Dos tríos',short:'2T'},
   {id:'c2',gtId:'carioca',order:2,name:'Un trío y una escalera',short:'1T+1E'},
@@ -1933,17 +1937,16 @@ createApp({
     },
 
     installApp(){
-      if(!this._installPrompt) return;
-      const p = this._installPrompt;
+      if(!_pwaInstallPrompt) return;
+      const p = _pwaInstallPrompt;
       this.showToast('Abriendo instalación…');
-      // prompt() PRIMERO, antes de cualquier cambio de estado o re-render
       p.prompt();
       p.userChoice.then(({outcome}) => {
-        this._installPrompt = null;
+        _pwaInstallPrompt = null;
         this.installPrompt = false;
         if(outcome==='accepted') this.showToast('¡App instalada!');
       }).catch(()=>{
-        this._installPrompt = null;
+        _pwaInstallPrompt = null;
         this.installPrompt = false;
       });
     },
@@ -2161,16 +2164,14 @@ createApp({
   mounted(){
     this.load();
 
-    // Capturar prompt de instalación PWA
-    // _installPrompt se guarda fuera de la reactividad de Vue para que
-    // Brave/Chrome reciban el objeto nativo (no un Proxy) al llamar .prompt()
+    // Capturar prompt de instalación PWA en variable de módulo (fuera de Vue)
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault();
-      this._installPrompt = e;   // referencia nativa, sin reactividad
+      _pwaInstallPrompt = e;     // variable de módulo, sin proxy de Vue
       this.installPrompt = true; // flag reactivo solo para mostrar el banner
     });
     window.addEventListener('appinstalled', () => {
-      this._installPrompt = null;
+      _pwaInstallPrompt = null;
       this.installPrompt = false;
     });
 
