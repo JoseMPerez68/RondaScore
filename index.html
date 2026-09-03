@@ -858,7 +858,7 @@ body{
     <div class="hdr-titles">
       <div class="hdr-main">Carioca</div>
       <div class="hdr-sub" v-if="hasGame">
-        {{gameTypeName(game.gtId)}} · Ronda {{game.round+1}}/{{game.cIds.length}}
+        {{gameTypeName(game.gtId)}} · Ronda {{game.round+1}}<span v-if="!isLibre">/{{game.cIds.length}}</span>
       </div>
     </div>
     <button v-if="view==='game' && hasGame" class="hdr-btn" @click="showMenu=!showMenu">⋮</button>
@@ -918,25 +918,6 @@ body{
       <!-- New game CTA -->
       <button class="btn btn-primary btn-block" style="font-size:16px;padding:16px;margin-bottom:14px" @click="openSetup">🎴 Nueva partida</button>
 
-      <!-- Players card -->
-      <div class="card" v-if="players.length>0">
-        <div class="card-label">Jugadores</div>
-        <div class="home-players">
-          <div v-for="p in players.slice(0,8)" :key="p.id" class="home-player">
-            <div class="av" :style="{background:p.color}">{{ini(p.name)}}</div>
-            <div class="home-player-name">{{p.name}}</div>
-          </div>
-        </div>
-        <button v-if="hasGame" class="btn btn-ghost btn-sm btn-block" style="margin-top:12px" @click="nav('game')">Ir a la partida →</button>
-      </div>
-      <div class="card" v-else>
-        <div class="empty" style="padding:12px 0">
-          <div class="empty-ico">🃏</div>
-          <div class="empty-title">¡Bienvenido!</div>
-          <p style="margin-bottom:16px">Agrega jugadores para comenzar</p>
-          <button class="btn btn-primary btn-sm" @click="nav('settings');stab='players'">Configurar jugadores</button>
-        </div>
-      </div>
 
       <!-- Recent history -->
       <template v-if="finishedGames.length>0">
@@ -1000,7 +981,10 @@ body{
 
         <!-- SCORES tab -->
         <div class="card" v-show="!isLibre || gtab==='scores'">
-          <div class="card-label">Puntuación acumulada</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div class="card-label" style="margin:0">Puntuación acumulada</div>
+            <button class="btn btn-primary btn-sm" @click="openRound">+ Registrar ronda</button>
+          </div>
           <div class="score-rows">
             <div v-for="(p,i) in sortedPlayers" :key="p.id" class="score-row">
               <span class="score-rank">
@@ -1031,7 +1015,10 @@ body{
               <div style="font-size:18px;font-weight:700;font-variant-numeric:tabular-nums" :style="{color: totals[p.id]===0?'var(--green-acc)':'var(--text)'}">{{totals[p.id]}}</div>
             </div>
           </div>
-          <div class="card-label">Estado de combinaciones</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div class="card-label" style="margin:0">Estado de combinaciones</div>
+            <button class="btn btn-primary btn-sm" @click="openRound">+ Registrar ronda</button>
+          </div>
           <div style="overflow-x:auto">
             <table class="libre-tbl">
               <thead>
@@ -1102,7 +1089,6 @@ body{
       </div>
 
       <!-- FAB: se mueve a la izquierda en pestaña Combinaciones para no tapar casillas -->
-      <button v-if="hasGame" class="fab" :class="{'fab-left': isLibre && gtab==='combos'}" @click="openRound" title="Registrar ronda">+</button>
     </section>
 
     <!-- ========= HISTORY ========= -->
@@ -1324,7 +1310,7 @@ body{
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.21/vue.global.prod.min.js"
-  integrity="sha384-wdamyDHEiblYHsu/XTokGtIeFekZu7xN37Yvkl0NZ7PnhwRB+nwE1ByT7VlwiypE"
+  integrity="sha384-xscEkekms/SQq5SFOOIcbfflRgUup5sdW1duER21mIKxWcHi9Xyv37aIOSrCepJf"
   crossorigin="anonymous"></script>
 <script>
 const { createApp } = Vue;
@@ -1993,7 +1979,7 @@ createApp({
     },
 
     // ── HISTORY ──
-    viewGame(g){ this.detailGame=g; this.nav('history'); },
+    viewGame(g){ this.view='history'; this.showMenu=false; this.detailGame=g; },
     sortedPlayersOfGame(g){
       if(!g) return [];
       const f=g.final||{};
