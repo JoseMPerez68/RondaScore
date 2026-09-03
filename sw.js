@@ -1,6 +1,6 @@
 // ── CARIOCA SERVICE WORKER ──
 // Cambiar CACHE_VERSION con cada deploy para forzar actualización
-const CACHE_VERSION = 'carioca-v3';
+const CACHE_VERSION = 'carioca-v4';
 const ASSETS = [
   './',
   './index.html',
