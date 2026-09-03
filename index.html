@@ -1365,9 +1365,8 @@ body{
 <script>
 const { createApp } = Vue;
 
-// Variable de módulo para el prompt de instalación PWA
-// (fuera del sistema reactivo de Vue para evitar proxying)
-let _pwaInstallPrompt = null;
+// Prompt de instalación PWA en window (verdaderamente global)
+window._pwaInstallPrompt = null;
 
 const DEF_COMBOS = [
   {id:'c1',gtId:'carioca',order:1,name:'Dos tríos',short:'2T'},
@@ -1937,16 +1936,16 @@ createApp({
     },
 
     installApp(){
-      if(!_pwaInstallPrompt) return;
-      const p = _pwaInstallPrompt;
-      this.showToast('Abriendo instalación…');
+      const p = window._pwaInstallPrompt;
+      if(!p){ this.showToast('Sin prompt: ' + typeof p); return; }
+      this.showToast('Abriendo…');
       p.prompt();
       p.userChoice.then(({outcome}) => {
-        _pwaInstallPrompt = null;
+        window._pwaInstallPrompt = null;
         this.installPrompt = false;
         if(outcome==='accepted') this.showToast('¡App instalada!');
       }).catch(()=>{
-        _pwaInstallPrompt = null;
+        window._pwaInstallPrompt = null;
         this.installPrompt = false;
       });
     },
@@ -2167,11 +2166,11 @@ createApp({
     // Capturar prompt de instalación PWA en variable de módulo (fuera de Vue)
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault();
-      _pwaInstallPrompt = e;     // variable de módulo, sin proxy de Vue
-      this.installPrompt = true; // flag reactivo solo para mostrar el banner
+      window._pwaInstallPrompt = e;
+      this.installPrompt = true;
     });
     window.addEventListener('appinstalled', () => {
-      _pwaInstallPrompt = null;
+      window._pwaInstallPrompt = null;
       this.installPrompt = false;
     });
 
