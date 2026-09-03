@@ -709,6 +709,11 @@ body{
 /* ── THEME TOGGLE ── */
 .theme-btns{display:flex;gap:8px}
 
+/* ── EVOLUTION CHART ── */
+.evo-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px}
+.evo-legend-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text)}
+.evo-legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
 /* ── WINNER MODAL ── */
 .winner-overlay{
   position:fixed;inset:0;
@@ -808,9 +813,12 @@ body{
         </div>
       </div>
 
-      <div class="winner-actions">
-        <button class="btn btn-muted" style="flex:1" @click="winnerModal=null; nav('history')">Ver historial</button>
-        <button class="btn btn-primary" style="flex:1" @click="winnerModal=null; openSetup()">Nueva partida</button>
+      <div class="winner-actions" style="flex-direction:column">
+        <button class="btn btn-primary btn-block" @click="startRevancha()">🔁 Revancha</button>
+        <div style="display:flex;gap:10px;margin-top:8px">
+          <button class="btn btn-muted" style="flex:1" @click="winnerModal=null; nav('history')">Historial</button>
+          <button class="btn btn-muted" style="flex:1" @click="winnerModal=null; openSetup()">Nueva partida</button>
+        </div>
       </div>
     </div>
   </div>
@@ -839,7 +847,7 @@ body{
           </div>
           <span v-if="setup.gameTypeId===gt.id" class="gt-check">✓</span>
         </div>
-        <!-- Campos extra: solo para modos score_low / score_high -->
+        <!-- Campos extra: modos score_low / score_high -->
         <template v-if="setupIsScoreMode">
           <div class="field" style="margin-top:16px">
             <label class="field-label">Nombre del juego <span style="font-weight:400;text-transform:none">(opcional)</span></label>
@@ -856,8 +864,34 @@ body{
             </p>
           </div>
         </template>
+        <!-- Campos extra: modo rondas fijas -->
+        <template v-if="setupIsRoundsMode">
+          <div class="field" style="margin-top:16px">
+            <label class="field-label">Nombre del juego <span style="font-weight:400;text-transform:none">(opcional)</span></label>
+            <input class="inp" type="text" maxlength="30"
+              v-model="setup.gameName" placeholder="Ej: Canasta, Gin Rummy…">
+          </div>
+          <div class="field">
+            <label class="field-label">Número de rondas</label>
+            <input class="inp" type="number" inputmode="numeric" min="1"
+              v-model.number="setup.totalRounds" placeholder="Ej: 10">
+          </div>
+          <div class="field">
+            <label class="field-label">¿Quién gana?</label>
+            <div style="display:flex;gap:8px;margin-top:4px">
+              <button type="button"
+                class="btn" style="flex:1;font-size:13px"
+                :class="setup.roundsWinner==='low'?'btn-primary':'btn-muted'"
+                @click="setup.roundsWinner='low'">⬇️ Menos puntos</button>
+              <button type="button"
+                class="btn" style="flex:1;font-size:13px"
+                :class="setup.roundsWinner==='high'?'btn-primary':'btn-muted'"
+                @click="setup.roundsWinner='high'">⬆️ Más puntos</button>
+            </div>
+          </div>
+        </template>
         <button class="btn btn-primary btn-block"
-          :disabled="!setup.gameTypeId||(setupIsScoreMode&&!(setup.targetScore>0))"
+          :disabled="!setup.gameTypeId||(setupIsScoreMode&&!(setup.targetScore>0))||(setupIsRoundsMode&&!(setup.totalRounds>0))"
           @click="setupNext" style="margin-top:8px">Siguiente →</button>
       </div>
 
@@ -872,7 +906,7 @@ body{
           <p style="margin-bottom:12px">No hay jugadores todavía. Usa el botón "+ Nuevo" de arriba.</p>
         </div>
         <div class="player-chips" v-else>
-          <div v-for="p in players" :key="p.id"
+          <div v-for="p in playersSortedByUse" :key="p.id"
             class="player-chip" :class="{sel:setup.pIds.includes(p.id)}"
             @click="toggleSetupPlayer(p.id)"
             role="checkbox" :aria-checked="setup.pIds.includes(p.id)">
@@ -920,13 +954,13 @@ body{
     <div class="modal">
       <div class="modal-pull"></div>
       <h2 class="modal-title">{{roundTitle}}</h2>
-      <p class="modal-hint" v-if="isScoreMode && gameMode==='score_high'">Ingresa los puntos obtenidos por cada jugador</p>
+      <p class="modal-hint" v-if="useFreeScore">Ingresa los puntos de cada jugador en esta ronda</p>
       <p class="modal-hint" v-else>👑 Toca la corona del ganador · ingresa las penalizaciones</p>
       <div v-for="pid in game.pIds" :key="pid" class="entry-row">
         <div class="av" :style="{background:pColor(pid)}">{{ini(pName(pid))}}</div>
         <div class="entry-name">{{pName(pid)}}</div>
         <!-- Modos Carioca: corona + 0 para el ganador -->
-        <template v-if="!isScoreMode">
+        <template v-if="!useFreeScore">
           <button class="crown-btn" :class="{on:roundWinner===pid}" @click="setWinner(pid)"
             :aria-pressed="roundWinner===pid" :aria-label="'Ganador: ' + pName(pid)">
             {{roundWinner===pid?'👑':'○'}}
@@ -937,7 +971,7 @@ body{
             @input="roundScores[pid]=parseInt($event.target.value)||0"
             min="0" placeholder="0">
         </template>
-        <!-- Modos score: cada jugador entra sus puntos directamente -->
+        <!-- Modos puntuación / rondas: entrada libre de puntos -->
         <template v-else>
           <input type="number" inputmode="numeric" pattern="[0-9]*"
             class="score-inp" :value="roundScores[pid]||0"
@@ -1004,7 +1038,8 @@ body{
       <div class="hdr-main">RondaScore</div>
       <div class="hdr-sub" v-if="hasGame">
         {{activeGameName}}
-        <template v-if="!isLibre && !isScoreMode"> · Ronda {{game.round+1}}/{{game.cIds.length}}</template>
+        <template v-if="isRoundsMode"> · Ronda {{game.round+1}}/{{game.totalRounds}}</template>
+        <template v-else-if="!isLibre && !isScoreMode"> · Ronda {{game.round+1}}/{{game.cIds.length}}</template>
         <template v-else-if="isScoreMode"> · Ronda {{game.round+1}}<span v-if="game.targetScore"> — límite {{game.targetScore}} pts</span></template>
         <template v-else> · Ronda {{game.round+1}}</template>
       </div>
@@ -1099,8 +1134,19 @@ body{
       </div>
 
       <div v-else>
+        <!-- Hero para modo rondas fijas -->
+        <div class="combo-hero" v-if="isRoundsMode">
+          <div class="combo-hero-num">{{activeGameName}}</div>
+          <div class="combo-hero-short" style="font-size:28px">Ronda {{game.round+1}} de {{game.totalRounds}}</div>
+          <div class="combo-hero-name">
+            <template v-if="game.roundsWinner==='high'">Gana quien tenga ⬆️ más puntos</template>
+            <template v-else>Gana quien tenga ⬇️ menos puntos</template>
+          </div>
+          <div class="progress-track" style="margin-top:10px"><div class="progress-fill" :style="{width:gameProgress+'%'}"></div></div>
+        </div>
+
         <!-- Hero para modos de puntuación -->
-        <div class="combo-hero" v-if="isScoreMode">
+        <div class="combo-hero" v-else-if="isScoreMode">
           <div class="combo-hero-num">{{activeGameName}}</div>
           <div class="combo-hero-short" style="font-size:28px">Ronda {{game.round+1}}</div>
           <div class="combo-hero-name" v-if="game.targetScore">
@@ -1142,13 +1188,13 @@ body{
         </div>
 
         <!-- Tabs for libre mode -->
-        <div class="tabs" v-if="isLibre&&!isScoreMode">
+        <div class="tabs" v-if="isLibre&&!useFreeScore">
           <div class="tab" :class="{on:gtab==='scores'}" @click="gtab='scores'">Puntajes</div>
           <div class="tab" :class="{on:gtab==='combos'}" @click="gtab='combos'">Combinaciones</div>
         </div>
 
         <!-- SCORES tab -->
-        <div class="card" v-show="!isLibre || isScoreMode || gtab==='scores'">
+        <div class="card" v-show="!isLibre || useFreeScore || gtab==='scores'">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
             <div class="card-label" style="margin:0">Puntuación acumulada</div>
             <button class="btn btn-primary btn-sm" @click="openRound">+ Registrar ronda</button>
@@ -1171,7 +1217,7 @@ body{
         </div>
 
         <!-- COMBINATIONS tab (libre only) -->
-        <div class="card" v-show="isLibre && !isScoreMode && gtab==='combos'">
+        <div class="card" v-show="isLibre && !useFreeScore && gtab==='combos'">
           <!-- Mini score summary -->
           <div style="display:flex;gap:8px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)">
             <div v-for="p in sortedPlayers" :key="p.id"
@@ -1223,7 +1269,7 @@ body{
         </div>
 
         <!-- Round detail (fixed + libre + score) -->
-        <div class="card" v-if="game.rounds.length>0 && (!isLibre || isScoreMode || gtab==='scores')">
+        <div class="card" v-if="game.rounds.length>0 && (!isLibre || useFreeScore || gtab==='scores')">
           <div class="card-label">Detalle por ronda</div>
           <div style="overflow-x:auto">
             <table class="round-tbl">
@@ -1318,6 +1364,34 @@ body{
                 </tr>
               </tbody>
             </table>
+          </div>
+        </div>
+
+        <!-- Evolution chart -->
+        <div class="card" v-if="detailChart">
+          <div class="card-label">Evolución de puntajes</div>
+          <svg :viewBox="'0 0 '+detailChart.W+' '+detailChart.H" style="width:100%;display:block;overflow:visible">
+            <!-- Y gridlines + labels -->
+            <template v-for="(tick,i) in detailChart.yTicks" :key="'yt'+i">
+              <line :x1="36" :y1="tick.y" :x2="290" :y2="tick.y" stroke="var(--border)" stroke-width="1"/>
+              <text :x="33" :y="tick.y+4" text-anchor="end" font-size="9" fill="var(--muted)">{{tick.label}}</text>
+            </template>
+            <!-- Player lines -->
+            <template v-for="s in detailChart.series" :key="'line'+s.pid">
+              <polyline :points="s.svgPoints" :stroke="s.color" stroke-width="2.5"
+                fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.9"/>
+              <circle v-for="(pt,i) in s.svgDots" :key="i"
+                :cx="pt.x" :cy="pt.y" r="3" :fill="s.color"/>
+            </template>
+            <!-- X axis labels -->
+            <text v-for="(xl,i) in detailChart.xLabels" :key="'xl'+i"
+              :x="xl.x" :y="detailChart.H-4" text-anchor="middle" font-size="9" fill="var(--muted)">{{xl.label}}</text>
+          </svg>
+          <div class="evo-legend">
+            <div v-for="s in detailChart.series" :key="'leg'+s.pid" class="evo-legend-item">
+              <span class="evo-legend-dot" :style="{background:s.color}"></span>
+              <span>{{s.name}}</span>
+            </div>
           </div>
         </div>
 
@@ -1506,6 +1580,7 @@ const DEF_COMBOS = [
 const DEF_GTS = [
   {id:'carioca',name:'Carioca',mode:'fixed',icon:'🃏',desc:'10 rondas con combinaciones en orden fijo'},
   {id:'libre',name:'Carioca Libre',mode:'libre',icon:'🎴',desc:'Combinaciones seleccionadas, en cualquier orden'},
+  {id:'rondas_fijas',name:'Rondas fijas',mode:'rounds',icon:'🔢',desc:'Número fijo de rondas; gana quien tenga menos puntos al final',defaultRounds:10},
   {id:'llega_pierde',name:'Llega a X — pierde',mode:'score_low',icon:'🎯',desc:'Gana quien tenga menos puntos cuando alguien alcanza el límite',defaultTarget:100},
   {id:'llega_gana',name:'Llega a X — gana',mode:'score_high',icon:'🏆',desc:'Gana el primero en llegar al puntaje objetivo',defaultTarget:100},
 ];
@@ -1521,7 +1596,7 @@ createApp({
       showMenu:false,
 
       // Setup wizard
-      setup:{step:0,gameTypeId:'',pIds:[],cIds:[],targetScore:100,gameName:''},
+      setup:{step:0,gameTypeId:'',pIds:[],cIds:[],targetScore:100,totalRounds:10,roundsWinner:'low',gameName:''},
 
       // Round entry
       showRound:false,
@@ -1580,16 +1655,22 @@ createApp({
     },
     isLibre(){ return this.gameMode==='libre'; },
     isScoreMode(){ return this.gameMode==='score_low'||this.gameMode==='score_high'; },
+    isRoundsMode(){ return this.gameMode==='rounds'; },
+    useFreeScore(){ return this.isScoreMode||this.isRoundsMode; },
 
     setupIsScoreMode(){
       const gt=this.gameTypes.find(g=>g.id===this.setup.gameTypeId);
       return gt&&(gt.mode==='score_low'||gt.mode==='score_high');
     },
+    setupIsRoundsMode(){
+      const gt=this.gameTypes.find(g=>g.id===this.setup.gameTypeId);
+      return gt&&gt.mode==='rounds';
+    },
 
     winnerModalPlayers(){
       if(!this.winnerModal) return [];
-      const {final, pIds, scoringDir} = this.winnerModal;
-      const desc = scoringDir==='score_high';
+      const {final, pIds, scoringDir, roundsWinner} = this.winnerModal;
+      const desc = scoringDir==='score_high'||(scoringDir==='rounds'&&roundsWinner==='high');
       return pIds
         .map(id=>this.players.find(p=>p.id===id)||{id,name:'?',color:'#999'})
         .sort((a,b)=>desc?(final[b.id]||0)-(final[a.id]||0):(final[a.id]||0)-(final[b.id]||0));
@@ -1611,7 +1692,9 @@ createApp({
 
     gameProgress(){
       if(!this.hasGame) return 0;
-      return Math.round((this.game.round/this.game.cIds.length)*100);
+      if(this.isRoundsMode) return Math.round((this.game.rounds.length/this.game.totalRounds)*100);
+      if(this.game.cIds&&this.game.cIds.length) return Math.round((this.game.round/this.game.cIds.length)*100);
+      return 0;
     },
 
     totals(){
@@ -1639,7 +1722,7 @@ createApp({
     sortedPlayers(){
       if(!this.hasGame) return [];
       const t=this.totals;
-      const desc=this.gameMode==='score_high';
+      const desc=this.gameMode==='score_high'||(this.isRoundsMode&&this.game.roundsWinner==='high');
       return this.game.pIds
         .map(id=>this.players.find(p=>p.id===id)||{id,name:'?',color:'#999'})
         .sort((a,b)=>desc?t[b.id]-t[a.id]:t[a.id]-t[b.id]);
@@ -1690,6 +1773,7 @@ createApp({
 
     roundTitle(){
       if(!this.hasGame) return 'Ronda';
+      if(this.isRoundsMode) return `Ronda ${this.game.round+1} de ${this.game.totalRounds}`;
       if(this.isScoreMode) return 'Ronda '+(this.game.round+1);
       if(this.curCombo) return this.curCombo.name;
       return 'Ronda '+(this.game.round+1);
@@ -1718,6 +1802,66 @@ createApp({
         .filter(p=>this.playerStats[p.id]&&this.playerStats[p.id].games>0)
         .map(p=>({...p,...this.playerStats[p.id],winRate:Math.round((this.playerStats[p.id].wins/this.playerStats[p.id].games)*100)}))
         .sort((a,b)=>b.winRate-a.winRate||b.wins-a.wins);
+    },
+
+    playersSortedByUse(){
+      return [...this.players].sort((a,b)=>{
+        const ga=(this.playerStats[a.id]||{games:0}).games;
+        const gb=(this.playerStats[b.id]||{games:0}).games;
+        return gb-ga||a.name.localeCompare(b.name,'es');
+      });
+    },
+
+    detailChart(){
+      const g=this.detailGame;
+      if(!g||!g.rounds||g.rounds.length<2||!g.pIds||!g.pIds.length) return null;
+
+      const PAD_L=36,PAD_R=10,PAD_T=10,PAD_B=24;
+      const W=300,H=150;
+      const plotW=W-PAD_L-PAD_R;
+      const plotH=H-PAD_T-PAD_B;
+      const xMax=g.rounds.length;
+
+      // Compute cumulative scores per player
+      const rawSeries=g.pIds.map(pid=>{
+        const cums=[0]; let cum=0;
+        for(const r of g.rounds){ cum+=(r.scores[pid]||0); cums.push(cum); }
+        const player=this.players.find(p=>p.id===pid)||{name:'?',color:'#999'};
+        return {pid,name:player.name,color:player.color,cums};
+      });
+
+      // Y range
+      const allVals=rawSeries.flatMap(s=>s.cums);
+      const yMin=Math.min(0,...allVals);
+      const yMax=Math.max(1,...allVals);
+      const yRange=yMax-yMin||1;
+
+      const toX=i=>PAD_L+(i/xMax)*plotW;
+      const toY=v=>PAD_T+plotH-((v-yMin)/yRange)*plotH;
+
+      const series=rawSeries.map(s=>({
+        pid:s.pid,name:s.name,color:s.color,
+        svgPoints:s.cums.map((v,i)=>toX(i)+','+toY(v)).join(' '),
+        svgDots:s.cums.map((v,i)=>({x:toX(i),y:toY(v)})),
+      }));
+
+      // Y ticks
+      const yTicks=[0,0.33,0.67,1].map(t=>{
+        const val=Math.round(yMin+t*yRange);
+        return {y:toY(val),label:val};
+      });
+
+      // X axis labels (max 8 labels)
+      const step=Math.max(1,Math.ceil(xMax/7));
+      const xLabels=[];
+      for(let i=0;i<=xMax;i+=step){
+        xLabels.push({x:toX(i),label:i===0?'0':'R'+i});
+      }
+      if(xLabels[xLabels.length-1].label!=='R'+xMax){
+        xLabels.push({x:toX(xMax),label:'R'+xMax});
+      }
+
+      return {series,yTicks,xLabels,W,H};
     },
   },
 
@@ -1774,6 +1918,8 @@ createApp({
         pIds:[...(this.lastCfg.pIds||[])].filter(id=>this.players.some(p=>p.id===id)),
         cIds:[...(this.lastCfg.cIds||[])].filter(id=>this.combos.some(c=>c.id===id)),
         targetScore:(this.lastCfg.targetScore)||(gt&&gt.defaultTarget)||100,
+        totalRounds:(this.lastCfg.totalRounds)||(gt&&gt.defaultRounds)||10,
+        roundsWinner:this.lastCfg.roundsWinner||'low',
         gameName:this.lastCfg.gameName||'',
       };
     },
@@ -1781,9 +1927,8 @@ createApp({
 
     onSetupGameTypeChange(){
       const gt=this.gameTypes.find(g=>g.id===this.setup.gameTypeId);
-      if(gt&&gt.defaultTarget&&!this.setup.targetScore){
-        this.setup.targetScore=gt.defaultTarget;
-      }
+      if(gt&&gt.defaultTarget) this.setup.targetScore=gt.defaultTarget;
+      if(gt&&gt.defaultRounds) this.setup.totalRounds=gt.defaultRounds;
     },
 
     setupNext(){
@@ -1791,6 +1936,7 @@ createApp({
       if(s.step===1){
         if(!s.gameTypeId) return;
         if(this.setupIsScoreMode&&(!(s.targetScore>0))) return;
+        if(this.setupIsRoundsMode&&(!(s.totalRounds>0))) return;
         s.step=2;
       } else if(s.step===2){
         if(s.pIds.length<2) return;
@@ -1845,11 +1991,48 @@ createApp({
         winner:null,
         final:null,
         targetScore:(mode==='score_low'||mode==='score_high')?(s.targetScore||100):null,
-        gameName:(mode==='score_low'||mode==='score_high')?(s.gameName||''):null,
+        totalRounds:mode==='rounds'?(s.totalRounds||10):null,
+        roundsWinner:mode==='rounds'?(s.roundsWinner||'low'):null,
+        gameName:(mode==='score_low'||mode==='score_high'||mode==='rounds')?(s.gameName||''):null,
       };
 
-      this.lastCfg={gtId:s.gameTypeId,pIds:[...s.pIds],cIds:[...s.cIds],targetScore:s.targetScore||null,gameName:s.gameName||''};
+      this.lastCfg={gtId:s.gameTypeId,pIds:[...s.pIds],cIds:[...s.cIds],targetScore:s.targetScore||null,totalRounds:s.totalRounds||null,roundsWinner:s.roundsWinner||null,gameName:s.gameName||''};
       this.setup.step=0;
+      this.save();
+      this.nav('game');
+    },
+
+    startRevancha(){
+      const m=this.winnerModal;
+      if(!m) return;
+      this.winnerModal=null;
+      if(this.game){
+        this.games.push({...this.game,status:'paused',pauseDate:new Date().toISOString()});
+        this.game=null;
+      }
+      const gt=this.gameTypes.find(g=>g.id===m.gtId);
+      const mode=gt?gt.mode:'fixed';
+      const cIds=mode==='fixed'?this.activeCariocaCombos.map(c=>c.id):mode==='libre'?[...m.cIds||[]]:[];
+      const doneMap={};
+      if(mode==='libre'){ for(const pid of m.pIds) doneMap[pid]=[]; }
+      this.game={
+        id:this.uid(),
+        date:new Date().toISOString(),
+        gtId:m.gtId,
+        pIds:[...m.pIds],
+        cIds,
+        rounds:[],
+        doneMap,
+        round:0,
+        status:'active',
+        winner:null,
+        final:null,
+        targetScore:m.targetScore||null,
+        totalRounds:m.totalRounds||null,
+        roundsWinner:m.roundsWinner||null,
+        gameName:m.gameName||null,
+      };
+      this.lastCfg={gtId:m.gtId,pIds:[...m.pIds],cIds:[...m.cIds||[]],targetScore:m.targetScore||null,totalRounds:m.totalRounds||null,roundsWinner:m.roundsWinner||null,gameName:m.gameName||''};
       this.save();
       this.nav('game');
     },
@@ -1870,10 +2053,12 @@ createApp({
 
       const gtMode=this.gameMode;
       const isScoreM=gtMode==='score_low'||gtMode==='score_high';
+      const isRoundsM=gtMode==='rounds';
+      const isFreeScore=isScoreM||isRoundsM;
 
       // Determinar ganador de ronda
       let winner=this.roundWinner;
-      if(!isScoreM){
+      if(!isFreeScore){
         // Carioca / libre: el ganador debe tener 0 puntos
         if(!winner){
           const zeros=this.game.pIds.filter(pid=>(parseInt(this.roundScores[pid])||0)===0);
@@ -1889,7 +2074,7 @@ createApp({
           }
         }
       } else {
-        // Modo puntuación: auto-detectar ganador de ronda si no se marcó
+        // Modos puntuación / rondas fijas: auto-detectar ganador de ronda
         if(!winner){
           if(gtMode==='score_high'){
             winner=this.game.pIds.reduce((a,b)=>(parseInt(this.roundScores[a])||0)>=(parseInt(this.roundScores[b])||0)?a:b);
@@ -1901,7 +2086,7 @@ createApp({
 
       const scores={};
       for(const pid of this.game.pIds){
-        if(!isScoreM){
+        if(!isFreeScore){
           scores[pid]=pid===winner?0:(parseInt(this.roundScores[pid])||0);
         } else {
           scores[pid]=parseInt(this.roundScores[pid])||0;
@@ -1949,6 +2134,15 @@ createApp({
         }
       }
 
+      // Condición de fin para modo rondas fijas
+      if(isRoundsM){
+        if(this.game.rounds.length>=this.game.totalRounds){
+          this.showRound=false;
+          this.endGame();
+          return;
+        }
+      }
+
       // Condición de fin para Carioca Libre
       if(gtMode==='libre'){
         const w=this.game.pIds.find(pid=>{
@@ -1979,7 +2173,8 @@ createApp({
       // Winner: provided or derived from scoring direction
       const gt=this.gameTypes.find(g=>g.id===this.game.gtId);
       const mode=gt?gt.mode:'fixed';
-      const winner=forcedWinner||(mode==='score_high'
+      const wantsHigh=mode==='score_high'||(mode==='rounds'&&this.game.roundsWinner==='high');
+      const winner=forcedWinner||(wantsHigh
         ?this.game.pIds.reduce((a,b)=>final[a]>=final[b]?a:b)
         :this.game.pIds.reduce((a,b)=>final[a]<=final[b]?a:b));
       this.game.status='finished';
@@ -1994,9 +2189,13 @@ createApp({
         winner,
         final,
         pIds:[...this.game.pIds],
+        cIds:[...this.game.cIds||[]],
         gtId:this.game.gtId,
         gameName:this.game.gameName||null,
         scoringDir:gt2?gt2.mode:null,
+        roundsWinner:this.game.roundsWinner||null,
+        targetScore:this.game.targetScore||null,
+        totalRounds:this.game.totalRounds||null,
         rounds:this.game.rounds.length,
       };
 
@@ -2311,7 +2510,7 @@ createApp({
       if(!g) return [];
       const f=g.final||{};
       const gt=this.gameTypes.find(x=>x.id===g.gtId);
-      const desc=gt&&gt.mode==='score_high';
+      const desc=(gt&&gt.mode==='score_high')||(gt&&gt.mode==='rounds'&&g.roundsWinner==='high');
       return g.pIds.map(id=>this.players.find(p=>p.id===id)||{id,name:'?',color:'#999'})
         .sort((a,b)=>desc?(f[b.id]||0)-(f[a.id]||0):(f[a.id]||0)-(f[b.id]||0));
     },
