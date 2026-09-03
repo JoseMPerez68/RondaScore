@@ -1,11 +1,11 @@
-<title>Carioca</title>
+<title>RondaScore</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'">
 <meta name="theme-color" content="#152f25">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Carioca">
+<meta name="apple-mobile-web-app-title" content="RondaScore">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap">
@@ -722,7 +722,7 @@ body{
   <div v-if="installPrompt" class="install-banner" @click="installApp">
     <div class="install-banner-icon">🃏</div>
     <div class="install-banner-text">
-      <strong>Instalar Carioca</strong>
+      <strong>Instalar RondaScore</strong>
       <span>Toca aquí para añadir a tu pantalla de inicio</span>
     </div>
     <button class="install-banner-dismiss" @click.stop="installPrompt=false">✕</button>
@@ -761,7 +761,7 @@ body{
         <p class="modal-hint">¿Qué modalidad van a jugar?</p>
         <div v-for="gt in gameTypes" :key="gt.id"
           class="gt-card" :class="{sel:setup.gameTypeId===gt.id}"
-          @click="setup.gameTypeId=gt.id">
+          @click="setup.gameTypeId=gt.id;onSetupGameTypeChange()">
           <span class="gt-icon">{{gt.icon}}</span>
           <div>
             <div class="gt-name">{{gt.name}}</div>
@@ -769,7 +769,19 @@ body{
           </div>
           <span v-if="setup.gameTypeId===gt.id" class="gt-check">✓</span>
         </div>
-        <button class="btn btn-primary btn-block" :disabled="!setup.gameTypeId" @click="setupNext" style="margin-top:8px">Siguiente →</button>
+        <!-- Puntos límite: solo para modos score_low / score_high -->
+        <div v-if="setupIsScoreMode" class="field" style="margin-top:16px">
+          <label class="field-label">Puntos límite</label>
+          <input class="inp" type="number" inputmode="numeric" min="1"
+            v-model.number="setup.targetScore" placeholder="Ej: 100">
+          <p style="font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5">
+            <template v-if="setup.gameTypeId==='llega_pierde'">La partida termina cuando alguien alcanza este puntaje. Gana quien tenga <strong>menos</strong>.</template>
+            <template v-else>Gana el primero en acumular este puntaje.</template>
+          </p>
+        </div>
+        <button class="btn btn-primary btn-block"
+          :disabled="!setup.gameTypeId||(setupIsScoreMode&&!(setup.targetScore>0))"
+          @click="setupNext" style="margin-top:8px">Siguiente →</button>
       </div>
 
       <!-- Step 2: players -->
@@ -831,7 +843,8 @@ body{
     <div class="modal">
       <div class="modal-pull"></div>
       <h2 class="modal-title">{{roundTitle}}</h2>
-      <p class="modal-hint">👑 Toca la corona del ganador · ingresa las penalizaciones</p>
+      <p class="modal-hint" v-if="isScoreMode && gameMode==='score_high'">Ingresa los puntos obtenidos por cada jugador</p>
+      <p class="modal-hint" v-else>👑 Toca la corona del ganador · ingresa las penalizaciones</p>
       <div v-for="pid in game.pIds" :key="pid" class="entry-row">
         <div class="av" :style="{background:pColor(pid)}">{{ini(pName(pid))}}</div>
         <div class="entry-name">{{pName(pid)}}</div>
@@ -901,9 +914,12 @@ body{
   <header class="app-hdr">
     <span class="hdr-suit" aria-hidden="true">♠♥</span>
     <div class="hdr-titles">
-      <div class="hdr-main">Carioca</div>
+      <div class="hdr-main">RondaScore</div>
       <div class="hdr-sub" v-if="hasGame">
-        {{gameTypeName(game.gtId)}} · Ronda {{game.round+1}}<span v-if="!isLibre">/{{game.cIds.length}}</span>
+        {{gameTypeName(game.gtId)}}
+        <template v-if="!isLibre && !isScoreMode"> · Ronda {{game.round+1}}/{{game.cIds.length}}</template>
+        <template v-else-if="isScoreMode"> · Ronda {{game.round+1}}<span v-if="game.targetScore"> — límite {{game.targetScore}} pts</span></template>
+        <template v-else> · Ronda {{game.round+1}}</template>
       </div>
     </div>
     <button v-if="view==='game' && hasGame" class="hdr-btn" @click="showMenu=!showMenu">⋮</button>
@@ -996,8 +1012,28 @@ body{
       </div>
 
       <div v-else>
+        <!-- Hero para modos de puntuación -->
+        <div class="combo-hero" v-if="isScoreMode">
+          <div class="combo-hero-num">{{gameTypeName(game.gtId)}}</div>
+          <div class="combo-hero-short" style="font-size:28px">Ronda {{game.round+1}}</div>
+          <div class="combo-hero-name" v-if="game.targetScore">
+            <template v-if="gameMode==='score_low'">Límite: {{game.targetScore}} pts — gana quien tenga menos</template>
+            <template v-else>Objetivo: {{game.targetScore}} pts — gana quien llegue primero</template>
+          </div>
+          <!-- Barra de progreso hacia el límite (score_low) o el objetivo (score_high) -->
+          <div v-if="game.targetScore" style="margin-top:10px">
+            <div v-for="pid in game.pIds.slice(0,4)" :key="pid" class="libre-prog-row">
+              <div class="av av-sm" :style="{background:pColor(pid),flexShrink:0}">{{ini(pName(pid))}}</div>
+              <div class="libre-prog-bar-wrap">
+                <div class="libre-prog-bar" :style="{width: Math.min(100,Math.round(((totals[pid]||0)/game.targetScore)*100))+'%'}"></div>
+              </div>
+              <span class="libre-prog-pct">{{totals[pid]||0}}/{{game.targetScore}}</span>
+            </div>
+          </div>
+        </div>
+
         <!-- Current combination hero -->
-        <div class="combo-hero" v-if="curCombo">
+        <div class="combo-hero" v-else-if="curCombo">
           <div class="combo-hero-num">Ronda {{game.round+1}} de {{game.cIds.length}}</div>
           <div class="combo-hero-short">{{curCombo.short}}</div>
           <div class="combo-hero-name">{{curCombo.name}}</div>
@@ -1019,13 +1055,13 @@ body{
         </div>
 
         <!-- Tabs for libre mode -->
-        <div class="tabs" v-if="isLibre">
+        <div class="tabs" v-if="isLibre&&!isScoreMode">
           <div class="tab" :class="{on:gtab==='scores'}" @click="gtab='scores'">Puntajes</div>
           <div class="tab" :class="{on:gtab==='combos'}" @click="gtab='combos'">Combinaciones</div>
         </div>
 
         <!-- SCORES tab -->
-        <div class="card" v-show="!isLibre || gtab==='scores'">
+        <div class="card" v-show="!isLibre || isScoreMode || gtab==='scores'">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
             <div class="card-label" style="margin:0">Puntuación acumulada</div>
             <button class="btn btn-primary btn-sm" @click="openRound">+ Registrar ronda</button>
@@ -1048,7 +1084,7 @@ body{
         </div>
 
         <!-- COMBINATIONS tab (libre only) -->
-        <div class="card" v-show="isLibre && gtab==='combos'">
+        <div class="card" v-show="isLibre && !isScoreMode && gtab==='combos'">
           <!-- Mini score summary -->
           <div style="display:flex;gap:8px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)">
             <div v-for="p in sortedPlayers" :key="p.id"
@@ -1099,8 +1135,8 @@ body{
           </p>
         </div>
 
-        <!-- Round detail (fixed + libre) -->
-        <div class="card" v-if="game.rounds.length>0 && (!isLibre || gtab==='scores')">
+        <!-- Round detail (fixed + libre + score) -->
+        <div class="card" v-if="game.rounds.length>0 && (!isLibre || isScoreMode || gtab==='scores')">
           <div class="card-label">Detalle por ronda</div>
           <div style="overflow-x:auto">
             <table class="round-tbl">
@@ -1243,7 +1279,11 @@ body{
             <span class="hist-date" style="margin-left:auto">{{fDate(g.date)}}</span>
           </div>
           <div class="hist-winner" v-if="g.status==='finished'">🏆 {{pName(g.winner)}}</div>
-          <div class="hist-winner" v-else style="color:var(--muted);font-style:italic">Ronda {{g.round+1}} de {{g.cIds.length}} — Toca para reanudar</div>
+          <div class="hist-winner" v-else style="color:var(--muted);font-style:italic">
+            <template v-if="g.cIds.length">Ronda {{g.round+1}} de {{g.cIds.length}}</template>
+            <template v-else>Ronda {{g.round+1}}</template>
+            — Toca para reanudar
+          </div>
           <div class="hist-meta">
             <div class="av-row">
               <div v-for="pid in g.pIds.slice(0,6)" :key="pid" class="av av-sm" :style="{background:pColor(pid)}">{{ini(pName(pid))}}</div>
@@ -1379,6 +1419,8 @@ const DEF_COMBOS = [
 const DEF_GTS = [
   {id:'carioca',name:'Carioca',mode:'fixed',icon:'🃏',desc:'10 rondas con combinaciones en orden fijo'},
   {id:'libre',name:'Carioca Libre',mode:'libre',icon:'🎴',desc:'Combinaciones seleccionadas, en cualquier orden'},
+  {id:'llega_pierde',name:'Llega a X — pierde',mode:'score_low',icon:'🎯',desc:'Gana quien tenga menos puntos cuando alguien alcanza el límite',defaultTarget:100},
+  {id:'llega_gana',name:'Llega a X — gana',mode:'score_high',icon:'🏆',desc:'Gana el primero en llegar al puntaje objetivo',defaultTarget:100},
 ];
 
 const COLORS = ['#e74c3c','#3498db','#e67e22','#9b59b6','#27ae60','#0891b2','#d35400','#c0392b'];
@@ -1392,7 +1434,7 @@ createApp({
       showMenu:false,
 
       // Setup wizard
-      setup:{step:0,gameTypeId:'',pIds:[],cIds:[]},
+      setup:{step:0,gameTypeId:'',pIds:[],cIds:[],targetScore:100},
 
       // Round entry
       showRound:false,
@@ -1441,7 +1483,18 @@ createApp({
   computed:{
     hasGame(){ return !!this.game && this.game.status==='active'; },
 
-    isLibre(){ return this.hasGame && this.game.gtId !== 'carioca'; },
+    gameMode(){
+      if(!this.hasGame) return null;
+      const gt=this.gameTypes.find(g=>g.id===this.game.gtId);
+      return gt?gt.mode:null;
+    },
+    isLibre(){ return this.gameMode==='libre'; },
+    isScoreMode(){ return this.gameMode==='score_low'||this.gameMode==='score_high'; },
+
+    setupIsScoreMode(){
+      const gt=this.gameTypes.find(g=>g.id===this.setup.gameTypeId);
+      return gt&&(gt.mode==='score_low'||gt.mode==='score_high');
+    },
 
     curCombo(){
       if(!this.hasGame) return null;
@@ -1481,9 +1534,10 @@ createApp({
     sortedPlayers(){
       if(!this.hasGame) return [];
       const t=this.totals;
+      const desc=this.gameMode==='score_high';
       return this.game.pIds
         .map(id=>this.players.find(p=>p.id===id)||{id,name:'?',color:'#999'})
-        .sort((a,b)=>t[a.id]-t[b.id]);
+        .sort((a,b)=>desc?t[b.id]-t[a.id]:t[a.id]-t[b.id]);
     },
 
     gameCombos(){
@@ -1525,11 +1579,13 @@ createApp({
     },
 
     setupIsLibre(){
-      return this.setup.gameTypeId !== 'carioca';
+      const gt=this.gameTypes.find(g=>g.id===this.setup.gameTypeId);
+      return gt&&gt.mode==='libre';
     },
 
     roundTitle(){
       if(!this.hasGame) return 'Ronda';
+      if(this.isScoreMode) return 'Ronda '+(this.game.round+1);
       if(this.curCombo) return this.curCombo.name;
       return 'Ronda '+(this.game.round+1);
     },
@@ -1601,19 +1657,30 @@ createApp({
 
     // ── SETUP ──
     openSetup(){
+      const gtId=this.lastCfg.gtId||'carioca';
+      const gt=this.gameTypes.find(g=>g.id===gtId);
       this.setup={
         step:1,
-        gameTypeId:this.lastCfg.gtId||'carioca',
+        gameTypeId:gtId,
         pIds:[...(this.lastCfg.pIds||[])].filter(id=>this.players.some(p=>p.id===id)),
         cIds:[...(this.lastCfg.cIds||[])].filter(id=>this.combos.some(c=>c.id===id)),
+        targetScore:(this.lastCfg.targetScore)||(gt&&gt.defaultTarget)||100,
       };
     },
     closeSetup(){ this.setup.step=0; },
+
+    onSetupGameTypeChange(){
+      const gt=this.gameTypes.find(g=>g.id===this.setup.gameTypeId);
+      if(gt&&gt.defaultTarget&&!this.setup.targetScore){
+        this.setup.targetScore=gt.defaultTarget;
+      }
+    },
 
     setupNext(){
       const s=this.setup;
       if(s.step===1){
         if(!s.gameTypeId) return;
+        if(this.setupIsScoreMode&&(!(s.targetScore>0))) return;
         s.step=2;
       } else if(s.step===2){
         if(s.pIds.length<2) return;
@@ -1645,12 +1712,13 @@ createApp({
       }
       const s=this.setup;
       const gt=this.gameTypes.find(g=>g.id===s.gameTypeId);
-      const cIds = gt&&gt.mode==='fixed'
+      const mode=gt?gt.mode:'fixed';
+      const cIds = mode==='fixed'
         ? this.activeCariocaCombos.map(c=>c.id)
-        : [...s.cIds];
+        : mode==='libre' ? [...s.cIds] : [];
 
       const doneMap={};
-      if(gt&&gt.mode!=='fixed'){
+      if(mode==='libre'){
         for(const pid of s.pIds) doneMap[pid]=[];
       }
 
@@ -1666,9 +1734,10 @@ createApp({
         status:'active',
         winner:null,
         final:null,
+        targetScore:(mode==='score_low'||mode==='score_high')?(s.targetScore||100):null,
       };
 
-      this.lastCfg={gtId:s.gameTypeId,pIds:[...s.pIds],cIds:[...s.cIds]};
+      this.lastCfg={gtId:s.gameTypeId,pIds:[...s.pIds],cIds:[...s.cIds],targetScore:s.targetScore||null};
       this.setup.step=0;
       this.save();
       this.nav('game');
@@ -1688,36 +1757,50 @@ createApp({
     saveRound(){
       if(!this.hasGame) return;
 
-      // Auto-detect winner from score 0 if none explicitly chosen
+      const gtMode=this.gameMode;
+      const isScoreM=gtMode==='score_low'||gtMode==='score_high';
+
+      // Determinar ganador de ronda
       let winner=this.roundWinner;
-      if(!winner){
-        const zeros=this.game.pIds.filter(pid=>(parseInt(this.roundScores[pid])||0)===0);
-        if(zeros.length===1){
-          winner=zeros[0];
-          this.roundWinner=winner;
-        } else if(zeros.length>1){
-          this.confirmDlg={info:true,msg:'⚠️ Varios jugadores tienen puntuación 0. En Carioca solo el ganador puede tener 0. Por favor completa las puntuaciones.',ok:()=>{this.confirmDlg=null;}};
-          return;
-        } else {
-          this.confirmDlg={info:true,msg:'⚠️ Ningún jugador tiene puntuación 0. Toca la corona 👑 del ganador de la ronda.',ok:()=>{this.confirmDlg=null;}};
-          return;
+      if(!isScoreM){
+        // Carioca / libre: el ganador debe tener 0 puntos
+        if(!winner){
+          const zeros=this.game.pIds.filter(pid=>(parseInt(this.roundScores[pid])||0)===0);
+          if(zeros.length===1){
+            winner=zeros[0];
+            this.roundWinner=winner;
+          } else if(zeros.length>1){
+            this.confirmDlg={info:true,msg:'⚠️ Varios jugadores tienen puntuación 0. Solo el ganador puede tener 0. Por favor completa las puntuaciones.',ok:()=>{this.confirmDlg=null;}};
+            return;
+          } else {
+            this.confirmDlg={info:true,msg:'⚠️ Ningún jugador tiene puntuación 0. Toca la corona 👑 del ganador de la ronda.',ok:()=>{this.confirmDlg=null;}};
+            return;
+          }
+        }
+      } else {
+        // Modo puntuación: auto-detectar ganador de ronda si no se marcó
+        if(!winner){
+          if(gtMode==='score_high'){
+            winner=this.game.pIds.reduce((a,b)=>(parseInt(this.roundScores[a])||0)>=(parseInt(this.roundScores[b])||0)?a:b);
+          } else {
+            winner=this.game.pIds.reduce((a,b)=>(parseInt(this.roundScores[a])||0)<=(parseInt(this.roundScores[b])||0)?a:b);
+          }
         }
       }
 
       const scores={};
       for(const pid of this.game.pIds){
-        scores[pid]=pid===winner ? 0 : (parseInt(this.roundScores[pid])||0);
+        if(!isScoreM){
+          scores[pid]=pid===winner?0:(parseInt(this.roundScores[pid])||0);
+        } else {
+          scores[pid]=parseInt(this.roundScores[pid])||0;
+        }
       }
       const roundNum=this.game.round+1;
-      this.game.rounds.push({
-        roundNum,
-        cId:this.curCombo?this.curCombo.id:null,
-        winner,
-        scores,
-      });
+      this.game.rounds.push({roundNum,cId:this.curCombo?this.curCombo.id:null,winner,scores});
 
-      const isFixed = this.game.gtId==='carioca';
-      const isLast = isFixed && this.game.round >= this.game.cIds.length-1;
+      const isFixed=gtMode==='fixed';
+      const isLast=isFixed&&this.game.round>=this.game.cIds.length-1;
 
       if(isLast){
         this.showRound=false;
@@ -1727,15 +1810,43 @@ createApp({
 
       this.game.round++;
 
-      // Check libre win condition
-      if(!isFixed){
-        const winner=this.game.pIds.find(pid=>{
+      // Condición de fin para modos de puntuación
+      if(isScoreM){
+        const target=this.game.targetScore;
+        if(target){
+          // Calcular totales acumulados
+          const t={};
+          for(const pid of this.game.pIds) t[pid]=0;
+          for(const r of this.game.rounds) for(const [pid,v] of Object.entries(r.scores)) t[pid]=(t[pid]||0)+v;
+
+          if(gtMode==='score_low'){
+            // Terminar si alguien llegó o superó el límite; gana quien tenga menos
+            if(this.game.pIds.some(pid=>t[pid]>=target)){
+              this.showRound=false;
+              this.endGame();
+              return;
+            }
+          } else {
+            // Gana el primero en llegar al objetivo
+            const w=this.game.pIds.find(pid=>t[pid]>=target);
+            if(w){
+              this.showRound=false;
+              this.endGame(w);
+              return;
+            }
+          }
+        }
+      }
+
+      // Condición de fin para Carioca Libre
+      if(gtMode==='libre'){
+        const w=this.game.pIds.find(pid=>{
           const done=this.game.doneMap[pid]||[];
           return this.game.cIds.every(cid=>done.includes(cid));
         });
-        if(winner){
+        if(w){
           this.showRound=false;
-          this.endGame(winner);
+          this.endGame(w);
           return;
         }
       }
@@ -1754,8 +1865,12 @@ createApp({
           final[pid]=(final[pid]||0)+v;
         }
       }
-      // Winner: provided (libre) or lowest score (carioca)
-      const winner=forcedWinner||this.game.pIds.reduce((a,b)=>final[a]<=final[b]?a:b);
+      // Winner: provided or derived from scoring direction
+      const gt=this.gameTypes.find(g=>g.id===this.game.gtId);
+      const mode=gt?gt.mode:'fixed';
+      const winner=forcedWinner||(mode==='score_high'
+        ?this.game.pIds.reduce((a,b)=>final[a]>=final[b]?a:b)
+        :this.game.pIds.reduce((a,b)=>final[a]<=final[b]?a:b));
       this.game.status='finished';
       this.game.winner=winner;
       this.game.final=final;
@@ -1774,7 +1889,11 @@ createApp({
           final[pid]=(final[pid]||0)+v;
         }
       }
-      const winner=this.game.pIds.reduce((a,b)=>final[a]<=final[b]?a:b);
+      const gt=this.gameTypes.find(g=>g.id===this.game.gtId);
+      const mode=gt?gt.mode:'fixed';
+      const winner=mode==='score_high'
+        ?this.game.pIds.reduce((a,b)=>final[a]>=final[b]?a:b)
+        :this.game.pIds.reduce((a,b)=>final[a]<=final[b]?a:b);
       this.confirmDlg={
         msg:`¿Terminar la partida ahora? Ganador: ${this.pName(winner)} con ${final[winner]} puntos.`,
         ok:()=>{ this.confirmDlg=null; this.endGame(winner); }
@@ -1893,17 +2012,19 @@ createApp({
         this.game=null;
       }
       const gt=this.gameTypes.find(g=>g.id===cfg.gtId);
-      const cIds=gt&&gt.mode==='fixed'
+      const mode=gt?gt.mode:'fixed';
+      const cIds=mode==='fixed'
         ? this.activeCariocaCombos.map(c=>c.id)
-        : [...(cfg.cIds||[])].filter(id=>this.combos.some(c=>c.id===id));
+        : mode==='libre' ? [...(cfg.cIds||[])].filter(id=>this.combos.some(c=>c.id===id)) : [];
       const doneMap={};
-      if(gt&&gt.mode!=='fixed'){
+      if(mode==='libre'){
         for(const pid of cfg.pIds) doneMap[pid]=[];
       }
       this.game={
         id:this.uid(),date:new Date().toISOString(),
         gtId:cfg.gtId,pIds:[...cfg.pIds],cIds,
         rounds:[],doneMap,round:0,status:'active',winner:null,final:null,
+        targetScore:(mode==='score_low'||mode==='score_high')?(cfg.targetScore||100):null,
       };
       this.save();
       this.nav('game');
@@ -1919,7 +2040,7 @@ createApp({
       if(!g) return;
       const winner=this.pName(g.winner);
       const players=g.pIds.map(pid=>`${this.pName(pid)}: ${(g.final||{})[pid]||0} pts`).join('\n');
-      const text=`🃏 Carioca – ${this.gameTypeName(g.gtId)}\n🏆 Ganador: ${winner}\n\n${players}\n\n${g.rounds.length} rondas jugadas`;
+      const text=`🎯 RondaScore – ${this.gameTypeName(g.gtId)}\n🏆 Ganador: ${winner}\n\n${players}\n\n${g.rounds.length} rondas jugadas`;
       if(navigator.share){
         try{ await navigator.share({title:'Carioca',text}); }catch(e){}
       } else {
@@ -2065,8 +2186,10 @@ createApp({
     sortedPlayersOfGame(g){
       if(!g) return [];
       const f=g.final||{};
+      const gt=this.gameTypes.find(x=>x.id===g.gtId);
+      const desc=gt&&gt.mode==='score_high';
       return g.pIds.map(id=>this.players.find(p=>p.id===id)||{id,name:'?',color:'#999'})
-        .sort((a,b)=>(f[a.id]||0)-(f[b.id]||0));
+        .sort((a,b)=>desc?(f[b.id]||0)-(f[a.id]||0):(f[a.id]||0)-(f[b.id]||0));
     },
 
     // ── PERSISTENCE ──
@@ -2132,6 +2255,7 @@ createApp({
             final:g.final&&typeof g.final==='object'?g.final:null,
             doneMap:g.doneMap&&typeof g.doneMap==='object'?g.doneMap:{},
             pauseDate:g.pauseDate?String(g.pauseDate).slice(0,30):undefined,
+            targetScore:typeof g.targetScore==='number'&&g.targetScore>0?g.targetScore:null,
           };
         };
 
@@ -2147,6 +2271,7 @@ createApp({
             gtId:String(d.lastCfg.gtId||'carioca').slice(0,20),
             pIds:Array.isArray(d.lastCfg.pIds)?d.lastCfg.pIds.slice(0,10).map(x=>String(x).slice(0,20)):[],
             cIds:Array.isArray(d.lastCfg.cIds)?d.lastCfg.cIds.slice(0,100).map(x=>String(x).slice(0,20)):[],
+            targetScore:typeof d.lastCfg.targetScore==='number'&&d.lastCfg.targetScore>0?d.lastCfg.targetScore:null,
           };
         }
       }catch(e){
