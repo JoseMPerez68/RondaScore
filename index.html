@@ -435,6 +435,10 @@ body{
 .round-tbl td{padding:7px 6px;border-top:1px solid var(--border);text-align:center}
 .round-tbl td.lft{text-align:left}
 .round-tbl td.win{color:var(--green-acc);font-weight:600}
+.round-tbl td.editable-cell{cursor:pointer;position:relative}
+.round-tbl td.editable-cell:active{background:var(--bg)}
+.round-tbl td.editable-cell::after{content:'';position:absolute;inset:0;border-radius:4px;transition:background .1s}
+.round-tbl td.editable-cell:active::after{background:rgba(0,0,0,.06)}
 .round-tbl tr.tot-row td{font-weight:700;border-top:2px solid var(--border);background:var(--bg)}
 .rnd-short{font-family:var(--ff-display);font-size:11px;color:var(--muted);margin-left:4px}
 
@@ -825,6 +829,27 @@ body{
           <button class="btn btn-muted" style="flex:1" @click="winnerModal=null; nav('history')">Historial</button>
           <button class="btn btn-muted" style="flex:1" @click="winnerModal=null; openSetup()">Nueva partida</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== EDIT SCORE DIALOG ===== -->
+  <div class="overlay" v-if="editScoreDlg" @click.self="editScoreDlg=null">
+    <div class="modal" style="border-radius:22px;margin:auto">
+      <div class="modal-pull"></div>
+      <h2 class="modal-title">Corregir puntaje</h2>
+      <p class="modal-hint">Ronda {{editScoreDlg.ri+1}} · {{pName(editScoreDlg.pid)}}</p>
+      <div class="field">
+        <label class="field-label">Puntaje</label>
+        <input class="inp" type="number" inputmode="numeric" min="0"
+          v-model.number="editScoreDlg.value"
+          @keyup.enter="saveEditedScore"
+          style="font-size:24px;text-align:center;padding:14px"
+          ref="editScoreInp">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-muted" @click="editScoreDlg=null">Cancelar</button>
+        <button class="btn btn-primary" @click="saveEditedScore">Guardar</button>
       </div>
     </div>
   </div>
@@ -1360,9 +1385,10 @@ body{
 
       <!-- Detail view -->
       <div v-if="detailGame">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
           <button class="btn btn-muted btn-sm" @click="detailGame=null">← Volver</button>
           <button class="btn btn-ghost btn-sm" @click="shareGame(detailGame)">🔗 Compartir</button>
+          <button class="btn btn-sm" style="margin-left:auto;color:var(--red);border-color:var(--red);background:transparent" @click="deleteFromHistory(detailGame)">🗑 Eliminar</button>
         </div>
         <div class="card">
           <div class="hist-top" style="margin-bottom:12px">
@@ -1387,7 +1413,10 @@ body{
 
         <!-- Round detail -->
         <div class="card" v-if="detailGame.rounds&&detailGame.rounds.length>0">
-          <div class="card-label">Detalle de rondas</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <div class="card-label" style="margin:0">Detalle de rondas</div>
+            <span style="font-size:11px;color:var(--muted)" v-if="detailGame.status==='finished'">✏️ Toca un puntaje para corregirlo</span>
+          </div>
           <div style="overflow-x:auto">
             <table class="round-tbl">
               <thead>
@@ -1404,7 +1433,8 @@ body{
                     <span style="font-weight:600">R{{i+1}}</span>
                     <span class="rnd-short">{{getComboShort(r.cId)}}</span>
                   </td>
-                  <td v-for="pid in detailGame.pIds" :key="pid" :class="{win:r.winner===pid}">
+                  <td v-for="pid in detailGame.pIds" :key="pid" :class="{win:r.winner===pid,'editable-cell':detailGame.status==='finished'}"
+                    @click="detailGame.status==='finished'&&openEditScore(detailGame,i,pid)">
                     <span v-if="detailGame.gtId&&gameTypes.find(x=>x.id===detailGame.gtId)&&gameTypes.find(x=>x.id===detailGame.gtId).mode==='lives'&&roundLostLifeInGame(detailGame,i,pid)" style="font-size:10px">💔</span>{{r.scores[pid]||0}}
                   </td>
                 </tr>
@@ -1537,7 +1567,7 @@ body{
               <div v-for="pid in g.pIds.slice(0,6)" :key="pid" class="av av-sm" :style="{background:pColor(pid)}">{{ini(pName(pid))}}</div>
             </div>
             <span class="hist-rnds">{{g.rounds.length}} rondas</span>
-            <button v-if="g.status==='paused'" class="icon-btn del" style="margin-left:8px" @click.stop="deleteFromHistory(g)" title="Eliminar">🗑</button>
+            <button class="icon-btn del" style="margin-left:8px" @click.stop="deleteFromHistory(g)" title="Eliminar">🗑</button>
           </div>
         </div>
       </div>
@@ -1721,6 +1751,7 @@ createApp({
 
       // History detail
       detailGame:null,
+      editScoreDlg:null, // {gameId, ri, pid, value}
 
       // Theme
       theme:'auto',
@@ -2466,8 +2497,41 @@ createApp({
     deleteFromHistory(g){
       this.confirmDlg={
         msg:'¿Eliminar esta partida del historial?',
-        ok:()=>{ this.games=this.games.filter(x=>x.id!==g.id); this.confirmDlg=null; this.save(); }
+        ok:()=>{ this.games=this.games.filter(x=>x.id!==g.id); this.confirmDlg=null; if(this.detailGame&&this.detailGame.id===g.id) this.detailGame=null; this.save(); }
       };
+    },
+
+    openEditScore(g, ri, pid){
+      this.editScoreDlg={gameId:g.id, ri, pid, value:g.rounds[ri].scores[pid]||0};
+      this.$nextTick(()=>{ const el=this.$refs.editScoreInp; if(el){ el.focus(); el.select(); } });
+    },
+    saveEditedScore(){
+      const d=this.editScoreDlg;
+      if(!d) return;
+      const g=this.games.find(x=>x.id===d.gameId);
+      if(!g||!g.rounds[d.ri]) return;
+      const newVal=parseInt(d.value)||0;
+      g.rounds[d.ri].scores[d.pid]=newVal;
+      // Recalculate final totals
+      const final={};
+      for(const pid of g.pIds) final[pid]=0;
+      for(const r of g.rounds) for(const [pid,v] of Object.entries(r.scores)) final[pid]=(final[pid]||0)+v;
+      g.final=final;
+      // Recalculate winner
+      const gt=this.gameTypes.find(x=>x.id===g.gtId);
+      const mode=gt?gt.mode:'fixed';
+      if(mode==='lives'){
+        const lL={},cS={},target=g.targetScore||100,ls=g.livesStart||3;
+        for(const pid of g.pIds){lL[pid]=ls;cS[pid]=0;}
+        for(const r of g.rounds){ for(const pid of g.pIds){ cS[pid]+=(r.scores[pid]||0); if(cS[pid]>=target){lL[pid]=Math.max(0,lL[pid]-1);cS[pid]=0;} } }
+        g.winner=g.pIds.reduce((a,b)=>lL[a]>lL[b]?a:(lL[a]<lL[b]?b:(cS[a]<=cS[b]?a:b)));
+      } else {
+        const desc=mode==='score_high'||(mode==='rounds'&&g.roundsWinner==='high');
+        g.winner=desc?g.pIds.reduce((a,b)=>final[a]>=final[b]?a:b):g.pIds.reduce((a,b)=>final[a]<=final[b]?a:b);
+      }
+      this.editScoreDlg=null;
+      this.save();
+      this.showToast('Puntaje corregido ✓');
     },
 
     // ── LIBRE COMBOS ──
