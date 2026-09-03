@@ -1,6 +1,6 @@
 <title>Carioca</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'">
 <meta name="theme-color" content="#152f25">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -983,7 +983,7 @@ body{
           <div class="combo-hero-name">{{game.cIds.length}} combinaciones activas</div>
           <div style="margin-top:10px">
             <div v-for="pid in game.pIds.slice(0,4)" :key="pid" class="libre-prog-row">
-              <div class="av av-sm" :style="{background:pColor(pid),flex-shrink:0}">{{ini(pName(pid))}}</div>
+              <div class="av av-sm" :style="{background:pColor(pid),flexShrink:0}">{{ini(pName(pid))}}</div>
               <div class="libre-prog-bar-wrap">
                 <div class="libre-prog-bar" :style="{width: libreProgress(pid) + '%'}"></div>
               </div>
