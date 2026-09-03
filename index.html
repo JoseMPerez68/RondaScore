@@ -796,7 +796,10 @@ body{
       <div class="winner-label">¡Ganador!</div>
       <div class="winner-name">{{ pName(winnerModal.winner) }}</div>
       <div class="winner-score">
-        <template v-if="winnerModal.scoringDir==='score_high'">
+        <template v-if="winnerModal.scoringDir==='lives'">
+          ❤️ ¡Último en pie!
+        </template>
+        <template v-else-if="winnerModal.scoringDir==='score_high'">
           {{ winnerModal.final[winnerModal.winner] }} puntos
         </template>
         <template v-else>
@@ -809,7 +812,10 @@ body{
           class="winner-score-row" :class="{first: p.id===winnerModal.winner}">
           <span class="winner-rank">{{ idx===0 ? '🥇' : idx===1 ? '🥈' : idx===2 ? '🥉' : (idx+1)+'°' }}</span>
           <span class="winner-score-name" :style="{color: p.color}">{{ p.name }}</span>
-          <span class="winner-score-val">{{ winnerModal.final[p.id] }}</span>
+          <span class="winner-score-val">
+            <template v-if="winnerModal.scoringDir==='lives'">{{p.id===winnerModal.winner?'❤️':'💀'}}</template>
+            <template v-else>{{ winnerModal.final[p.id] }}</template>
+          </span>
         </div>
       </div>
 
@@ -890,8 +896,27 @@ body{
             </div>
           </div>
         </template>
+        <!-- Campos extra: modo vidas -->
+        <template v-if="setupIsLivesMode">
+          <div class="field" style="margin-top:16px">
+            <label class="field-label">Nombre del juego <span style="font-weight:400;text-transform:none">(opcional)</span></label>
+            <input class="inp" type="text" maxlength="30"
+              v-model="setup.gameName" placeholder="Ej: Burako, Truco, Gin Rummy…">
+          </div>
+          <div class="field">
+            <label class="field-label">Vidas por jugador</label>
+            <input class="inp" type="number" inputmode="numeric" min="1"
+              v-model.number="setup.livesStart" placeholder="Ej: 3">
+          </div>
+          <div class="field">
+            <label class="field-label">Puntos límite por ciclo</label>
+            <input class="inp" type="number" inputmode="numeric" min="1"
+              v-model.number="setup.targetScore" placeholder="Ej: 100">
+            <p style="font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5">Al superar este puntaje en un ciclo, el jugador pierde una ❤️. El último en pie gana.</p>
+          </div>
+        </template>
         <button class="btn btn-primary btn-block"
-          :disabled="!setup.gameTypeId||(setupIsScoreMode&&!(setup.targetScore>0))||(setupIsRoundsMode&&!(setup.totalRounds>0))"
+          :disabled="!setup.gameTypeId||(setupIsScoreMode&&!(setup.targetScore>0))||(setupIsRoundsMode&&!(setup.totalRounds>0))||(setupIsLivesMode&&(!(setup.livesStart>0)||!(setup.targetScore>0)))"
           @click="setupNext" style="margin-top:8px">Siguiente →</button>
       </div>
 
@@ -1039,6 +1064,7 @@ body{
       <div class="hdr-sub" v-if="hasGame">
         {{activeGameName}}
         <template v-if="isRoundsMode"> · Ronda {{game.round+1}}/{{game.totalRounds}}</template>
+        <template v-else-if="isLivesMode"> · Ronda {{game.round+1}} · ❤️×{{game.livesStart}}</template>
         <template v-else-if="!isLibre && !isScoreMode"> · Ronda {{game.round+1}}/{{game.cIds.length}}</template>
         <template v-else-if="isScoreMode"> · Ronda {{game.round+1}}<span v-if="game.targetScore"> — límite {{game.targetScore}} pts</span></template>
         <template v-else> · Ronda {{game.round+1}}</template>
@@ -1145,6 +1171,22 @@ body{
           <div class="progress-track" style="margin-top:10px"><div class="progress-fill" :style="{width:gameProgress+'%'}"></div></div>
         </div>
 
+        <!-- Hero para modo vidas -->
+        <div class="combo-hero" v-else-if="isLivesMode">
+          <div class="combo-hero-num">{{activeGameName}}</div>
+          <div class="combo-hero-short" style="font-size:28px">Ronda {{game.round+1}}</div>
+          <div class="combo-hero-name">❤️ {{game.livesStart}} vidas · Límite {{game.targetScore}} pts/ciclo</div>
+          <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px" v-if="livesState">
+            <div v-for="pid in game.pIds" :key="pid" style="display:flex;align-items:center;gap:8px">
+              <div class="av av-sm" :style="{background:pColor(pid),flexShrink:0}">{{ini(pName(pid))}}</div>
+              <div style="flex:1;display:flex;gap:1px;align-items:center">
+                <span v-for="n in game.livesStart" :key="n" style="font-size:15px;line-height:1">{{n<=livesState.livesLeft[pid]?'❤️':'🖤'}}</span>
+              </div>
+              <span style="font-size:12px;color:rgba(255,255,255,.65);min-width:52px;text-align:right">{{livesState.cycleScores[pid]}}/{{game.targetScore}}</span>
+            </div>
+          </div>
+        </div>
+
         <!-- Hero para modos de puntuación -->
         <div class="combo-hero" v-else-if="isScoreMode">
           <div class="combo-hero-num">{{activeGameName}}</div>
@@ -1209,8 +1251,16 @@ body{
               </span>
               <div class="av" :style="{background:p.color}">{{ini(p.name)}}</div>
               <div class="score-name">{{p.name}}</div>
-              <div class="score-delta" v-if="lastDeltas[p.id]">+{{lastDeltas[p.id]}}</div>
-              <div class="score-val" :class="{zero:totals[p.id]===0}">{{totals[p.id]}}</div>
+              <div class="score-delta" v-if="lastDeltas[p.id]&&!isLivesMode">+{{lastDeltas[p.id]}}</div>
+              <template v-if="isLivesMode&&livesState">
+                <div style="display:flex;align-items:center;gap:4px;margin-left:auto">
+                  <span style="font-size:12px;letter-spacing:0px;line-height:1">
+                    <template v-for="n in game.livesStart" :key="n">{{n<=livesState.livesLeft[p.id]?'❤️':'🖤'}}</template>
+                  </span>
+                  <span style="font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;min-width:32px;text-align:right;color:var(--muted)">{{livesState.cycleScores[p.id]}}</span>
+                </div>
+              </template>
+              <div v-else class="score-val" :class="{zero:totals[p.id]===0}">{{totals[p.id]}}</div>
             </div>
           </div>
 
@@ -1289,7 +1339,7 @@ body{
                   </td>
                   <td v-for="pid in game.pIds" :key="pid"
                     :class="{win:r.winner===pid}">
-                    {{r.scores[pid]||0}}
+                    <span v-if="isLivesMode&&roundLostLife(i,pid)" title="Vida perdida en esta ronda" style="font-size:10px">💔</span>{{r.scores[pid]||0}}
                   </td>
                 </tr>
                 <tr class="tot-row">
@@ -1355,7 +1405,7 @@ body{
                     <span class="rnd-short">{{getComboShort(r.cId)}}</span>
                   </td>
                   <td v-for="pid in detailGame.pIds" :key="pid" :class="{win:r.winner===pid}">
-                    {{r.scores[pid]||0}}
+                    <span v-if="detailGame.gtId&&gameTypes.find(x=>x.id===detailGame.gtId)&&gameTypes.find(x=>x.id===detailGame.gtId).mode==='lives'&&roundLostLifeInGame(detailGame,i,pid)" style="font-size:10px">💔</span>{{r.scores[pid]||0}}
                   </td>
                 </tr>
                 <tr class="tot-row">
@@ -1418,8 +1468,39 @@ body{
           <div class="empty-title">Sin historial</div>
           <p>Tus partidas aparecerán aquí</p>
         </div>
+        <!-- Filter chips -->
+        <div v-if="allHistoryGames.length>0" style="margin-bottom:12px">
+          <!-- By player -->
+          <div v-if="historyPlayerOptions.length>1" style="margin-bottom:8px">
+            <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Jugador</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <button class="btn btn-sm" :class="histFilterPlayer===null?'btn-primary':'btn-muted'"
+                @click="histFilterPlayer=null">Todos</button>
+              <button v-for="p in historyPlayerOptions" :key="p.id"
+                class="btn btn-sm" :class="histFilterPlayer===p.id?'btn-primary':'btn-muted'"
+                @click="histFilterPlayer=histFilterPlayer===p.id?null:p.id"
+                style="display:flex;align-items:center;gap:5px">
+                <span class="av av-sm" :style="{background:p.color,width:'18px',height:'18px',fontSize:'9px',flexShrink:0}">{{ini(p.name)}}</span>
+                {{p.name}}
+              </button>
+            </div>
+          </div>
+          <!-- By game type -->
+          <div v-if="historyTypeOptions.length>1">
+            <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Tipo de juego</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <button class="btn btn-sm" :class="histFilterType===null?'btn-primary':'btn-muted'"
+                @click="histFilterType=null">Todos</button>
+              <button v-for="gt in historyTypeOptions" :key="gt.mode"
+                class="btn btn-sm" :class="histFilterType===gt.mode?'btn-primary':'btn-muted'"
+                @click="histFilterType=histFilterType===gt.mode?null:gt.mode">
+                {{gt.icon}} {{gt.name}}
+              </button>
+            </div>
+          </div>
+        </div>
         <!-- Player stats -->
-        <div class="card" v-if="topPlayers.length>0" style="margin-bottom:12px">
+        <div class="card" v-if="topPlayers.length>0&&!histFilterPlayer&&!histFilterType" style="margin-bottom:12px">
           <div class="card-label">Estadísticas de jugadores</div>
           <div v-for="p in topPlayers" :key="p.id" class="score-row">
             <div class="av av-sm" :style="{background:p.color}">{{ini(p.name)}}</div>
@@ -1428,8 +1509,14 @@ body{
             <div class="score-val" style="font-size:16px;min-width:44px">{{p.winRate}}%</div>
           </div>
         </div>
+        <!-- Empty filtered state -->
+        <div v-if="filteredHistoryGames.length===0&&allHistoryGames.length>0" class="empty" style="padding:24px 0">
+          <div style="font-size:32px;margin-bottom:8px">🔍</div>
+          <div class="empty-title" style="font-size:16px">Sin resultados</div>
+          <p>Prueba con otros filtros</p>
+        </div>
 
-        <div v-for="g in allHistoryGames" :key="g.id"
+        <div v-for="g in filteredHistoryGames" :key="g.id"
           class="hist-item"
           @click="g.status==='paused' ? resumeGame(g) : viewGame(g)">
           <div class="hist-top">
@@ -1583,6 +1670,7 @@ const DEF_GTS = [
   {id:'rondas_fijas',name:'Rondas fijas',mode:'rounds',icon:'🔢',desc:'Número fijo de rondas; gana quien tenga menos puntos al final',defaultRounds:10},
   {id:'llega_pierde',name:'Llega a X — pierde',mode:'score_low',icon:'🎯',desc:'Gana quien tenga menos puntos cuando alguien alcanza el límite',defaultTarget:100},
   {id:'llega_gana',name:'Llega a X — gana',mode:'score_high',icon:'🏆',desc:'Gana el primero en llegar al puntaje objetivo',defaultTarget:100},
+  {id:'vidas',name:'Vidas',mode:'lives',icon:'❤️',desc:'Cada jugador tiene N vidas; pierde una al superar el límite de puntos',defaultLives:3,defaultTarget:100},
 ];
 
 const COLORS = ['#e74c3c','#3498db','#e67e22','#9b59b6','#27ae60','#0891b2','#d35400','#c0392b'];
@@ -1596,7 +1684,11 @@ createApp({
       showMenu:false,
 
       // Setup wizard
-      setup:{step:0,gameTypeId:'',pIds:[],cIds:[],targetScore:100,totalRounds:10,roundsWinner:'low',gameName:''},
+      setup:{step:0,gameTypeId:'',pIds:[],cIds:[],targetScore:100,totalRounds:10,roundsWinner:'low',livesStart:3,gameName:''},
+
+      // History filters
+      histFilterPlayer:null,
+      histFilterType:null,
 
       // Round entry
       showRound:false,
@@ -1656,7 +1748,8 @@ createApp({
     isLibre(){ return this.gameMode==='libre'; },
     isScoreMode(){ return this.gameMode==='score_low'||this.gameMode==='score_high'; },
     isRoundsMode(){ return this.gameMode==='rounds'; },
-    useFreeScore(){ return this.isScoreMode||this.isRoundsMode; },
+    isLivesMode(){ return this.gameMode==='lives'; },
+    useFreeScore(){ return this.isScoreMode||this.isRoundsMode||this.isLivesMode; },
 
     setupIsScoreMode(){
       const gt=this.gameTypes.find(g=>g.id===this.setup.gameTypeId);
@@ -1666,14 +1759,41 @@ createApp({
       const gt=this.gameTypes.find(g=>g.id===this.setup.gameTypeId);
       return gt&&gt.mode==='rounds';
     },
+    setupIsLivesMode(){
+      const gt=this.gameTypes.find(g=>g.id===this.setup.gameTypeId);
+      return gt&&gt.mode==='lives';
+    },
+
+    livesState(){
+      if(!this.hasGame||!this.isLivesMode) return null;
+      const livesLeft={}, cycleScores={};
+      for(const pid of this.game.pIds){
+        livesLeft[pid]=this.game.livesStart||3;
+        cycleScores[pid]=0;
+      }
+      for(const r of this.game.rounds){
+        for(const pid of this.game.pIds){
+          cycleScores[pid]+=(r.scores[pid]||0);
+          if(cycleScores[pid]>=(this.game.targetScore||100)){
+            livesLeft[pid]=Math.max(0,livesLeft[pid]-1);
+            cycleScores[pid]=0;
+          }
+        }
+      }
+      return {livesLeft,cycleScores};
+    },
 
     winnerModalPlayers(){
       if(!this.winnerModal) return [];
-      const {final, pIds, scoringDir, roundsWinner} = this.winnerModal;
+      const {final, pIds, scoringDir, roundsWinner, winner} = this.winnerModal;
+      const players = pIds.map(id=>this.players.find(p=>p.id===id)||{id,name:'?',color:'#999'});
+      if(scoringDir==='lives'){
+        // Winner first; rest in any order
+        return [winner, ...pIds.filter(id=>id!==winner)]
+          .map(id=>players.find(p=>p.id===id)||{id,name:'?',color:'#999'});
+      }
       const desc = scoringDir==='score_high'||(scoringDir==='rounds'&&roundsWinner==='high');
-      return pIds
-        .map(id=>this.players.find(p=>p.id===id)||{id,name:'?',color:'#999'})
-        .sort((a,b)=>desc?(final[b.id]||0)-(final[a.id]||0):(final[a.id]||0)-(final[b.id]||0));
+      return players.sort((a,b)=>desc?(final[b.id]||0)-(final[a.id]||0):(final[a.id]||0)-(final[b.id]||0));
     },
 
     // Nombre a mostrar de la partida activa (prioriza gameName si existe)
@@ -1721,6 +1841,12 @@ createApp({
 
     sortedPlayers(){
       if(!this.hasGame) return [];
+      if(this.isLivesMode&&this.livesState){
+        const {livesLeft,cycleScores}=this.livesState;
+        return this.game.pIds
+          .map(id=>this.players.find(p=>p.id===id)||{id,name:'?',color:'#999'})
+          .sort((a,b)=>(livesLeft[b.id]-livesLeft[a.id])||cycleScores[a.id]-cycleScores[b.id]);
+      }
       const t=this.totals;
       const desc=this.gameMode==='score_high'||(this.isRoundsMode&&this.game.roundsWinner==='high');
       return this.game.pIds
@@ -1757,7 +1883,34 @@ createApp({
     activeLibreCombos(){ return this.activeCombos; },
 
     finishedGames(){
-      return [...this.games].filter(g=>g.status==='finished').sort((a,b)=>new Date(b.date)-new Date(a.date));
+      return [...this.games].filter(g=>g.status==='finished')
+        .sort((a,b)=>new Date(b.endDate||b.date)-new Date(a.endDate||a.date));
+    },
+    filteredHistoryGames(){
+      if(!this.histFilterPlayer&&!this.histFilterType) return this.allHistoryGames;
+      return this.allHistoryGames.filter(g=>{
+        if(this.histFilterPlayer&&!g.pIds.includes(this.histFilterPlayer)) return false;
+        if(this.histFilterType){
+          const gt=this.gameTypes.find(x=>x.id===g.gtId);
+          if(!gt||gt.mode!==this.histFilterType) return false;
+        }
+        return true;
+      });
+    },
+    historyPlayerOptions(){
+      // Players that appear in any history game
+      const ids=new Set(this.allHistoryGames.flatMap(g=>g.pIds));
+      return this.players.filter(p=>ids.has(p.id));
+    },
+    historyTypeOptions(){
+      // Unique game modes that appear in history
+      const modes=new Set();
+      for(const g of this.allHistoryGames){
+        const gt=this.gameTypes.find(x=>x.id===g.gtId);
+        if(gt) modes.add(gt.mode);
+      }
+      return this.gameTypes.filter(gt=>modes.has(gt.mode))
+        .filter((gt,i,arr)=>arr.findIndex(x=>x.mode===gt.mode)===i);
     },
     pausedGames(){
       return [...this.games].filter(g=>g.status==='paused').sort((a,b)=>new Date(b.date)-new Date(a.date));
@@ -1774,7 +1927,7 @@ createApp({
     roundTitle(){
       if(!this.hasGame) return 'Ronda';
       if(this.isRoundsMode) return `Ronda ${this.game.round+1} de ${this.game.totalRounds}`;
-      if(this.isScoreMode) return 'Ronda '+(this.game.round+1);
+      if(this.isScoreMode||this.isLivesMode) return 'Ronda '+(this.game.round+1);
       if(this.curCombo) return this.curCombo.name;
       return 'Ronda '+(this.game.round+1);
     },
@@ -1920,6 +2073,7 @@ createApp({
         targetScore:(this.lastCfg.targetScore)||(gt&&gt.defaultTarget)||100,
         totalRounds:(this.lastCfg.totalRounds)||(gt&&gt.defaultRounds)||10,
         roundsWinner:this.lastCfg.roundsWinner||'low',
+        livesStart:(this.lastCfg.livesStart)||(gt&&gt.defaultLives)||3,
         gameName:this.lastCfg.gameName||'',
       };
     },
@@ -1929,6 +2083,7 @@ createApp({
       const gt=this.gameTypes.find(g=>g.id===this.setup.gameTypeId);
       if(gt&&gt.defaultTarget) this.setup.targetScore=gt.defaultTarget;
       if(gt&&gt.defaultRounds) this.setup.totalRounds=gt.defaultRounds;
+      if(gt&&gt.defaultLives) this.setup.livesStart=gt.defaultLives;
     },
 
     setupNext(){
@@ -1937,6 +2092,7 @@ createApp({
         if(!s.gameTypeId) return;
         if(this.setupIsScoreMode&&(!(s.targetScore>0))) return;
         if(this.setupIsRoundsMode&&(!(s.totalRounds>0))) return;
+        if(this.setupIsLivesMode&&(!(s.livesStart>0)&&!(s.targetScore>0))) return;
         s.step=2;
       } else if(s.step===2){
         if(s.pIds.length<2) return;
@@ -1990,13 +2146,14 @@ createApp({
         status:'active',
         winner:null,
         final:null,
-        targetScore:(mode==='score_low'||mode==='score_high')?(s.targetScore||100):null,
+        targetScore:(mode==='score_low'||mode==='score_high'||mode==='lives')?(s.targetScore||100):null,
         totalRounds:mode==='rounds'?(s.totalRounds||10):null,
         roundsWinner:mode==='rounds'?(s.roundsWinner||'low'):null,
-        gameName:(mode==='score_low'||mode==='score_high'||mode==='rounds')?(s.gameName||''):null,
+        livesStart:mode==='lives'?(s.livesStart||3):null,
+        gameName:(mode==='score_low'||mode==='score_high'||mode==='rounds'||mode==='lives')?(s.gameName||''):null,
       };
 
-      this.lastCfg={gtId:s.gameTypeId,pIds:[...s.pIds],cIds:[...s.cIds],targetScore:s.targetScore||null,totalRounds:s.totalRounds||null,roundsWinner:s.roundsWinner||null,gameName:s.gameName||''};
+      this.lastCfg={gtId:s.gameTypeId,pIds:[...s.pIds],cIds:[...s.cIds],targetScore:s.targetScore||null,totalRounds:s.totalRounds||null,roundsWinner:s.roundsWinner||null,livesStart:s.livesStart||null,gameName:s.gameName||''};
       this.setup.step=0;
       this.save();
       this.nav('game');
@@ -2030,9 +2187,10 @@ createApp({
         targetScore:m.targetScore||null,
         totalRounds:m.totalRounds||null,
         roundsWinner:m.roundsWinner||null,
+        livesStart:m.livesStart||null,
         gameName:m.gameName||null,
       };
-      this.lastCfg={gtId:m.gtId,pIds:[...m.pIds],cIds:[...m.cIds||[]],targetScore:m.targetScore||null,totalRounds:m.totalRounds||null,roundsWinner:m.roundsWinner||null,gameName:m.gameName||''};
+      this.lastCfg={gtId:m.gtId,pIds:[...m.pIds],cIds:[...m.cIds||[]],targetScore:m.targetScore||null,totalRounds:m.totalRounds||null,roundsWinner:m.roundsWinner||null,livesStart:m.livesStart||null,gameName:m.gameName||''};
       this.save();
       this.nav('game');
     },
@@ -2054,7 +2212,8 @@ createApp({
       const gtMode=this.gameMode;
       const isScoreM=gtMode==='score_low'||gtMode==='score_high';
       const isRoundsM=gtMode==='rounds';
-      const isFreeScore=isScoreM||isRoundsM;
+      const isLivesM=gtMode==='lives';
+      const isFreeScore=isScoreM||isRoundsM||isLivesM;
 
       // Determinar ganador de ronda
       let winner=this.roundWinner;
@@ -2134,6 +2293,27 @@ createApp({
         }
       }
 
+      // Condición de fin para modo vidas
+      if(isLivesM){
+        const livesLeft={}, cycleScores={};
+        const target=this.game.targetScore||100;
+        const livesStart=this.game.livesStart||3;
+        for(const pid of this.game.pIds){ livesLeft[pid]=livesStart; cycleScores[pid]=0; }
+        for(const r of this.game.rounds){
+          for(const pid of this.game.pIds){
+            cycleScores[pid]+=(r.scores[pid]||0);
+            if(cycleScores[pid]>=target){ livesLeft[pid]=Math.max(0,livesLeft[pid]-1); cycleScores[pid]=0; }
+          }
+        }
+        const alive=this.game.pIds.filter(pid=>livesLeft[pid]>0);
+        if(alive.length<=1){
+          const w=alive.length===1?alive[0]:this.game.pIds.reduce((a,b)=>livesLeft[a]>=livesLeft[b]?a:b);
+          this.showRound=false;
+          this.endGame(w);
+          return;
+        }
+      }
+
       // Condición de fin para modo rondas fijas
       if(isRoundsM){
         if(this.game.rounds.length>=this.game.totalRounds){
@@ -2173,10 +2353,28 @@ createApp({
       // Winner: provided or derived from scoring direction
       const gt=this.gameTypes.find(g=>g.id===this.game.gtId);
       const mode=gt?gt.mode:'fixed';
-      const wantsHigh=mode==='score_high'||(mode==='rounds'&&this.game.roundsWinner==='high');
-      const winner=forcedWinner||(wantsHigh
-        ?this.game.pIds.reduce((a,b)=>final[a]>=final[b]?a:b)
-        :this.game.pIds.reduce((a,b)=>final[a]<=final[b]?a:b));
+      let winner=forcedWinner;
+      if(!winner){
+        if(mode==='lives'){
+          // Recompute lives to pick winner
+          const lL={}, cS={};
+          const target=this.game.targetScore||100;
+          const ls=this.game.livesStart||3;
+          for(const pid of this.game.pIds){ lL[pid]=ls; cS[pid]=0; }
+          for(const r of this.game.rounds){
+            for(const pid of this.game.pIds){
+              cS[pid]+=(r.scores[pid]||0);
+              if(cS[pid]>=target){ lL[pid]=Math.max(0,lL[pid]-1); cS[pid]=0; }
+            }
+          }
+          winner=this.game.pIds.reduce((a,b)=>lL[a]>lL[b]?a:(lL[a]<lL[b]?b:(cS[a]<=cS[b]?a:b)));
+        } else {
+          const wantsHigh=mode==='score_high'||(mode==='rounds'&&this.game.roundsWinner==='high');
+          winner=wantsHigh
+            ?this.game.pIds.reduce((a,b)=>final[a]>=final[b]?a:b)
+            :this.game.pIds.reduce((a,b)=>final[a]<=final[b]?a:b);
+        }
+      }
       this.game.status='finished';
       this.game.winner=winner;
       this.game.final=final;
@@ -2196,6 +2394,7 @@ createApp({
         roundsWinner:this.game.roundsWinner||null,
         targetScore:this.game.targetScore||null,
         totalRounds:this.game.totalRounds||null,
+        livesStart:this.game.livesStart||null,
         rounds:this.game.rounds.length,
       };
 
@@ -2213,13 +2412,33 @@ createApp({
       }
       const gt=this.gameTypes.find(g=>g.id===this.game.gtId);
       const mode=gt?gt.mode:'fixed';
-      const winner=mode==='score_high'
-        ?this.game.pIds.reduce((a,b)=>final[a]>=final[b]?a:b)
-        :this.game.pIds.reduce((a,b)=>final[a]<=final[b]?a:b);
-      this.confirmDlg={
-        msg:`¿Terminar la partida ahora? Ganador: ${this.pName(winner)} con ${final[winner]} puntos.`,
-        ok:()=>{ this.confirmDlg=null; this.endGame(winner); }
-      };
+      let winner;
+      if(mode==='lives'){
+        const lL={}, cS={};
+        const target=this.game.targetScore||100;
+        const ls=this.game.livesStart||3;
+        for(const pid of this.game.pIds){ lL[pid]=ls; cS[pid]=0; }
+        for(const r of this.game.rounds){
+          for(const pid of this.game.pIds){
+            cS[pid]+=(r.scores[pid]||0);
+            if(cS[pid]>=target){ lL[pid]=Math.max(0,lL[pid]-1); cS[pid]=0; }
+          }
+        }
+        winner=this.game.pIds.reduce((a,b)=>lL[a]>lL[b]?a:(lL[a]<lL[b]?b:(cS[a]<=cS[b]?a:b)));
+        const wLives=lL[winner];
+        this.confirmDlg={
+          msg:`¿Terminar la partida ahora? Ganador: ${this.pName(winner)} con ${wLives} vida${wLives!==1?'s':''} restante${wLives!==1?'s':''}.`,
+          ok:()=>{ this.confirmDlg=null; this.endGame(winner); }
+        };
+      } else {
+        winner=mode==='score_high'
+          ?this.game.pIds.reduce((a,b)=>final[a]>=final[b]?a:b)
+          :this.game.pIds.reduce((a,b)=>final[a]<=final[b]?a:b);
+        this.confirmDlg={
+          msg:`¿Terminar la partida ahora? Ganador: ${this.pName(winner)} con ${final[winner]} puntos.`,
+          ok:()=>{ this.confirmDlg=null; this.endGame(winner); }
+        };
+      }
     },
 
     pauseGame(){
@@ -2506,13 +2725,64 @@ createApp({
 
     // ── HISTORY ──
     viewGame(g){ this.view='history'; this.showMenu=false; this.detailGame=g; },
+    // Returns true if player `pid` lost a life at round index `ri` in the active game
+    roundLostLife(ri, pid){
+      if(!this.game||!this.game.rounds) return false;
+      const target=this.game.targetScore||100;
+      const ls=this.game.livesStart||3;
+      const lL={}, cS={};
+      for(const p of this.game.pIds){ lL[p]=ls; cS[p]=0; }
+      for(let i=0;i<=ri;i++){
+        const r=this.game.rounds[i];
+        if(!r) break;
+        cS[pid]=(cS[pid]||0)+(r.scores[pid]||0);
+        if(i===ri) return cS[pid]>=target;
+      }
+      return false;
+    },
+    // Returns true if player `pid` lost a life at round index `ri` in game `g`
+    roundLostLifeInGame(g, ri, pid){
+      if(!g||!g.rounds) return false;
+      const target=g.targetScore||100;
+      const cS={};
+      for(const p of g.pIds) cS[p]=0;
+      for(let i=0;i<=ri;i++){
+        const r=g.rounds[i];
+        if(!r) break;
+        cS[pid]=(cS[pid]||0)+(r.scores[pid]||0);
+        if(i===ri) return cS[pid]>=target;
+      }
+      return false;
+    },
+    livesStateOfGame(g){
+      if(!g||!g.pIds||!g.rounds) return null;
+      const livesLeft={}, cycleScores={};
+      const target=g.targetScore||100;
+      const ls=g.livesStart||3;
+      for(const pid of g.pIds){ livesLeft[pid]=ls; cycleScores[pid]=0; }
+      for(const r of g.rounds){
+        for(const pid of g.pIds){
+          cycleScores[pid]+=(r.scores[pid]||0);
+          if(cycleScores[pid]>=target){ livesLeft[pid]=Math.max(0,livesLeft[pid]-1); cycleScores[pid]=0; }
+        }
+      }
+      return {livesLeft,cycleScores};
+    },
     sortedPlayersOfGame(g){
       if(!g) return [];
-      const f=g.final||{};
       const gt=this.gameTypes.find(x=>x.id===g.gtId);
-      const desc=(gt&&gt.mode==='score_high')||(gt&&gt.mode==='rounds'&&g.roundsWinner==='high');
-      return g.pIds.map(id=>this.players.find(p=>p.id===id)||{id,name:'?',color:'#999'})
-        .sort((a,b)=>desc?(f[b.id]||0)-(f[a.id]||0):(f[a.id]||0)-(f[b.id]||0));
+      const mode=gt?gt.mode:'fixed';
+      const players=g.pIds.map(id=>this.players.find(p=>p.id===id)||{id,name:'?',color:'#999'});
+      if(mode==='lives'){
+        const ls=this.livesStateOfGame(g);
+        if(ls){
+          const {livesLeft,cycleScores}=ls;
+          return players.sort((a,b)=>(livesLeft[b.id]-livesLeft[a.id])||cycleScores[a.id]-cycleScores[b.id]);
+        }
+      }
+      const f=g.final||{};
+      const desc=(mode==='score_high')||(mode==='rounds'&&g.roundsWinner==='high');
+      return players.sort((a,b)=>desc?(f[b.id]||0)-(f[a.id]||0):(f[a.id]||0)-(f[b.id]||0));
     },
 
     // ── PERSISTENCE ──
