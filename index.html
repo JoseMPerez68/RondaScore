@@ -1935,13 +1935,17 @@ createApp({
     installApp(){
       if(!this._installPrompt) return;
       const p = this._installPrompt;
-      this._installPrompt = null;
-      this.installPrompt = false;
-      // Llamar prompt() sincrónicamente dentro del gesture handler
+      this.showToast('Abriendo instalación…');
+      // prompt() PRIMERO, antes de cualquier cambio de estado o re-render
       p.prompt();
       p.userChoice.then(({outcome}) => {
+        this._installPrompt = null;
+        this.installPrompt = false;
         if(outcome==='accepted') this.showToast('¡App instalada!');
-      }).catch(()=>{});
+      }).catch(()=>{
+        this._installPrompt = null;
+        this.installPrompt = false;
+      });
     },
 
     updateApp(){
