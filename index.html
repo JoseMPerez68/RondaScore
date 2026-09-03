@@ -271,7 +271,26 @@ body{
 .gt-icon{font-size:30px}
 .gt-name{font-size:16px;font-weight:600}
 .gt-desc{font-size:12px;color:var(--muted);margin-top:2px}
-.gt-check{margin-left:auto;font-size:20px;color:var(--green-acc)}
+.gt-check{font-size:20px;color:var(--green-acc)}
+.gt-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0}
+.gt-info-btn{
+  display:flex;align-items:center;justify-content:center;
+  width:26px;height:26px;border-radius:50%;
+  background:transparent;border:1.5px solid var(--border);
+  color:var(--muted);font-size:13px;font-weight:700;
+  cursor:pointer;flex-shrink:0;
+  transition:background .12s,border-color .12s,color .12s;
+  -webkit-tap-highlight-color:transparent;
+}
+.gt-info-btn:active{background:var(--green-lt);color:var(--green-acc);border-color:var(--green-acc)}
+/* ── RULES MODAL ── */
+.rules-body{max-height:55vh;overflow-y:auto;padding-right:2px;margin-bottom:4px}
+.rules-intro{font-size:13px;color:var(--text);line-height:1.65;margin-bottom:16px;padding:10px 12px;background:var(--bg);border-radius:10px}
+.rules-section-title{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin:14px 0 8px}
+.rules-combo-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:14px}
+.rules-combo-row:last-child{border-bottom:none}
+.rules-num{font-size:12px;font-weight:700;color:var(--muted);min-width:18px;text-align:center}
+.rules-note{font-size:12px;color:var(--muted);line-height:1.6;margin-top:10px;padding:8px 10px;border-left:3px solid var(--border);border-radius:0 6px 6px 0}
 
 /* ── COMBO SELECT LIST ── */
 .combo-sel-item{
@@ -538,9 +557,12 @@ body{
 .empty-title{font-size:18px;font-weight:600;color:var(--text);margin-bottom:8px}
 
 /* ── STEP INDICATORS ── */
-.steps{display:flex;gap:6px;justify-content:center;margin-bottom:18px}
+.steps{display:flex;gap:6px;justify-content:center;margin-bottom:4px}
 .step-dot{width:28px;height:4px;border-radius:2px;background:var(--border);transition:background .2s}
 .step-dot.on{background:var(--green-acc)}
+.step-labels{display:flex;justify-content:center;gap:0;margin-bottom:16px}
+.step-labels span{width:40px;text-align:center;font-size:10px;font-weight:600;letter-spacing:.3px;color:var(--border);transition:color .2s;text-transform:uppercase}
+.step-labels span.on{color:var(--green-acc)}
 
 /* ── ROUNDS PILL TRACK ── */
 .round-pills{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
@@ -855,13 +877,18 @@ body{
   </div>
 
   <!-- ===== NEW GAME SETUP ===== -->
-  <div class="overlay" v-if="setup.step > 0" @click.self="closeSetup">
+  <div class="overlay" v-if="setup.step > 0" @click.self="tryCloseSetup">
     <div class="modal">
       <div class="modal-pull"></div>
       <div class="steps">
         <div class="step-dot" :class="{on:setup.step>=1}"></div>
         <div class="step-dot" :class="{on:setup.step>=2}"></div>
-        <div class="step-dot" v-if="setupIsLibre" :class="{on:setup.step>=3}"></div>
+        <div class="step-dot" :class="{on:setup.step>=3}"></div>
+      </div>
+      <div class="step-labels">
+        <span :class="{on:setup.step>=1}">Tipo</span>
+        <span :class="{on:setup.step>=2}">Jugadores</span>
+        <span :class="{on:setup.step>=3}">Config</span>
       </div>
 
       <!-- Step 1: game type -->
@@ -872,76 +899,19 @@ body{
           class="gt-card" :class="{sel:setup.gameTypeId===gt.id}"
           @click="setup.gameTypeId=gt.id;onSetupGameTypeChange()">
           <span class="gt-icon">{{gt.icon}}</span>
-          <div>
+          <div style="flex:1;min-width:0">
             <div class="gt-name">{{gt.name}}</div>
             <div class="gt-desc">{{gt.desc}}</div>
           </div>
-          <span v-if="setup.gameTypeId===gt.id" class="gt-check">✓</span>
+          <div class="gt-right">
+            <button v-if="gt.mode==='fixed'||gt.mode==='libre'"
+              class="gt-info-btn" title="Ver reglas"
+              @click.stop="rulesModal=gt.id">ⓘ</button>
+            <span v-if="setup.gameTypeId===gt.id" class="gt-check">✓</span>
+          </div>
         </div>
-        <!-- Campos extra: modos score_low / score_high -->
-        <template v-if="setupIsScoreMode">
-          <div class="field" style="margin-top:16px">
-            <label class="field-label">Nombre del juego <span style="font-weight:400;text-transform:none">(opcional)</span></label>
-            <input class="inp" type="text" maxlength="30"
-              v-model="setup.gameName" placeholder="Ej: Dominó, Truco, Canasta…">
-          </div>
-          <div class="field">
-            <label class="field-label">Puntos límite</label>
-            <input class="inp" type="number" inputmode="numeric" min="1"
-              v-model.number="setup.targetScore" placeholder="Ej: 100">
-            <p style="font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5">
-              <template v-if="setup.gameTypeId==='llega_pierde'">La partida termina cuando alguien alcanza este puntaje. Gana quien tenga <strong>menos</strong>.</template>
-              <template v-else>Gana el primero en acumular este puntaje.</template>
-            </p>
-          </div>
-        </template>
-        <!-- Campos extra: modo rondas fijas -->
-        <template v-if="setupIsRoundsMode">
-          <div class="field" style="margin-top:16px">
-            <label class="field-label">Nombre del juego <span style="font-weight:400;text-transform:none">(opcional)</span></label>
-            <input class="inp" type="text" maxlength="30"
-              v-model="setup.gameName" placeholder="Ej: Canasta, Gin Rummy…">
-          </div>
-          <div class="field">
-            <label class="field-label">Número de rondas</label>
-            <input class="inp" type="number" inputmode="numeric" min="1"
-              v-model.number="setup.totalRounds" placeholder="Ej: 10">
-          </div>
-          <div class="field">
-            <label class="field-label">¿Quién gana?</label>
-            <div style="display:flex;gap:8px;margin-top:4px">
-              <button type="button"
-                class="btn" style="flex:1;font-size:13px"
-                :class="setup.roundsWinner==='low'?'btn-primary':'btn-muted'"
-                @click="setup.roundsWinner='low'">⬇️ Menos puntos</button>
-              <button type="button"
-                class="btn" style="flex:1;font-size:13px"
-                :class="setup.roundsWinner==='high'?'btn-primary':'btn-muted'"
-                @click="setup.roundsWinner='high'">⬆️ Más puntos</button>
-            </div>
-          </div>
-        </template>
-        <!-- Campos extra: modo vidas -->
-        <template v-if="setupIsLivesMode">
-          <div class="field" style="margin-top:16px">
-            <label class="field-label">Nombre del juego <span style="font-weight:400;text-transform:none">(opcional)</span></label>
-            <input class="inp" type="text" maxlength="30"
-              v-model="setup.gameName" placeholder="Ej: Burako, Truco, Gin Rummy…">
-          </div>
-          <div class="field">
-            <label class="field-label">Vidas por jugador</label>
-            <input class="inp" type="number" inputmode="numeric" min="1"
-              v-model.number="setup.livesStart" placeholder="Ej: 3">
-          </div>
-          <div class="field">
-            <label class="field-label">Puntos límite por ciclo</label>
-            <input class="inp" type="number" inputmode="numeric" min="1"
-              v-model.number="setup.targetScore" placeholder="Ej: 100">
-            <p style="font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5">Al superar este puntaje en un ciclo, el jugador pierde una ❤️. El último en pie gana.</p>
-          </div>
-        </template>
         <button class="btn btn-primary btn-block"
-          :disabled="!setup.gameTypeId||(setupIsScoreMode&&!(setup.targetScore>0))||(setupIsRoundsMode&&!(setup.totalRounds>0))||(setupIsLivesMode&&(!(setup.livesStart>0)||!(setup.targetScore>0)))"
+          :disabled="!setup.gameTypeId"
           @click="setupNext" style="margin-top:8px">Siguiente →</button>
       </div>
 
@@ -970,31 +940,180 @@ body{
         </div>
       </div>
 
-      <!-- Step 3: combinations (libre only) -->
+      <!-- Step 3: config final (combos para fixed/libre · parámetros para otros modos) -->
       <div v-else-if="setup.step===3">
-        <h2 class="modal-title">Combinaciones</h2>
-        <p class="modal-hint">Elige qué combinaciones incluir</p>
-        <div v-if="libreCombos.length===0" class="empty" style="padding:20px 0">
-          <p style="margin-bottom:12px">Sin combinaciones libres. Ve a Ajustes → Combinaciones.</p>
-          <button class="btn btn-ghost btn-sm" @click="closeSetup();nav('settings');stab='combos'">Ir a Ajustes</button>
-        </div>
-        <div v-else>
+
+        <!-- Carioca normal: combinaciones en orden fijo -->
+        <template v-if="setupIsFixed">
+          <h2 class="modal-title">Combinaciones</h2>
+          <p class="modal-hint">Elige las rondas a jugar <span style="font-weight:400;text-transform:none">(en orden)</span></p>
           <div style="display:flex;justify-content:space-between;margin-bottom:10px">
-            <button class="link-btn" @click="setup.cIds=libreCombos.map(c=>c.id)">Todas</button>
+            <button class="link-btn" @click="setup.cIds=activeCariocaCombos.map(c=>c.id)">Todas</button>
             <button class="link-btn" @click="setup.cIds=[]">Ninguna</button>
           </div>
-          <div v-for="c in libreCombos" :key="c.id"
+          <div v-for="(c,i) in activeCariocaCombos" :key="c.id"
             class="combo-sel-item"
             @click="toggleSetupCombo(c.id)">
             <div class="check-box" :class="{on:setup.cIds.includes(c.id)}">{{setup.cIds.includes(c.id)?'✓':''}}</div>
-            <span class="pip pip-done" style="font-size:10px;padding:2px 7px">{{c.short}}</span>
+            <span class="pip pip-done" style="font-size:10px;padding:2px 7px">{{i+1}}</span>
             <span style="flex:1;font-size:14px">{{c.name}}</span>
           </div>
-        </div>
+        </template>
+
+        <!-- Carioca libre: combinaciones libres -->
+        <template v-else-if="setupIsLibre">
+          <h2 class="modal-title">Combinaciones</h2>
+          <p class="modal-hint">Elige qué combinaciones incluir</p>
+          <div v-if="libreCombos.length===0" class="empty" style="padding:20px 0">
+            <p style="margin-bottom:12px">Sin combinaciones libres. Ve a Ajustes → Combinaciones.</p>
+            <button class="btn btn-ghost btn-sm" @click="closeSetup();nav('settings');stab='combos'">Ir a Ajustes</button>
+          </div>
+          <div v-else>
+            <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+              <button class="link-btn" @click="setup.cIds=libreCombos.map(c=>c.id)">Todas</button>
+              <button class="link-btn" @click="setup.cIds=[]">Ninguna</button>
+            </div>
+            <div v-for="c in libreCombos" :key="c.id"
+              class="combo-sel-item"
+              @click="toggleSetupCombo(c.id)">
+              <div class="check-box" :class="{on:setup.cIds.includes(c.id)}">{{setup.cIds.includes(c.id)?'✓':''}}</div>
+              <span class="pip pip-done" style="font-size:10px;padding:2px 7px">{{c.short}}</span>
+              <span style="flex:1;font-size:14px">{{c.name}}</span>
+            </div>
+          </div>
+        </template>
+
+        <!-- Otros modos: parámetros de configuración -->
+        <template v-else>
+          <h2 class="modal-title">Configuración</h2>
+          <!-- Modos score_low / score_high -->
+          <template v-if="setupIsScoreMode">
+            <div class="field">
+              <label class="field-label">Nombre del juego <span style="font-weight:400;text-transform:none">(opcional)</span></label>
+              <input class="inp" type="text" maxlength="30"
+                v-model="setup.gameName" placeholder="Ej: Dominó, Truco, Canasta…">
+            </div>
+            <div class="field">
+              <label class="field-label">Puntos límite</label>
+              <input class="inp" type="number" inputmode="numeric" min="1"
+                v-model.number="setup.targetScore" placeholder="Ej: 100">
+              <p style="font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5">
+                <template v-if="setup.gameTypeId==='llega_pierde'">La partida termina cuando alguien alcanza este puntaje. Gana quien tenga <strong>menos</strong>.</template>
+                <template v-else>Gana el primero en acumular este puntaje.</template>
+              </p>
+            </div>
+          </template>
+          <!-- Modo rondas fijas -->
+          <template v-if="setupIsRoundsMode">
+            <div class="field">
+              <label class="field-label">Nombre del juego <span style="font-weight:400;text-transform:none">(opcional)</span></label>
+              <input class="inp" type="text" maxlength="30"
+                v-model="setup.gameName" placeholder="Ej: Canasta, Gin Rummy…">
+            </div>
+            <div class="field">
+              <label class="field-label">Número de rondas</label>
+              <input class="inp" type="number" inputmode="numeric" min="1"
+                v-model.number="setup.totalRounds" placeholder="Ej: 10">
+            </div>
+            <div class="field">
+              <label class="field-label">¿Quién gana?</label>
+              <div style="display:flex;gap:8px;margin-top:4px">
+                <button type="button" class="btn" style="flex:1;font-size:13px"
+                  :class="setup.roundsWinner==='low'?'btn-primary':'btn-muted'"
+                  @click="setup.roundsWinner='low'">⬇️ Menos puntos</button>
+                <button type="button" class="btn" style="flex:1;font-size:13px"
+                  :class="setup.roundsWinner==='high'?'btn-primary':'btn-muted'"
+                  @click="setup.roundsWinner='high'">⬆️ Más puntos</button>
+              </div>
+            </div>
+          </template>
+          <!-- Modo vidas -->
+          <template v-if="setupIsLivesMode">
+            <div class="field">
+              <label class="field-label">Nombre del juego <span style="font-weight:400;text-transform:none">(opcional)</span></label>
+              <input class="inp" type="text" maxlength="30"
+                v-model="setup.gameName" placeholder="Ej: Burako, Truco, Gin Rummy…">
+            </div>
+            <div class="field">
+              <label class="field-label">Vidas por jugador</label>
+              <input class="inp" type="number" inputmode="numeric" min="1"
+                v-model.number="setup.livesStart" placeholder="Ej: 3">
+            </div>
+            <div class="field">
+              <label class="field-label">Puntos límite por ciclo</label>
+              <input class="inp" type="number" inputmode="numeric" min="1"
+                v-model.number="setup.targetScore" placeholder="Ej: 100">
+              <p style="font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5">Al superar este puntaje en un ciclo, el jugador pierde una ❤️. El último en pie gana.</p>
+            </div>
+          </template>
+        </template>
+
         <div class="modal-actions">
           <button class="btn btn-muted" @click="setup.step--">← Atrás</button>
-          <button class="btn btn-primary" :disabled="setup.cIds.length===0" @click="startGame">Iniciar partida</button>
+          <button class="btn btn-primary"
+            :disabled="((setupIsFixed||setupIsLibre)&&setup.cIds.length===0)||(setupIsScoreMode&&!(setup.targetScore>0))||(setupIsRoundsMode&&!(setup.totalRounds>0))||(setupIsLivesMode&&(!(setup.livesStart>0)||!(setup.targetScore>0)))"
+            @click="startGame">Iniciar partida</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== RULES MODAL ===== -->
+  <div class="overlay" v-if="rulesModal" @click.self="rulesModal=null">
+    <div class="modal">
+      <div class="modal-pull"></div>
+
+      <!-- Carioca (fixed) -->
+      <template v-if="rulesModal==='carioca'">
+        <h2 class="modal-title">🃏 Reglas: Carioca</h2>
+        <div class="rules-body">
+          <p class="rules-intro">
+            Juego de cartas con 2 mazos estándar (incluyendo comodines). Se reparten <strong>12 cartas</strong> a cada jugador. Se juega en rondas con combinaciones en <strong>orden fijo</strong>: hay que completar la combinación de la ronda actual antes de pasar a la siguiente.
+          </p>
+          <div class="rules-section-title">Rondas</div>
+          <div v-for="(c,i) in activeCariocaCombos" :key="c.id" class="rules-combo-row">
+            <span class="rules-num">{{i+1}}</span>
+            <span class="pip pip-done" style="font-size:10px;padding:2px 7px;flex-shrink:0">{{c.short}}</span>
+            <span>{{c.name}}</span>
+          </div>
+          <div class="rules-section-title">Puntaje</div>
+          <p class="rules-intro" style="margin-bottom:0">
+            El <strong>ganador</strong> de cada ronda (quien baja primero su combinación) anota <strong>0 puntos</strong>. Los demás cuentan el valor de las cartas que les quedan en mano. Al final de todas las rondas, <strong>gana quien acumuló menos puntos</strong>.
+          </p>
+          <p class="rules-note">
+            Valores orientativos: Comodín 25 pts · As 1 pt · 2–9 valor nominal · 10/J/Q/K 10 pts. Las reglas exactas pueden variar según el grupo.
+          </p>
+        </div>
+      </template>
+
+      <!-- Carioca Libre -->
+      <template v-else-if="rulesModal==='libre'">
+        <h2 class="modal-title">🎴 Reglas: Carioca Libre</h2>
+        <div class="rules-body">
+          <p class="rules-intro">
+            Variante libre del Carioca. Cada jugador completa las combinaciones <strong>en el orden que prefiera</strong>. No hay una secuencia fija: en cada ronda, cada jugador elige qué combinación intentará completar.
+          </p>
+          <div class="rules-section-title">Dinámica</div>
+          <p class="rules-intro" style="margin-bottom:0">
+            Al inicio de cada ronda, cada jugador declara qué combinación va a jugar. El <strong>ganador</strong> (quien baja primero) anota <strong>0 puntos</strong>; los demás cuentan las cartas en mano. La app registra automáticamente qué combinaciones completó cada jugador. <strong>El juego termina cuando todos los jugadores han completado todas las combinaciones elegidas.</strong>
+          </p>
+          <div class="rules-section-title">Combinaciones disponibles</div>
+          <div v-if="libreCombos.length===0" style="color:var(--muted);font-size:13px;padding:8px 0">
+            Sin combinaciones configuradas. Ve a Ajustes → Combinaciones.
+          </div>
+          <div v-for="c in libreCombos" :key="c.id" class="rules-combo-row">
+            <span class="pip pip-done" style="font-size:10px;padding:2px 7px;flex-shrink:0">{{c.short}}</span>
+            <span>{{c.name}}</span>
+          </div>
+          <p class="rules-note" style="margin-top:12px">
+            Las combinaciones disponibles se configuran en Ajustes → Combinaciones y pueden personalizarse.
+          </p>
+        </div>
+      </template>
+
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+        <button class="btn btn-primary btn-block" @click="rulesModal=null">Entendido</button>
+        <button class="btn btn-ghost btn-sm" style="width:100%;font-size:12px;color:var(--muted)" @click="rulesModal=null;nav('settings');stab='combos'">⚙️ Editar combinaciones en Ajustes</button>
       </div>
     </div>
   </div>
@@ -1178,10 +1297,37 @@ body{
 
     <!-- ========= GAME ========= -->
     <section class="view" v-show="view==='game'">
-      <div v-if="!hasGame" class="empty">
-        <div class="empty-ico">🎴</div>
-        <div class="empty-title">Sin partida activa</div>
-        <button class="btn btn-primary" style="margin-top:12px" @click="openSetup">Nueva partida</button>
+      <div v-if="!hasGame" style="padding:16px">
+        <!-- Paused games available to resume -->
+        <template v-if="pausedGames.length>0">
+          <div class="sec-hdr" style="margin-bottom:8px">
+            <span class="sec-hdr-title">⏸ Partidas pausadas</span>
+          </div>
+          <div v-for="g in pausedGames" :key="g.id" class="paused-item">
+            <div class="paused-item-body">
+              <div class="paused-item-title">{{gameDisplayName(g)}}</div>
+              <div class="paused-item-meta">
+                {{g.pIds.map(id=>pName(id)).join(', ')}} · {{g.rounds.length}} rondas · {{fDate(g.pauseDate||g.date)}}
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm" @click="resumeGame(g)">Reanudar</button>
+          </div>
+          <div style="margin:18px 0;display:flex;align-items:center;gap:10px">
+            <div style="flex:1;height:1px;background:var(--border)"></div>
+            <span style="font-size:12px;color:var(--muted);white-space:nowrap">o empezar una nueva</span>
+            <div style="flex:1;height:1px;background:var(--border)"></div>
+          </div>
+          <button class="btn btn-muted" style="width:100%" @click="openSetup">+ Nueva partida</button>
+        </template>
+
+        <!-- No paused games either -->
+        <template v-else>
+          <div class="empty">
+            <div class="empty-ico">🎴</div>
+            <div class="empty-title">Sin partida activa</div>
+            <button class="btn btn-primary" style="margin-top:12px" @click="openSetup">Nueva partida</button>
+          </div>
+        </template>
       </div>
 
       <div v-else>
@@ -1346,6 +1492,7 @@ body{
         <!-- Round detail (fixed + libre + score) -->
         <div class="card" v-if="game.rounds.length>0 && (!isLibre || useFreeScore || gtab==='scores')">
           <div class="card-label">Detalle por ronda</div>
+          <div v-if="game.pIds.length>4" style="font-size:11px;color:var(--muted);text-align:right;margin-bottom:4px">← desliza →</div>
           <div style="overflow-x:auto">
             <table class="round-tbl">
               <thead>
@@ -1417,6 +1564,7 @@ body{
             <div class="card-label" style="margin:0">Detalle de rondas</div>
             <span style="font-size:11px;color:var(--muted)" v-if="detailGame.status==='finished'">✏️ Toca un puntaje para corregirlo</span>
           </div>
+          <div v-if="detailGame.pIds.length>4" style="font-size:11px;color:var(--muted);text-align:right;margin-bottom:4px">← desliza →</div>
           <div style="overflow-x:auto">
             <table class="round-tbl">
               <thead>
@@ -1538,7 +1686,10 @@ body{
           <div v-for="p in filteredTopPlayers" :key="p.id" class="score-row">
             <div class="av av-sm" :style="{background:p.color}">{{ini(p.name)}}</div>
             <div class="score-name" style="font-size:14px">{{p.name}}</div>
-            <div style="font-size:12px;color:var(--muted)">{{p.wins}}G / {{p.games}}J</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.4">
+              <div>{{p.wins}}G / {{p.games}}J</div>
+              <div>~{{p.avgScore}} pts/partida</div>
+            </div>
             <div class="score-val" style="font-size:16px;min-width:44px">{{p.winRate}}%</div>
           </div>
         </div>
@@ -1756,6 +1907,9 @@ createApp({
       detailGame:null,
       editScoreDlg:null, // {gameId, ri, pid, value}
 
+      // Rules modal
+      rulesModal:null, // gtId ('carioca' | 'libre') when open
+
       // Theme
       theme:'auto',
 
@@ -1953,6 +2107,10 @@ createApp({
       return [...this.games].filter(g=>g.status==='finished'||g.status==='paused').sort((a,b)=>new Date(b.date)-new Date(a.date));
     },
 
+    setupIsFixed(){
+      const gt=this.gameTypes.find(g=>g.id===this.setup.gameTypeId);
+      return gt&&gt.mode==='fixed';
+    },
     setupIsLibre(){
       const gt=this.gameTypes.find(g=>g.id===this.setup.gameTypeId);
       return gt&&gt.mode==='libre';
@@ -1995,14 +2153,18 @@ createApp({
       const finished=this.filteredHistoryGames.filter(g=>g.status==='finished');
       for(const g of finished){
         for(const pid of g.pIds){
-          if(!stats[pid]) stats[pid]={wins:0,games:0};
+          if(!stats[pid]) stats[pid]={wins:0,games:0,totalScore:0};
           stats[pid].games++;
           if(g.winner===pid) stats[pid].wins++;
+          if(g.final&&g.final[pid]!=null) stats[pid].totalScore+=(g.final[pid]||0);
         }
       }
       return this.players
         .filter(p=>stats[p.id]&&stats[p.id].games>0)
-        .map(p=>({...p,...stats[p.id],winRate:Math.round((stats[p.id].wins/stats[p.id].games)*100)}))
+        .map(p=>({...p,...stats[p.id],
+          winRate:Math.round((stats[p.id].wins/stats[p.id].games)*100),
+          avgScore:Math.round(stats[p.id].totalScore/stats[p.id].games)
+        }))
         .sort((a,b)=>b.winRate-a.winRate||b.wins-a.wins);
     },
 
@@ -2127,6 +2289,10 @@ createApp({
       };
     },
     closeSetup(){ this.setup.step=0; },
+    tryCloseSetup(){
+      if(this.setup.step<=1){ this.setup.step=0; return; }
+      this.confirmDlg={msg:'¿Salir de la configuración? Se perderán los cambios.',ok:()=>{ this.confirmDlg=null; this.setup.step=0; }};
+    },
 
     onSetupGameTypeChange(){
       const gt=this.gameTypes.find(g=>g.id===this.setup.gameTypeId);
@@ -2139,18 +2305,16 @@ createApp({
       const s=this.setup;
       if(s.step===1){
         if(!s.gameTypeId) return;
-        if(this.setupIsScoreMode&&(!(s.targetScore>0))) return;
-        if(this.setupIsRoundsMode&&(!(s.totalRounds>0))) return;
-        if(this.setupIsLivesMode&&(!(s.livesStart>0)&&!(s.targetScore>0))) return;
         s.step=2;
       } else if(s.step===2){
         if(s.pIds.length<2) return;
-        if(this.setupIsLibre){
-          if(!s.cIds.length) s.cIds=this.activeLibreCombos.map(c=>c.id);
-          s.step=3;
-        } else {
-          this.startGame();
+        // Pre-populate combo selection if entering step 3 with empty cIds
+        if(this.setupIsFixed&&!s.cIds.length){
+          s.cIds=this.activeCariocaCombos.map(c=>c.id);
+        } else if(this.setupIsLibre&&!s.cIds.length){
+          s.cIds=this.activeLibreCombos.map(c=>c.id);
         }
+        s.step=3;
       }
     },
 
@@ -2174,9 +2338,7 @@ createApp({
       const s=this.setup;
       const gt=this.gameTypes.find(g=>g.id===s.gameTypeId);
       const mode=gt?gt.mode:'fixed';
-      const cIds = mode==='fixed'
-        ? this.activeCariocaCombos.map(c=>c.id)
-        : mode==='libre' ? [...s.cIds] : [];
+      const cIds = (mode==='fixed'||mode==='libre') ? [...s.cIds] : [];
 
       const doneMap={};
       if(mode==='libre'){
@@ -2250,6 +2412,7 @@ createApp({
       this.roundScores={};
       for(const pid of this.game.pIds) this.roundScores[pid]=0;
       this.showRound=true;
+      this.$nextTick(()=>{ const el=document.querySelector('.score-inp'); if(el) el.focus(); });
     },
     setWinner(pid){
       this.roundWinner=pid;
