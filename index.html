@@ -708,6 +708,45 @@ body{
 
 /* ── THEME TOGGLE ── */
 .theme-btns{display:flex;gap:8px}
+
+/* ── WINNER MODAL ── */
+.winner-overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.72);
+  z-index:500;
+  display:flex;align-items:center;justify-content:center;
+  padding:16px;
+  animation:fadeIn .25s ease;
+}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.winner-card{
+  background:var(--surface);
+  border-radius:24px;
+  width:100%;max-width:400px;
+  padding:32px 20px 24px;
+  text-align:center;
+  box-shadow:var(--shadow-md);
+  animation:popIn .3s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes popIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
+.winner-trophy{font-size:64px;line-height:1;margin-bottom:8px;display:block;animation:bounce 1s ease infinite alternate}
+@keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-8px)}}
+.winner-label{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:6px}
+.winner-name{font-family:var(--ff-display);font-size:28px;font-weight:700;color:var(--text);margin-bottom:4px}
+.winner-score{font-size:15px;color:var(--muted);margin-bottom:24px}
+.winner-scores{margin-bottom:24px;text-align:left}
+.winner-score-row{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 12px;
+  border-radius:10px;
+  margin-bottom:6px;
+  background:var(--bg);
+}
+.winner-score-row.first{background:var(--green-lt);border:1.5px solid var(--green-acc)}
+.winner-rank{font-size:18px;width:24px;text-align:center;flex-shrink:0}
+.winner-score-name{flex:1;font-weight:500;font-size:14px}
+.winner-score-val{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text)}
+.winner-actions{display:flex;gap:10px}
 </style>
 
 <div id="app">
@@ -745,6 +784,37 @@ body{
     </div>
   </div>
 
+  <!-- ===== WINNER CELEBRATION MODAL ===== -->
+  <div class="winner-overlay" v-if="winnerModal">
+    <div class="winner-card">
+      <span class="winner-trophy">🏆</span>
+      <div class="winner-label">¡Ganador!</div>
+      <div class="winner-name">{{ pName(winnerModal.winner) }}</div>
+      <div class="winner-score">
+        <template v-if="winnerModal.scoringDir==='score_high'">
+          {{ winnerModal.final[winnerModal.winner] }} puntos
+        </template>
+        <template v-else>
+          {{ winnerModal.rounds }} ronda{{ winnerModal.rounds===1?'':'s' }} · {{ winnerModal.final[winnerModal.winner] }} puntos
+        </template>
+      </div>
+
+      <div class="winner-scores">
+        <div v-for="(p, idx) in winnerModalPlayers" :key="p.id"
+          class="winner-score-row" :class="{first: p.id===winnerModal.winner}">
+          <span class="winner-rank">{{ idx===0 ? '🥇' : idx===1 ? '🥈' : idx===2 ? '🥉' : (idx+1)+'°' }}</span>
+          <span class="winner-score-name" :style="{color: p.color}">{{ p.name }}</span>
+          <span class="winner-score-val">{{ winnerModal.final[p.id] }}</span>
+        </div>
+      </div>
+
+      <div class="winner-actions">
+        <button class="btn btn-muted" style="flex:1" @click="winnerModal=null; nav('history')">Ver historial</button>
+        <button class="btn btn-primary" style="flex:1" @click="winnerModal=null; openSetup()">Nueva partida</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== NEW GAME SETUP ===== -->
   <div class="overlay" v-if="setup.step > 0" @click.self="closeSetup">
     <div class="modal">
@@ -769,16 +839,23 @@ body{
           </div>
           <span v-if="setup.gameTypeId===gt.id" class="gt-check">✓</span>
         </div>
-        <!-- Puntos límite: solo para modos score_low / score_high -->
-        <div v-if="setupIsScoreMode" class="field" style="margin-top:16px">
-          <label class="field-label">Puntos límite</label>
-          <input class="inp" type="number" inputmode="numeric" min="1"
-            v-model.number="setup.targetScore" placeholder="Ej: 100">
-          <p style="font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5">
-            <template v-if="setup.gameTypeId==='llega_pierde'">La partida termina cuando alguien alcanza este puntaje. Gana quien tenga <strong>menos</strong>.</template>
-            <template v-else>Gana el primero en acumular este puntaje.</template>
-          </p>
-        </div>
+        <!-- Campos extra: solo para modos score_low / score_high -->
+        <template v-if="setupIsScoreMode">
+          <div class="field" style="margin-top:16px">
+            <label class="field-label">Nombre del juego <span style="font-weight:400;text-transform:none">(opcional)</span></label>
+            <input class="inp" type="text" maxlength="30"
+              v-model="setup.gameName" placeholder="Ej: Dominó, Truco, Canasta…">
+          </div>
+          <div class="field">
+            <label class="field-label">Puntos límite</label>
+            <input class="inp" type="number" inputmode="numeric" min="1"
+              v-model.number="setup.targetScore" placeholder="Ej: 100">
+            <p style="font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5">
+              <template v-if="setup.gameTypeId==='llega_pierde'">La partida termina cuando alguien alcanza este puntaje. Gana quien tenga <strong>menos</strong>.</template>
+              <template v-else>Gana el primero en acumular este puntaje.</template>
+            </p>
+          </div>
+        </template>
         <button class="btn btn-primary btn-block"
           :disabled="!setup.gameTypeId||(setupIsScoreMode&&!(setup.targetScore>0))"
           @click="setupNext" style="margin-top:8px">Siguiente →</button>
@@ -848,15 +925,25 @@ body{
       <div v-for="pid in game.pIds" :key="pid" class="entry-row">
         <div class="av" :style="{background:pColor(pid)}">{{ini(pName(pid))}}</div>
         <div class="entry-name">{{pName(pid)}}</div>
-        <button class="crown-btn" :class="{on:roundWinner===pid}" @click="setWinner(pid)"
-          :aria-pressed="roundWinner===pid" :aria-label="'Ganador: ' + pName(pid)">
-          {{roundWinner===pid?'👑':'○'}}
-        </button>
-        <div v-if="roundWinner===pid" class="score-zero">0</div>
-        <input v-else type="number" inputmode="numeric" pattern="[0-9]*"
-          class="score-inp" :value="roundScores[pid]||0"
-          @input="roundScores[pid]=parseInt($event.target.value)||0"
-          min="0" placeholder="0">
+        <!-- Modos Carioca: corona + 0 para el ganador -->
+        <template v-if="!isScoreMode">
+          <button class="crown-btn" :class="{on:roundWinner===pid}" @click="setWinner(pid)"
+            :aria-pressed="roundWinner===pid" :aria-label="'Ganador: ' + pName(pid)">
+            {{roundWinner===pid?'👑':'○'}}
+          </button>
+          <div v-if="roundWinner===pid" class="score-zero">0</div>
+          <input v-else type="number" inputmode="numeric" pattern="[0-9]*"
+            class="score-inp" :value="roundScores[pid]||0"
+            @input="roundScores[pid]=parseInt($event.target.value)||0"
+            min="0" placeholder="0">
+        </template>
+        <!-- Modos score: cada jugador entra sus puntos directamente -->
+        <template v-else>
+          <input type="number" inputmode="numeric" pattern="[0-9]*"
+            class="score-inp" :value="roundScores[pid]||0"
+            @input="roundScores[pid]=parseInt($event.target.value)||0"
+            min="0" placeholder="0">
+        </template>
       </div>
       <div class="modal-actions">
         <button class="btn btn-muted" @click="showRound=false">Cancelar</button>
@@ -916,7 +1003,7 @@ body{
     <div class="hdr-titles">
       <div class="hdr-main">RondaScore</div>
       <div class="hdr-sub" v-if="hasGame">
-        {{gameTypeName(game.gtId)}}
+        {{activeGameName}}
         <template v-if="!isLibre && !isScoreMode"> · Ronda {{game.round+1}}/{{game.cIds.length}}</template>
         <template v-else-if="isScoreMode"> · Ronda {{game.round+1}}<span v-if="game.targetScore"> — límite {{game.targetScore}} pts</span></template>
         <template v-else> · Ronda {{game.round+1}}</template>
@@ -945,7 +1032,7 @@ body{
       <div v-if="hasGame" class="game-banner" @click="nav('game')" style="margin-bottom:10px">
         <div class="banner-body">
           <div class="banner-lbl">Partida activa ahora</div>
-          <div class="banner-title">{{gameTypeName(game.gtId)}}</div>
+          <div class="banner-title">{{activeGameName}}</div>
           <div class="banner-meta">Ronda {{game.round+1}} · {{game.pIds.length}} jugadores</div>
           <div class="banner-scores">
             <div v-for="pid in game.pIds.slice(0,5)" :key="pid" class="banner-score-item">
@@ -964,7 +1051,7 @@ body{
         </div>
         <div v-for="g in pausedGames" :key="g.id" class="paused-item">
           <div class="paused-item-body">
-            <div class="paused-item-title">{{gameTypeName(g.gtId)}}</div>
+            <div class="paused-item-title">{{gameDisplayName(g)}}</div>
             <div class="paused-item-meta">
               {{g.pIds.length}} jugadores · {{g.rounds.length}} rondas · {{fDate(g.date)}}
             </div>
@@ -989,7 +1076,7 @@ body{
         <div v-for="g in finishedGames.slice(0,3)" :key="g.id"
           class="hist-item" @click="viewGame(g)">
           <div class="hist-top">
-            <span class="type-tag">{{gameTypeName(g.gtId)}}</span>
+            <span class="type-tag">{{gameDisplayName(g)}}</span>
             <span class="hist-date">{{fDate(g.date)}}</span>
           </div>
           <div class="hist-winner">🏆 {{pName(g.winner)}}</div>
@@ -1014,7 +1101,7 @@ body{
       <div v-else>
         <!-- Hero para modos de puntuación -->
         <div class="combo-hero" v-if="isScoreMode">
-          <div class="combo-hero-num">{{gameTypeName(game.gtId)}}</div>
+          <div class="combo-hero-num">{{activeGameName}}</div>
           <div class="combo-hero-short" style="font-size:28px">Ronda {{game.round+1}}</div>
           <div class="combo-hero-name" v-if="game.targetScore">
             <template v-if="gameMode==='score_low'">Límite: {{game.targetScore}} pts — gana quien tenga menos</template>
@@ -1272,7 +1359,7 @@ body{
           class="hist-item"
           @click="g.status==='paused' ? resumeGame(g) : viewGame(g)">
           <div class="hist-top">
-            <span class="type-tag">{{gameTypeName(g.gtId)}}</span>
+            <span class="type-tag">{{gameDisplayName(g)}}</span>
             <span class="status-badge" :class="g.status==='finished'?'finished':'paused'">
               {{g.status==='finished'?'✓ Finalizada':'⏸ Interrumpida'}}
             </span>
@@ -1434,7 +1521,7 @@ createApp({
       showMenu:false,
 
       // Setup wizard
-      setup:{step:0,gameTypeId:'',pIds:[],cIds:[],targetScore:100},
+      setup:{step:0,gameTypeId:'',pIds:[],cIds:[],targetScore:100,gameName:''},
 
       // Round entry
       showRound:false,
@@ -1461,6 +1548,9 @@ createApp({
 
       // Drag reorder state
       dragState:{ active:false, fromIdx:null, toIdx:null },
+
+      // Winner celebration
+      winnerModal:null,
 
       // History detail
       detailGame:null,
@@ -1494,6 +1584,21 @@ createApp({
     setupIsScoreMode(){
       const gt=this.gameTypes.find(g=>g.id===this.setup.gameTypeId);
       return gt&&(gt.mode==='score_low'||gt.mode==='score_high');
+    },
+
+    winnerModalPlayers(){
+      if(!this.winnerModal) return [];
+      const {final, pIds, scoringDir} = this.winnerModal;
+      const desc = scoringDir==='score_high';
+      return pIds
+        .map(id=>this.players.find(p=>p.id===id)||{id,name:'?',color:'#999'})
+        .sort((a,b)=>desc?(final[b.id]||0)-(final[a.id]||0):(final[a.id]||0)-(final[b.id]||0));
+    },
+
+    // Nombre a mostrar de la partida activa (prioriza gameName si existe)
+    activeGameName(){
+      if(!this.hasGame) return '';
+      return (this.game.gameName&&this.game.gameName.trim())||this.gameTypeName(this.game.gtId);
     },
 
     curCombo(){
@@ -1636,6 +1741,10 @@ createApp({
       const g=this.gameTypes.find(x=>x.id===id);
       return g?g.name:id;
     },
+    gameDisplayName(g){
+      // Muestra nombre personalizado si existe, sino el tipo de juego
+      return (g.gameName&&g.gameName.trim())||this.gameTypeName(g.gtId);
+    },
     getComboShort(id){
       if(!id) return '';
       const c=this.combos.find(x=>x.id===id);
@@ -1665,6 +1774,7 @@ createApp({
         pIds:[...(this.lastCfg.pIds||[])].filter(id=>this.players.some(p=>p.id===id)),
         cIds:[...(this.lastCfg.cIds||[])].filter(id=>this.combos.some(c=>c.id===id)),
         targetScore:(this.lastCfg.targetScore)||(gt&&gt.defaultTarget)||100,
+        gameName:this.lastCfg.gameName||'',
       };
     },
     closeSetup(){ this.setup.step=0; },
@@ -1735,9 +1845,10 @@ createApp({
         winner:null,
         final:null,
         targetScore:(mode==='score_low'||mode==='score_high')?(s.targetScore||100):null,
+        gameName:(mode==='score_low'||mode==='score_high')?(s.gameName||''):null,
       };
 
-      this.lastCfg={gtId:s.gameTypeId,pIds:[...s.pIds],cIds:[...s.cIds],targetScore:s.targetScore||null};
+      this.lastCfg={gtId:s.gameTypeId,pIds:[...s.pIds],cIds:[...s.cIds],targetScore:s.targetScore||null,gameName:s.gameName||''};
       this.setup.step=0;
       this.save();
       this.nav('game');
@@ -1876,9 +1987,21 @@ createApp({
       this.game.final=final;
       this.game.endDate=new Date().toISOString();
       this.games.push({...this.game});
+
+      // Guardar datos para el modal ANTES de limpiar el juego
+      const gt2=this.gameTypes.find(g=>g.id===this.game.gtId);
+      this.winnerModal={
+        winner,
+        final,
+        pIds:[...this.game.pIds],
+        gtId:this.game.gtId,
+        gameName:this.game.gameName||null,
+        scoringDir:gt2?gt2.mode:null,
+        rounds:this.game.rounds.length,
+      };
+
       this.game=null;
       this.save();
-      this.nav('history');
     },
 
     manualFinish(){
@@ -2025,6 +2148,7 @@ createApp({
         gtId:cfg.gtId,pIds:[...cfg.pIds],cIds,
         rounds:[],doneMap,round:0,status:'active',winner:null,final:null,
         targetScore:(mode==='score_low'||mode==='score_high')?(cfg.targetScore||100):null,
+        gameName:(mode==='score_low'||mode==='score_high')?(cfg.gameName||''):null,
       };
       this.save();
       this.nav('game');
@@ -2256,6 +2380,7 @@ createApp({
             doneMap:g.doneMap&&typeof g.doneMap==='object'?g.doneMap:{},
             pauseDate:g.pauseDate?String(g.pauseDate).slice(0,30):undefined,
             targetScore:typeof g.targetScore==='number'&&g.targetScore>0?g.targetScore:null,
+            gameName:typeof g.gameName==='string'?g.gameName.slice(0,30):null,
           };
         };
 
@@ -2272,6 +2397,7 @@ createApp({
             pIds:Array.isArray(d.lastCfg.pIds)?d.lastCfg.pIds.slice(0,10).map(x=>String(x).slice(0,20)):[],
             cIds:Array.isArray(d.lastCfg.cIds)?d.lastCfg.cIds.slice(0,100).map(x=>String(x).slice(0,20)):[],
             targetScore:typeof d.lastCfg.targetScore==='number'&&d.lastCfg.targetScore>0?d.lastCfg.targetScore:null,
+            gameName:typeof d.lastCfg.gameName==='string'?d.lastCfg.gameName.slice(0,30):'',
           };
         }
       }catch(e){
