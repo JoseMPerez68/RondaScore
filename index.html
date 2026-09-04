@@ -793,7 +793,7 @@ body{
   <div class="splash-name">Carioca</div>
 </div>
 
-<div id="app" v-cloak>
+<div id="app" v-cloak style="display:none">
 
   <!-- ===== SW UPDATE BAR ===== -->
   <div v-if="swUpdate" class="sw-update-bar">
@@ -3180,9 +3180,15 @@ createApp({
     }
   }
 }).mount('#app');
-// Ocultar splash una vez Vue montó
+// Mostrar app y ocultar splash una vez Vue montó
+const appEl = document.getElementById('app');
 const splash = document.getElementById('app-splash');
-if (splash) splash.style.display = 'none';
+if (appEl) appEl.style.display = '';
+if (splash) {
+  splash.style.transition = 'opacity 0.2s';
+  splash.style.opacity = '0';
+  setTimeout(() => splash.remove(), 200);
+}
 </script>
 
 <!-- ===== SERVICE WORKER REGISTRATION ===== -->
