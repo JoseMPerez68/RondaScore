@@ -91,7 +91,7 @@ body{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:16px;z-index:9999;
 }
-#app-splash .splash-suits{font-size:48px;letter-spacing:4px}
+#app-splash .splash-icon{width:96px;height:96px;border-radius:22px;box-shadow:0 4px 24px rgba(0,0,0,.4)}
 #app-splash .splash-name{font-family:'Playfair Display',serif;font-size:28px;color:#c99228;letter-spacing:2px}
 
 /* ── HEADER ── */
@@ -789,7 +789,7 @@ body{
 
 <!-- Splash visible mientras Vue monta; se oculta con JS al montar -->
 <div id="app-splash">
-  <div class="splash-suits">♠♥♣♦</div>
+  <img class="splash-icon" src="icon-192.png" alt="Carioca">
   <div class="splash-name">Carioca</div>
 </div>
 
@@ -1158,6 +1158,8 @@ body{
             @input="roundScores[pid]=parseInt($event.target.value)||0"
             min="0" placeholder="0">
         </template>
+        <!-- Total proyectado -->
+        <div v-if="game.rounds.length>0" style="font-size:11px;color:var(--muted);min-width:38px;text-align:right;white-space:nowrap">→ {{roundProjectedTotals[pid]}}</div>
       </div>
       <div class="modal-actions">
         <button class="btn btn-muted" @click="showRound=false">Cancelar</button>
@@ -1269,18 +1271,18 @@ body{
           <div class="paused-item-body">
             <div class="paused-item-title">{{gameDisplayName(g)}}</div>
             <div class="paused-item-meta">
-              {{g.pIds.length}} jugadores · {{g.rounds.length}} rondas · {{fDate(g.date)}}
+              {{g.pIds.length}} jugadores · {{g.rounds.length}} rondas · {{fDate(g.pauseDate||g.date)}}
             </div>
           </div>
           <button class="btn btn-primary btn-sm" @click="resumeGame(g)">Reanudar</button>
         </div>
       </div>
 
-      <!-- Quick start -->
-      <button v-if="canQuickStart" class="btn btn-ghost btn-block" style="margin-bottom:8px" @click="quickStart">🔄 Repetir última configuración</button>
-
       <!-- New game CTA -->
-      <button class="btn btn-primary btn-block" style="font-size:16px;padding:16px;margin-bottom:14px" @click="openSetup">🎴 Nueva partida</button>
+      <button class="btn btn-primary btn-block" style="font-size:16px;padding:16px;margin-bottom:10px" @click="openSetup">🎴 Nueva partida</button>
+
+      <!-- Quick start -->
+      <button v-if="canQuickStart" class="btn btn-ghost btn-block" style="margin-bottom:14px" @click="quickStart">🔄 Repetir última configuración</button>
 
 
       <!-- Recent history -->
@@ -1470,8 +1472,9 @@ body{
               <thead>
                 <tr>
                   <th class="combo-col">Combinación</th>
-                  <th v-for="pid in game.pIds" :key="pid">
+                  <th v-for="pid in game.pIds" :key="pid" style="min-width:44px">
                     <div class="av av-sm" :style="{background:pColor(pid),margin:'0 auto'}">{{ini(pName(pid))}}</div>
+                    <div style="font-size:9px;color:var(--muted);text-align:center;margin-top:2px;max-width:44px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{pName(pid).slice(0,6)}}</div>
                   </th>
                 </tr>
               </thead>
@@ -1509,8 +1512,9 @@ body{
               <thead>
                 <tr>
                   <th class="lft">Ronda</th>
-                  <th v-for="pid in game.pIds" :key="pid">
+                  <th v-for="pid in game.pIds" :key="pid" style="min-width:44px">
                     <div class="av av-sm" :style="{background:pColor(pid),margin:'0 auto'}">{{ini(pName(pid))}}</div>
+                    <div style="font-size:9px;color:var(--muted);text-align:center;margin-top:2px;max-width:44px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{pName(pid).slice(0,6)}}</div>
                   </th>
                 </tr>
               </thead>
@@ -1581,8 +1585,9 @@ body{
               <thead>
                 <tr>
                   <th class="lft">Ronda</th>
-                  <th v-for="pid in detailGame.pIds" :key="pid">
+                  <th v-for="pid in detailGame.pIds" :key="pid" style="min-width:44px">
                     <div class="av av-sm" :style="{background:pColor(pid),margin:'0 auto'}">{{ini(pName(pid))}}</div>
+                    <div style="font-size:9px;color:var(--muted);text-align:center;margin-top:2px;max-width:44px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{pName(pid).slice(0,6)}}</div>
                   </th>
                 </tr>
               </thead>
@@ -1592,7 +1597,9 @@ body{
                     <span style="font-weight:600">R{{i+1}}</span>
                     <span class="rnd-short">{{getComboShort(r.cId)}}</span>
                   </td>
-                  <td v-for="pid in detailGame.pIds" :key="pid" :class="{win:r.winner===pid,'editable-cell':detailGame.status==='finished'}"
+                  <td v-for="pid in detailGame.pIds" :key="pid"
+                    :class="{win:r.winner===pid,'editable-cell':detailGame.status==='finished'}"
+                    :style="(r.scores[pid]||0)===0&&r.winner===pid?{color:'var(--green-acc)',fontWeight:'700'}:{}"
                     @click="detailGame.status==='finished'&&openEditScore(detailGame,i,pid)">
                     <span v-if="detailGame.gtId&&gameTypes.find(x=>x.id===detailGame.gtId)&&gameTypes.find(x=>x.id===detailGame.gtId).mode==='lives'&&roundLostLifeInGame(detailGame,i,pid)" style="font-size:10px">💔</span>{{r.scores[pid]||0}}
                   </td>
@@ -1655,7 +1662,8 @@ body{
         <div v-if="allHistoryGames.length===0" class="empty">
           <div class="empty-ico">📋</div>
           <div class="empty-title">Sin historial</div>
-          <p>Tus partidas aparecerán aquí</p>
+          <p style="margin-bottom:16px">Tus partidas aparecerán aquí</p>
+          <button class="btn btn-primary" @click="openSetup">🎴 Nueva partida</button>
         </div>
         <!-- Filter chips -->
         <div v-if="allHistoryGames.length>0" style="margin-bottom:12px">
@@ -2179,6 +2187,17 @@ createApp({
         .sort((a,b)=>b.winRate-a.winRate||b.wins-a.wins);
     },
 
+    roundProjectedTotals(){
+      if(!this.hasGame) return {};
+      const result={};
+      for(const pid of this.game.pIds){
+        const current=this.totals[pid]||0;
+        const adding=pid===this.roundWinner?0:(parseInt(this.roundScores[pid])||0);
+        result[pid]=current+adding;
+      }
+      return result;
+    },
+
     playersSortedByUse(){
       return [...this.players].sort((a,b)=>{
         const ga=(this.playerStats[a.id]||{games:0}).games;
@@ -2428,9 +2447,11 @@ createApp({
     setWinner(pid){
       this.roundWinner=pid;
       this.roundScores[pid]=0;
+      if(navigator.vibrate) navigator.vibrate(30);
     },
     saveRound(){
       if(!this.hasGame) return;
+      if(navigator.vibrate) navigator.vibrate([20,40,20]);
 
       const gtMode=this.gameMode;
       const isScoreM=gtMode==='score_low'||gtMode==='score_high';
