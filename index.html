@@ -3172,17 +3172,17 @@ createApp({
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').then(reg => {
-      // Check si ya hay un SW esperando al cargar (ej: recarga con nueva versión)
-      if (reg.waiting) {
-        const vueApp = document.querySelector('#app').__vue_app__;
-        if (vueApp) vueApp._instance.proxy.swUpdate = reg.waiting;
-      }
+      // Auto-recarga cuando el nuevo SW toma control
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.location.reload();
+      });
 
       reg.addEventListener('updatefound', () => {
         const newSW = reg.installing;
         newSW.addEventListener('statechange', () => {
+          // Con skipWaiting en el SW, el controllerchange recargará la página solo
+          // El banner queda como fallback por si el usuario prefiere hacerlo manual
           if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
-            // Nueva versión lista — notificar a Vue
             const vueApp = document.querySelector('#app').__vue_app__;
             if (vueApp) vueApp._instance.proxy.swUpdate = newSW;
           }

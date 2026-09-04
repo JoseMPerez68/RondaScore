@@ -14,8 +14,7 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_VERSION)
       .then(cache => cache.addAll(ASSETS))
-    // NO llamamos skipWaiting aquí: en primera instalación el SW activa solo;
-    // en actualizaciones esperamos que el usuario confirme desde la app.
+      .then(() => self.skipWaiting()) // Auto-activar: la página se recargará sola
   );
 });
 
