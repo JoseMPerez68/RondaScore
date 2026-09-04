@@ -1505,7 +1505,10 @@ body{
 
         <!-- Round detail (fixed + libre + score) -->
         <div class="card" v-if="game.rounds.length>0 && (!isLibre || useFreeScore || gtab==='scores')">
-          <div class="card-label">Detalle por ronda</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <div class="card-label" style="margin:0">Detalle por ronda</div>
+            <span v-if="game.rounds.length>0" style="font-size:11px;color:var(--muted)">✏️ Toca un puntaje para corregirlo</span>
+          </div>
           <div v-if="game.pIds.length>4" style="font-size:11px;color:var(--muted);text-align:right;margin-bottom:4px">← desliza →</div>
           <div style="overflow-x:auto">
             <table class="round-tbl">
@@ -1525,7 +1528,8 @@ body{
                     <span v-if="!isLibre" class="rnd-short">{{getComboShort(r.cId)}}</span>
                   </td>
                   <td v-for="pid in game.pIds" :key="pid"
-                    :class="{win:r.winner===pid}">
+                    :class="{win:r.winner===pid,'editable-cell':true}"
+                    @click="openEditScore(game,i,pid)">
                     <span v-if="isLivesMode&&roundLostLife(i,pid)" title="Vida perdida en esta ronda" style="font-size:10px">💔</span>{{r.scores[pid]||0}}
                   </td>
                 </tr>
@@ -1577,7 +1581,7 @@ body{
         <div class="card" v-if="detailGame.rounds&&detailGame.rounds.length>0">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
             <div class="card-label" style="margin:0">Detalle de rondas</div>
-            <span style="font-size:11px;color:var(--muted)" v-if="detailGame.status==='finished'">✏️ Toca un puntaje para corregirlo</span>
+            <span style="font-size:11px;color:var(--muted)">📋 Solo lectura</span>
           </div>
           <div v-if="detailGame.pIds.length>4" style="font-size:11px;color:var(--muted);text-align:right;margin-bottom:4px">← desliza →</div>
           <div style="overflow-x:auto">
@@ -1598,9 +1602,8 @@ body{
                     <span class="rnd-short">{{getComboShort(r.cId)}}</span>
                   </td>
                   <td v-for="pid in detailGame.pIds" :key="pid"
-                    :class="{win:r.winner===pid,'editable-cell':detailGame.status==='finished'}"
-                    :style="(r.scores[pid]||0)===0&&r.winner===pid?{color:'var(--green-acc)',fontWeight:'700'}:{}"
-                    @click="detailGame.status==='finished'&&openEditScore(detailGame,i,pid)">
+                    :class="{win:r.winner===pid}"
+                    :style="(r.scores[pid]||0)===0&&r.winner===pid?{color:'var(--green-acc)',fontWeight:'700'}:{}">
                     <span v-if="detailGame.gtId&&gameTypes.find(x=>x.id===detailGame.gtId)&&gameTypes.find(x=>x.id===detailGame.gtId).mode==='lives'&&roundLostLifeInGame(detailGame,i,pid)" style="font-size:10px">💔</span>{{r.scores[pid]||0}}
                   </td>
                 </tr>
