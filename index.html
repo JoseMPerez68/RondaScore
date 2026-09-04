@@ -560,9 +560,7 @@ body{
 .steps{display:flex;gap:6px;justify-content:center;margin-bottom:4px}
 .step-dot{width:28px;height:4px;border-radius:2px;background:var(--border);transition:background .2s}
 .step-dot.on{background:var(--green-acc)}
-.step-labels{display:flex;justify-content:center;gap:0;margin-bottom:16px}
-.step-labels span{width:40px;text-align:center;font-size:10px;font-weight:600;letter-spacing:.3px;color:var(--border);transition:color .2s;text-transform:uppercase}
-.step-labels span.on{color:var(--green-acc)}
+.step-current-label{text-align:center;font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--green-acc);margin-bottom:14px}
 
 /* ── ROUNDS PILL TRACK ── */
 .round-pills{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
@@ -885,10 +883,8 @@ body{
         <div class="step-dot" :class="{on:setup.step>=2}"></div>
         <div class="step-dot" :class="{on:setup.step>=3}"></div>
       </div>
-      <div class="step-labels">
-        <span :class="{on:setup.step>=1}">Tipo</span>
-        <span :class="{on:setup.step>=2}">Jugadores</span>
-        <span :class="{on:setup.step>=3}">Config</span>
+      <div class="step-current-label">
+        {{['','Tipo de juego','Jugadores','Configuración'][setup.step]}}
       </div>
 
       <!-- Step 1: game type -->
