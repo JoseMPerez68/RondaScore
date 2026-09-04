@@ -85,6 +85,14 @@ body{
   display:flex;
   flex-direction:column;
 }
+[v-cloak]{display:none!important}
+#app-splash{
+  position:fixed;inset:0;background:var(--felt-dark,#152f25);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;z-index:9999;
+}
+#app-splash .splash-suits{font-size:48px;letter-spacing:4px}
+#app-splash .splash-name{font-family:'Playfair Display',serif;font-size:28px;color:#c99228;letter-spacing:2px}
 
 /* ── HEADER ── */
 .app-hdr{
@@ -779,7 +787,13 @@ body{
 .winner-actions{display:flex;gap:10px}
 </style>
 
-<div id="app">
+<!-- Splash visible mientras Vue monta; se oculta con JS al montar -->
+<div id="app-splash">
+  <div class="splash-suits">♠♥♣♦</div>
+  <div class="splash-name">Carioca</div>
+</div>
+
+<div id="app" v-cloak>
 
   <!-- ===== SW UPDATE BAR ===== -->
   <div v-if="swUpdate" class="sw-update-bar">
@@ -3166,6 +3180,9 @@ createApp({
     }
   }
 }).mount('#app');
+// Ocultar splash una vez Vue montó
+const splash = document.getElementById('app-splash');
+if (splash) splash.style.display = 'none';
 </script>
 
 <!-- ===== SERVICE WORKER REGISTRATION ===== -->
