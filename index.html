@@ -2879,11 +2879,54 @@ createApp({
 
     async shareGame(g){
       if(!g) return;
-      const winner=this.pName(g.winner);
-      const players=g.pIds.map(pid=>`${this.pName(pid)}: ${(g.final||{})[pid]||0} pts`).join('\n');
-      const text=`🎯 RondaScore – ${this.gameTypeName(g.gtId)}\n🏆 Ganador: ${winner}\n\n${players}\n\n${g.rounds.length} rondas jugadas`;
+      const medals=['🥇','🥈','🥉'];
+      const final=g.final||{};
+      // Ordenar jugadores por puntaje (menor gana)
+      const sorted=[...g.pIds].sort((a,b)=>(final[a]||0)-(final[b]||0));
+
+      // Encabezado
+      const lines=[];
+      lines.push(`🎴 RondaScore – ${this.gameTypeName(g.gtId)}`);
+      lines.push(`📅 ${this.fDate(g.date)} · ${g.rounds.length} rondas`);
+      lines.push('');
+
+      // Resultado final
+      lines.push('🏆 Resultado final');
+      sorted.forEach((pid,i)=>{
+        const medal=medals[i]||(i+1+'.   ');
+        lines.push(`${medal} ${this.pName(pid)}: ${final[pid]||0} pts`);
+      });
+
+      // Detalle por ronda
+      if(g.rounds&&g.rounds.length>0){
+        lines.push('');
+        lines.push('📋 Detalle por ronda');
+        // Cabecera con nombres
+        const nameHeader='        '+g.pIds.map(pid=>this.pName(pid).slice(0,6).padEnd(6)).join(' ');
+        lines.push(nameHeader);
+        // Acumulados
+        const acc={};
+        g.pIds.forEach(pid=>acc[pid]=0);
+        g.rounds.forEach((r,i)=>{
+          const combo=this.getComboShort(r.cId);
+          const winnerName=this.pName(r.winner).slice(0,6);
+          const prefix=`R${String(i+1).padStart(2,' ')}${combo?` ${combo}`:''} 👑${winnerName}`.padEnd(18,' ');
+          const scores=g.pIds.map(pid=>{
+            const s=r.scores[pid]||0;
+            acc[pid]+=s;
+            return String(s).padStart(6,' ');
+          }).join('');
+          lines.push(prefix+scores);
+        });
+        // Total
+        const totPrefix='   Total'.padEnd(18,' ');
+        const totScores=g.pIds.map(pid=>String(final[pid]||0).padStart(6,' ')).join('');
+        lines.push(totPrefix+totScores);
+      }
+
+      const text=lines.join('\n');
       if(navigator.share){
-        try{ await navigator.share({title:'Carioca',text}); }catch(e){}
+        try{ await navigator.share({title:'RondaScore',text}); }catch(e){}
       } else {
         try{
           await navigator.clipboard.writeText(text);
