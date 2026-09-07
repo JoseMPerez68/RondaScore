@@ -9,13 +9,19 @@
 <meta name="apple-mobile-web-app-title" content="RondaScore">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<!-- Google Analytics 4 -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-EYZJ48R2RV"></script>
+<!-- GA4 se carga solo tras consentimiento explícito del usuario (RGPD/ePrivacy) -->
 <script>
   window.dataLayer=window.dataLayer||[];
   function gtag(){dataLayer.push(arguments);}
-  gtag('js',new Date());
-  gtag('config','G-EYZJ48R2RV',{send_page_view:true});
+  window._loadGA4=function(){
+    if(window._ga4Loaded) return;
+    window._ga4Loaded=true;
+    var s=document.createElement('script');
+    s.async=true;
+    s.src='https://www.googletagmanager.com/gtag/js?id=G-EYZJ48R2RV';
+    document.head.appendChild(s);
+    s.onload=function(){ gtag('js',new Date()); gtag('config','G-EYZJ48R2RV',{send_page_view:true,anonymize_ip:true}); };
+  };
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap">
 <style>
@@ -98,9 +104,15 @@ body{
   position:fixed;inset:0;background:var(--felt-dark,#152f25);
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:16px;z-index:9999;
+  transition:opacity .3s ease;
 }
 #app-splash .splash-icon{width:96px;height:96px;border-radius:22px;box-shadow:0 4px 24px rgba(0,0,0,.4)}
 #app-splash .splash-name{font-family:'Playfair Display',serif;font-size:28px;color:#c99228;letter-spacing:2px}
+#app-splash .splash-skeleton{display:flex;flex-direction:column;gap:8px;margin-top:8px;width:160px}
+#app-splash .splash-bar{height:8px;border-radius:4px;background:rgba(255,255,255,.08);animation:shimmer 1.4s ease infinite}
+#app-splash .splash-bar:nth-child(2){width:70%;animation-delay:.2s}
+#app-splash .splash-bar:nth-child(3){width:50%;animation-delay:.4s}
+@keyframes shimmer{0%,100%{opacity:.4}50%{opacity:.9}}
 
 /* ── HEADER ── */
 .app-hdr{
@@ -225,7 +237,12 @@ body{
 }
 .inp:focus{border-color:var(--green-acc)}
 
+/* ── Cookie banner transition ── */
+.slide-up-enter-active,.slide-up-leave-active{transition:transform .3s ease,opacity .3s ease}
+.slide-up-enter-from,.slide-up-leave-to{transform:translateY(100%);opacity:0}
+
 /* ── OVERLAY / MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:400;display:flex;align-items:flex-end;justify-content:center}
 .overlay{
   position:fixed;inset:0;
   background:rgba(0,0,0,.55);
@@ -799,6 +816,11 @@ body{
 <div id="app-splash">
   <img class="splash-icon" src="icon-192.png" alt="Carioca">
   <div class="splash-name">Carioca</div>
+  <div class="splash-skeleton" aria-hidden="true">
+    <div class="splash-bar"></div>
+    <div class="splash-bar"></div>
+    <div class="splash-bar"></div>
+  </div>
 </div>
 
 <div id="app" v-cloak style="display:none">
@@ -820,7 +842,7 @@ body{
   </div>
 
   <!-- ===== TOAST ===== -->
-  <div v-if="toast" class="toast">{{toast}}</div>
+  <div v-if="toast" class="toast" role="status" aria-live="polite" aria-atomic="true">{{toast}}</div>
 
   <!-- ===== CONFIRM DIALOG ===== -->
   <div class="overlay" v-if="confirmDlg" @click.self="confirmDlg=null">
@@ -1786,8 +1808,18 @@ body{
         <div v-if="players.length===0" class="empty" style="padding:20px 0">
           <p>Agrega jugadores para comenzar a jugar</p>
         </div>
-        <div class="card" v-else>
-          <div v-for="p in players" :key="p.id" class="list-item">
+        <div class="card" v-else style="padding:4px 10px">
+          <div v-for="(p, i) in players" :key="p.id"
+            class="list-item combo-drag-item"
+            :class="{'drag-over': playerDragState.toIdx===i && playerDragState.fromIdx!==i && playerDragState.active, 'is-dragging': playerDragState.fromIdx===i && playerDragState.active}"
+            :data-player-idx="i"
+            @dragover.prevent="playerDragState.toIdx=i"
+            @dragleave.self="playerDragState.toIdx=null"
+            @drop.prevent="dropPlayer">
+            <div class="drag-handle"
+              draggable="true"
+              @dragstart="desktopDragStartPlayer($event, i)"
+              @touchstart.prevent="touchDragStartPlayer($event, i)">⠿</div>
             <div class="av" :style="{background:p.color}">{{ini(p.name)}}</div>
             <div class="list-body">
               <div class="list-title">{{p.name}}</div>
@@ -1850,9 +1882,105 @@ body{
           </div>
         </div>
       </div>
+
+      <!-- Legal y Privacidad -->
+      <div class="card" style="margin-top:16px">
+        <div class="card-label">Privacidad y legal</div>
+
+        <!-- Preferencia de analítica -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div>
+            <div style="font-size:14px;font-weight:600">Analítica de uso</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">Ayuda a mejorar la app (Google Analytics)</div>
+          </div>
+          <button class="combo-toggle" :class="{on:cookieConsent==='accepted'}"
+            @click="cookieConsent==='accepted'?rejectCookies():acceptCookies()"
+            role="switch" :aria-checked="cookieConsent==='accepted'"></button>
+        </div>
+
+        <!-- Borrar todos los datos -->
+        <div style="padding-top:10px;border-top:1px solid var(--border);margin-bottom:10px">
+          <button class="btn btn-sm" style="background:var(--red-lt);color:var(--red);border:none;width:100%;font-size:13px"
+            @click="confirmDlg={msg:'¿Borrar TODOS los datos de la app? (jugadores, partidas, ajustes). Esta acción no se puede deshacer.',ok:()=>{clearAllData();confirmDlg=null;}}">
+            🗑 Borrar todos mis datos
+          </button>
+        </div>
+
+        <!-- Enlace política -->
+        <div style="padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+          <button class="link-btn" style="font-size:13px" @click="privacyModal=true">Política de Privacidad y Aviso Legal</button>
+          <span style="font-size:11px;color:var(--muted)">v4 · RondaScore</span>
+        </div>
+      </div>
+
     </section>
 
   </main>
+
+  <!-- ===== COOKIE CONSENT BANNER ===== -->
+  <transition name="slide-up">
+    <div v-if="cookieConsent===null" role="dialog" aria-modal="true" aria-label="Consentimiento de cookies"
+      style="position:fixed;bottom:0;left:0;right:0;z-index:9000;background:var(--surface);border-top:2px solid var(--gold);padding:16px 18px 20px;box-shadow:0 -4px 24px rgba(0,0,0,.18);max-width:430px;margin:0 auto">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px">🍪 Esta app usa cookies de analítica</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:14px">
+        Usamos Google Analytics para saber cuántas personas juegan y cómo mejoran con la app. No vendemos tus datos ni los compartimos con anunciantes.
+        <button class="link-btn" style="font-size:12px" @click="privacyModal=true">Más información →</button>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-primary" style="flex:1;font-size:13px" @click="acceptCookies">Aceptar analítica</button>
+        <button class="btn btn-muted" style="flex:1;font-size:13px" @click="rejectCookies">Solo necesarias</button>
+      </div>
+    </div>
+  </transition>
+
+  <!-- ===== PRIVACY / LEGAL MODAL ===== -->
+  <div v-if="privacyModal" class="modal-overlay" @click.self="privacyModal=false" style="z-index:9100">
+    <div class="modal" style="max-height:85vh;overflow-y:auto">
+      <div class="modal-header">
+        <div class="modal-title">Privacidad y Aviso Legal</div>
+        <button class="icon-btn" @click="privacyModal=false" aria-label="Cerrar">✕</button>
+      </div>
+      <div style="font-size:13px;color:var(--text);line-height:1.65;padding:4px 0">
+
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px">Responsable del tratamiento</div>
+        <p style="margin-bottom:14px">Jose M. Pérez — <a href="mailto:jperezg@duoc.cl" style="color:var(--gold)">jperezg@duoc.cl</a>. Para ejercer tus derechos de acceso, rectificación o supresión, escríbenos a esa dirección.</p>
+
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px">Datos que tratamos</div>
+        <p style="margin-bottom:4px"><strong>Nombres de jugadores y partidas:</strong> se almacenan únicamente en tu dispositivo (localStorage). No se envían a ningún servidor.</p>
+        <p style="margin-bottom:14px"><strong>Datos de uso (solo si aceptas):</strong> si consientes, Google Analytics 4 recoge tu dirección IP anonimizada, tipo de dispositivo y eventos de uso (partida iniciada, rondas guardadas, compartir resultado). Finalidad: mejorar la app.</p>
+
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px">Base legal</div>
+        <p style="margin-bottom:14px">El tratamiento de datos de uso se basa en tu <strong>consentimiento</strong> (RGPD Art. 6.1.a), que puedes retirar en cualquier momento desde Ajustes → Privacidad.</p>
+
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px">Transferencia internacional</div>
+        <p style="margin-bottom:14px">Google LLC (EE.UU.) procesa los datos analíticos. Google está certificado bajo el EU–US Data Privacy Framework (Decisión de Adecuación CE, julio 2023). Más info: <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style="color:var(--gold)">policies.google.com/privacy</a>.</p>
+
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px">Tus derechos (RGPD Arts. 15–22)</div>
+        <p style="margin-bottom:14px">Tienes derecho a acceder, rectificar, suprimir, limitar y portar tus datos, y a oponerte a su tratamiento. Para datos en el dispositivo, usa el botón <em>Borrar todos mis datos</em> en Ajustes. Para datos en Google Analytics, visita <a href="https://myaccount.google.com" target="_blank" rel="noopener" style="color:var(--gold)">myaccount.google.com</a>.</p>
+
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px">Conservación</div>
+        <p style="margin-bottom:14px">Los datos locales se conservan hasta que los borres manualmente. Google Analytics conserva los datos de uso 14 meses (configuración predeterminada GA4).</p>
+
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px">Cookies</div>
+        <p style="margin-bottom:18px">Si aceptas la analítica, Google Analytics instala las cookies <code>_ga</code> (duración 2 años) y <code>_ga_EYZJ48R2RV</code> (2 años) para identificar sesiones y medir uso.</p>
+
+        <!-- Tu preferencia actual -->
+        <div style="background:var(--surface-2,#f5f5f5);border-radius:8px;padding:12px 14px;margin-bottom:4px">
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:8px">Tu preferencia actual</div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span style="font-size:13px;color:var(--text)">
+              Analítica:
+              <strong :style="{color:cookieConsent==='accepted'?'var(--green-acc)':'var(--red)'}">
+                {{cookieConsent==='accepted'?'Aceptada':'Rechazada'}}
+              </strong>
+            </span>
+            <button v-if="cookieConsent==='accepted'" class="btn btn-muted btn-sm" @click="rejectCookies();privacyModal=false">Retirar consentimiento</button>
+            <button v-else class="btn btn-primary btn-sm" @click="acceptCookies();privacyModal=false">Aceptar analítica</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- ===== BOTTOM NAV ===== -->
   <nav class="bot-nav" role="tablist">
@@ -1946,6 +2074,7 @@ createApp({
 
       // Drag reorder state
       dragState:{ active:false, fromIdx:null, toIdx:null },
+      playerDragState:{ active:false, fromIdx:null, toIdx:null },
 
       // Winner celebration
       winnerModal:null,
@@ -1960,6 +2089,10 @@ createApp({
       // Theme
       theme:'auto',
       keepScreenOn:true,
+
+      // Privacy / RGPD
+      cookieConsent:null,   // null=pendiente, 'accepted'=aceptado, 'rejected'=rechazado
+      privacyModal:false,   // muestra modal de Política de Privacidad
 
       // Persisted
       players:[],
@@ -2975,7 +3108,31 @@ createApp({
     },
 
     savePrefs(){
-      localStorage.setItem('carioca_prefs',JSON.stringify({keepScreenOn:this.keepScreenOn}));
+      localStorage.setItem('carioca_prefs',JSON.stringify({keepScreenOn:this.keepScreenOn,cookieConsent:this.cookieConsent}));
+    },
+
+    acceptCookies(){
+      this.cookieConsent='accepted';
+      this.savePrefs();
+      window._loadGA4&&window._loadGA4();
+    },
+
+    rejectCookies(){
+      this.cookieConsent='rejected';
+      this.savePrefs();
+      // Eliminar cookies GA4 existentes
+      document.cookie='_ga=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+      document.cookie='_ga_EYZJ48R2RV=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+    },
+
+    clearAllData(){
+      localStorage.removeItem('carioca_v1');
+      localStorage.removeItem('carioca_prefs');
+      localStorage.removeItem('carioca_theme');
+      // Eliminar cookies GA4
+      document.cookie='_ga=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+      document.cookie='_ga_EYZJ48R2RV=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+      setTimeout(()=>window.location.reload(),300);
     },
 
     setTheme(t){
@@ -3044,6 +3201,49 @@ createApp({
         this.save();
       }
       this.dragState={ active:false, fromIdx:null, toIdx:null };
+    },
+
+    // ── Player drag reorder ──
+    desktopDragStartPlayer(e, idx){
+      e.dataTransfer.effectAllowed='move';
+      this.playerDragState={ active:true, fromIdx:idx, toIdx:idx };
+    },
+    dropPlayer(){
+      this.commitPlayerDrag();
+    },
+    touchDragStartPlayer(e, idx){
+      this.playerDragState={ active:true, fromIdx:idx, toIdx:idx };
+      const self=this;
+      self._ptmHandler=(ev)=>{
+        ev.preventDefault();
+        const t=ev.touches[0];
+        const el=document.elementFromPoint(t.clientX, t.clientY);
+        if(el){
+          const item=el.closest('[data-player-idx]');
+          if(item){
+            const ti=parseInt(item.dataset.playerIdx);
+            if(!isNaN(ti)) self.playerDragState.toIdx=ti;
+          }
+        }
+      };
+      self._pteHandler=()=>{
+        document.removeEventListener('touchmove', self._ptmHandler);
+        document.removeEventListener('touchend', self._pteHandler);
+        self.commitPlayerDrag();
+      };
+      document.addEventListener('touchmove', self._ptmHandler, {passive:false});
+      document.addEventListener('touchend', self._pteHandler);
+    },
+    commitPlayerDrag(){
+      const { fromIdx, toIdx }=this.playerDragState;
+      if(fromIdx!==null && toIdx!==null && fromIdx!==toIdx){
+        const arr=[...this.players];
+        const [moved]=arr.splice(fromIdx,1);
+        arr.splice(toIdx,0,moved);
+        this.players=arr;
+        this.save();
+      }
+      this.playerDragState={ active:false, fromIdx:null, toIdx:null };
     },
 
     openAddCombo(){
@@ -3262,8 +3462,15 @@ createApp({
     if(savedTheme==='dark') r.setAttribute('data-theme','dark');
     else if(savedTheme==='light') r.setAttribute('data-theme','light');
 
+    // Restaurar preferencias (wake lock + consentimiento)
+    try{
+      const p=JSON.parse(localStorage.getItem('carioca_prefs')||'{}');
+      if(typeof p.keepScreenOn==='boolean') this.keepScreenOn=p.keepScreenOn;
+      if(p.cookieConsent==='accepted'||p.cookieConsent==='rejected') this.cookieConsent=p.cookieConsent;
+      if(p.cookieConsent==='accepted') window._loadGA4&&window._loadGA4();
+    }catch(_){}
+
     // Screen Wake Lock — mantener pantalla encendida durante la partida
-    try{ const p=JSON.parse(localStorage.getItem('carioca_prefs')||'{}'); if(typeof p.keepScreenOn==='boolean') this.keepScreenOn=p.keepScreenOn; }catch(_){}
     this._wakeLock=null;
     const acquireWakeLock=async()=>{
       if(!this.keepScreenOn||!('wakeLock' in navigator)) return;
@@ -3286,6 +3493,7 @@ createApp({
     // Cancel drag if mouse released outside a drop target
     document.addEventListener('dragend', ()=>{
       if(this.dragState.active) this.dragState={ active:false, fromIdx:null, toIdx:null };
+      if(this.playerDragState.active) this.playerDragState={ active:false, fromIdx:null, toIdx:null };
     });
 
     // Swipe navigation (#17)
