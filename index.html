@@ -1148,6 +1148,7 @@ body{
           <div v-if="roundWinner===pid" class="score-zero">0</div>
           <input v-else type="number" inputmode="numeric" pattern="[0-9]*"
             class="score-inp" :value="roundScores[pid]||0"
+            @focus="$event.target.select()"
             @input="roundScores[pid]=parseInt($event.target.value)||0"
             min="0" placeholder="0">
         </template>
@@ -1155,6 +1156,7 @@ body{
         <template v-else>
           <input type="number" inputmode="numeric" pattern="[0-9]*"
             class="score-inp" :value="roundScores[pid]||0"
+            @focus="$event.target.select()"
             @input="roundScores[pid]=parseInt($event.target.value)||0"
             min="0" placeholder="0">
         </template>
