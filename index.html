@@ -1,7 +1,7 @@
 <title>RondaScore</title>
 <style>html{background:#152f25}</style>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://www.google-analytics.com; connect-src https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'">
 <meta name="theme-color" content="#152f25">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -9,6 +9,14 @@
 <meta name="apple-mobile-web-app-title" content="RondaScore">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
+<!-- Google Analytics 4 -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-EYZJ48R2RV"></script>
+<script>
+  window.dataLayer=window.dataLayer||[];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js',new Date());
+  gtag('config','G-EYZJ48R2RV',{send_page_view:true});
+</script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap');
@@ -2420,6 +2428,7 @@ createApp({
       this.setup.step=0;
       this.save();
       this.nav('game');
+      if(typeof gtag==='function') gtag('event','game_started',{game_type:s.gameTypeId,player_count:s.pIds.length});
     },
 
     startRevancha(){
@@ -2605,6 +2614,7 @@ createApp({
       this.showRound=false;
       this.showToast('Ronda '+roundNum+' guardada ✓');
       this.save();
+      if(typeof gtag==='function') gtag('event','round_saved',{game_type:this.game.gtId,round_number:roundNum});
     },
 
     endGame(forcedWinner){
@@ -2664,6 +2674,7 @@ createApp({
         rounds:this.game.rounds.length,
       };
 
+      if(typeof gtag==='function') gtag('event','game_finished',{game_type:this.winnerModal.gtId,player_count:this.winnerModal.pIds.length,rounds_played:this.winnerModal.rounds});
       this.game=null;
       this.save();
     },
@@ -2926,11 +2937,15 @@ createApp({
 
       const text=lines.join('\n');
       if(navigator.share){
-        try{ await navigator.share({title:'RondaScore',text}); }catch(e){}
+        try{
+          await navigator.share({title:'RondaScore',text});
+          if(typeof gtag==='function') gtag('event','game_shared',{game_type:g.gtId,method:'native'});
+        }catch(e){}
       } else {
         try{
           await navigator.clipboard.writeText(text);
           this.showToast('Resultado copiado ✓');
+          if(typeof gtag==='function') gtag('event','game_shared',{game_type:g.gtId,method:'clipboard'});
         }catch(e){ this.showToast('No se pudo copiar'); }
       }
     },
