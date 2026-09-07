@@ -1898,6 +1898,33 @@ body{
             role="switch" :aria-checked="keepScreenOn" aria-label="Pantalla siempre encendida"></button>
         </div>
       </div>
+      <!-- Valores de cartas -->
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-label">Valores de cartas (teclado 🃏)</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div>
+            <div style="font-size:14px;font-weight:600">As</div>
+            <div style="font-size:12px;color:var(--muted)">Puntos cuando queda en mano</div>
+          </div>
+          <div style="display:flex;gap:4px">
+            <button v-for="v in [15,20,25]" :key="v"
+              class="btn btn-sm" :class="chipValues.ace===v?'btn-primary':'btn-muted'"
+              @click="chipValues.ace=v;savePrefs()" :aria-pressed="chipValues.ace===v">{{v}}</button>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid var(--border)">
+          <div>
+            <div style="font-size:14px;font-weight:600">🃏 Comodín</div>
+            <div style="font-size:12px;color:var(--muted)">Puntos cuando queda en mano</div>
+          </div>
+          <div style="display:flex;gap:4px">
+            <button v-for="v in [20,30,50]" :key="v"
+              class="btn btn-sm" :class="chipValues.joker===v?'btn-primary':'btn-muted'"
+              @click="chipValues.joker=v;savePrefs()" :aria-pressed="chipValues.joker===v">{{v}}</button>
+          </div>
+        </div>
+      </div>
+
       <div class="tabs">
         <div class="tab" :class="{on:stab==='players'}" @click="stab='players'">Jugadores</div>
         <div class="tab" :class="{on:stab==='combos'}" @click="stab='combos'">Combinaciones</div>
@@ -2197,6 +2224,9 @@ createApp({
       theme:'auto',
       keepScreenOn:true,
 
+      // Chip keyboard card values
+      chipValues:{ joker:30, ace:20 },
+
       // Privacy / RGPD
       cookieConsent:null,   // null=pendiente, 'accepted'=aceptado, 'rejected'=rechazado
       privacyModal:false,   // muestra modal de Política de Privacidad
@@ -2229,8 +2259,8 @@ createApp({
 
     cardChips(){
       return [
-        {key:'joker',label:'🃏',pts:30,sub:'Comodín'},
-        {key:'ace',  label:'A', pts:15,sub:'As'},
+        {key:'joker',label:'🃏',pts:this.chipValues.joker,sub:'Comodín'},
+        {key:'ace',  label:'A', pts:this.chipValues.ace,  sub:'As'},
         {key:'face', label:'K·Q·J',pts:10,sub:'Figura'},
         {key:'10',   label:'10',pts:10,sub:''},
         {key:'9',    label:'9', pts:9, sub:''},
@@ -3288,7 +3318,7 @@ createApp({
     },
 
     savePrefs(){
-      localStorage.setItem('carioca_prefs',JSON.stringify({keepScreenOn:this.keepScreenOn,cookieConsent:this.cookieConsent,roundInputMode:this.roundInputMode}));
+      localStorage.setItem('carioca_prefs',JSON.stringify({keepScreenOn:this.keepScreenOn,cookieConsent:this.cookieConsent,roundInputMode:this.roundInputMode,chipValues:this.chipValues}));
     },
 
     acceptCookies(){
@@ -3663,6 +3693,8 @@ createApp({
       if(p.cookieConsent==='accepted'||p.cookieConsent==='rejected') this.cookieConsent=p.cookieConsent;
       if(p.cookieConsent==='accepted') window._loadGA4&&window._loadGA4();
       if(p.roundInputMode==='chips'||p.roundInputMode==='number') this.roundInputMode=p.roundInputMode;
+      if(p.chipValues?.ace>0)   this.chipValues.ace=p.chipValues.ace;
+      if(p.chipValues?.joker>0) this.chipValues.joker=p.chipValues.joker;
     }catch(_){}
 
     // Screen Wake Lock — mantener pantalla encendida durante la partida
