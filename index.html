@@ -838,7 +838,7 @@ body{
       <strong>Instalar RondaScore</strong>
       <span>Toca aquí para añadir a tu pantalla de inicio</span>
     </div>
-    <button class="install-banner-dismiss" @click.stop="installPrompt=false">✕</button>
+    <button class="install-banner-dismiss" @click.stop="installPrompt=false" aria-label="Cerrar aviso de instalación">✕</button>
   </div>
 
   <!-- ===== TOAST ===== -->
@@ -1256,7 +1256,7 @@ body{
         <template v-else> · Ronda {{game.round+1}}</template>
       </div>
     </div>
-    <button v-if="view==='game' && hasGame" class="hdr-btn" @click="showMenu=!showMenu">⋮</button>
+    <button v-if="view==='game' && hasGame" class="hdr-btn" @click="showMenu=!showMenu" aria-label="Menú de partida" :aria-expanded="showMenu">⋮</button>
   </header>
 
   <!-- game overflow menu -->
@@ -1772,7 +1772,7 @@ body{
               <div v-for="pid in g.pIds.slice(0,6)" :key="pid" class="av av-sm" :style="{background:pColor(pid)}">{{ini(pName(pid))}}</div>
             </div>
             <span class="hist-rnds">{{g.rounds.length}} rondas</span>
-            <button class="icon-btn del" style="margin-left:8px" @click.stop="deleteFromHistory(g)" title="Eliminar">🗑</button>
+            <button class="icon-btn del" style="margin-left:8px" @click.stop="deleteFromHistory(g)" :aria-label="'Eliminar partida del ' + g.date" title="Eliminar">🗑</button>
           </div>
         </div>
       </div>
@@ -1794,7 +1794,7 @@ body{
             <div style="font-size:12px;color:var(--muted);margin-top:2px">Evita que la pantalla se apague durante la partida</div>
           </div>
           <button class="combo-toggle" :class="{on:keepScreenOn}" @click="keepScreenOn=!keepScreenOn;savePrefs()"
-            role="switch" :aria-checked="keepScreenOn"></button>
+            role="switch" :aria-checked="keepScreenOn" aria-label="Pantalla siempre encendida"></button>
         </div>
       </div>
       <div class="tabs">
@@ -1825,8 +1825,8 @@ body{
               <div class="list-title">{{p.name}}</div>
             </div>
             <div class="list-acts">
-              <button class="icon-btn" @click="openEditPlayer(p.id)" title="Editar">✏️</button>
-              <button class="icon-btn del" @click="delPlayer(p.id)" title="Eliminar">🗑</button>
+              <button class="icon-btn" @click="openEditPlayer(p.id)" :aria-label="'Editar jugador ' + p.name" title="Editar">✏️</button>
+              <button class="icon-btn del" @click="delPlayer(p.id)" :aria-label="'Eliminar jugador ' + p.name" title="Eliminar">🗑</button>
             </div>
           </div>
         </div>
@@ -1873,8 +1873,8 @@ body{
                 :aria-checked="comboTab==='libre' ? c.activeLibre!==false : c.active!==false"
                 :aria-label="c.name"
                 :title="(comboTab==='libre' ? c.activeLibre!==false : c.active!==false)?'Activa':'Inactiva'"></button>
-              <button class="icon-btn" @click="openEditCombo(c.id)">✏️</button>
-              <button class="icon-btn del" @click="delCombo(c.id)">🗑</button>
+              <button class="icon-btn" @click="openEditCombo(c.id)" :aria-label="'Editar combinación ' + c.name">✏️</button>
+              <button class="icon-btn del" @click="delCombo(c.id)" :aria-label="'Eliminar combinación ' + c.name">🗑</button>
             </div>
           </div>
           <div v-if="allCombos.length===0" style="padding:16px 0;text-align:center;color:var(--muted);font-size:13px">
@@ -1960,6 +1960,9 @@ body{
 
         <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px">Conservación</div>
         <p style="margin-bottom:14px">Los datos locales se conservan hasta que los borres manualmente. Google Analytics conserva los datos de uso 14 meses (configuración predeterminada GA4).</p>
+
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px">Menores de edad</div>
+        <p style="margin-bottom:14px">Esta aplicación no está dirigida a menores de 14 años (umbral establecido por la Ley 21.719 de Chile y el RGPD en España). No recopilamos de forma consciente datos de menores. Si eres padre o tutor y crees que un menor ha utilizado la analítica sin supervisión, puedes revocar el consentimiento y borrar los datos desde Ajustes → Privacidad → Borrar todos mis datos.</p>
 
         <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px">Cookies</div>
         <p style="margin-bottom:18px">Si aceptas la analítica, Google Analytics instala las cookies <code>_ga</code> (duración 2 años) y <code>_ga_EYZJ48R2RV</code> (2 años) para identificar sesiones y medir uso.</p>
@@ -3443,6 +3446,20 @@ createApp({
 
   mounted(){
     this.load();
+
+    // Accesibilidad: cerrar modales con Escape (WCAG 2.1 — SC 1.4.13 / SC 2.1.2)
+    window.addEventListener('keydown', e => {
+      if (e.key !== 'Escape') return;
+      if (this.privacyModal)    { this.privacyModal = false; return; }
+      if (this.rulesModal)      { this.rulesModal = null; return; }
+      if (this.winnerModal)     { /* no cerrar: resultado de partida */ return; }
+      if (this.showRound)       { this.showRound = false; return; }
+      if (this.pModal?.open)    { this.pModal.open = false; return; }
+      if (this.cModal?.open)    { this.cModal.open = false; return; }
+      if (this.editScoreDlg)    { this.editScoreDlg = null; return; }
+      if (this.confirmDlg)      { this.confirmDlg = null; return; }
+      if (this.showMenu)        { this.showMenu = false; return; }
+    });
 
     // Capturar prompt de instalación PWA en variable de módulo (fuera de Vue)
     window.addEventListener('beforeinstallprompt', e => {
