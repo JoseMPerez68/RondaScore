@@ -1901,26 +1901,48 @@ body{
       <!-- Valores de cartas -->
       <div class="card" style="margin-bottom:12px">
         <div class="card-label">Valores de cartas (teclado 🃏)</div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-          <div>
-            <div style="font-size:14px;font-weight:600">As</div>
-            <div style="font-size:12px;color:var(--muted)">Puntos cuando queda en mano</div>
-          </div>
-          <div style="display:flex;gap:4px">
-            <button v-for="v in [15,20,25]" :key="v"
-              class="btn btn-sm" :class="chipValues.ace===v?'btn-primary':'btn-muted'"
-              @click="chipValues.ace=v;savePrefs()" :aria-pressed="chipValues.ace===v">{{v}}</button>
+        <!-- As -->
+        <div style="margin-bottom:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div>
+              <div style="font-size:14px;font-weight:600">As</div>
+              <div style="font-size:12px;color:var(--muted)">Puntos cuando queda en mano</div>
+            </div>
+            <div style="display:flex;gap:4px;align-items:center">
+              <button v-for="v in [15,20,25]" :key="v"
+                class="btn btn-sm" :class="chipValues.ace===v&&!chipValues.aceCustom?'btn-primary':'btn-muted'"
+                @click="chipValues.ace=v;chipValues.aceCustom=false;savePrefs()" :aria-pressed="chipValues.ace===v&&!chipValues.aceCustom">{{v}}</button>
+              <input type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="999"
+                :value="chipValues.aceCustom?chipValues.ace:''"
+                placeholder="…"
+                @focus="chipValues.aceCustom=true"
+                @input="setCustomChip('ace',$event)"
+                @blur="if(!chipValues.aceCustom||!chipValues.ace){chipValues.aceCustom=false}"
+                class="score-inp" style="width:52px;font-size:15px;padding:6px 4px"
+                aria-label="Valor personalizado para el As">
+            </div>
           </div>
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid var(--border)">
-          <div>
-            <div style="font-size:14px;font-weight:600">🃏 Comodín</div>
-            <div style="font-size:12px;color:var(--muted)">Puntos cuando queda en mano</div>
-          </div>
-          <div style="display:flex;gap:4px">
-            <button v-for="v in [20,30,50]" :key="v"
-              class="btn btn-sm" :class="chipValues.joker===v?'btn-primary':'btn-muted'"
-              @click="chipValues.joker=v;savePrefs()" :aria-pressed="chipValues.joker===v">{{v}}</button>
+        <!-- Comodín -->
+        <div style="padding-top:12px;border-top:1px solid var(--border)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div>
+              <div style="font-size:14px;font-weight:600">🃏 Comodín</div>
+              <div style="font-size:12px;color:var(--muted)">Puntos cuando queda en mano</div>
+            </div>
+            <div style="display:flex;gap:4px;align-items:center">
+              <button v-for="v in [20,30,50]" :key="v"
+                class="btn btn-sm" :class="chipValues.joker===v&&!chipValues.jokerCustom?'btn-primary':'btn-muted'"
+                @click="chipValues.joker=v;chipValues.jokerCustom=false;savePrefs()" :aria-pressed="chipValues.joker===v&&!chipValues.jokerCustom">{{v}}</button>
+              <input type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="999"
+                :value="chipValues.jokerCustom?chipValues.joker:''"
+                placeholder="…"
+                @focus="chipValues.jokerCustom=true"
+                @input="setCustomChip('joker',$event)"
+                @blur="if(!chipValues.jokerCustom||!chipValues.joker){chipValues.jokerCustom=false}"
+                class="score-inp" style="width:52px;font-size:15px;padding:6px 4px"
+                aria-label="Valor personalizado para el Comodín">
+            </div>
           </div>
         </div>
       </div>
@@ -2225,7 +2247,7 @@ createApp({
       keepScreenOn:true,
 
       // Chip keyboard card values
-      chipValues:{ joker:30, ace:20 },
+      chipValues:{ joker:30, ace:20, aceCustom:false, jokerCustom:false },
 
       // Privacy / RGPD
       cookieConsent:null,   // null=pendiente, 'accepted'=aceptado, 'rejected'=rechazado
@@ -2799,6 +2821,11 @@ createApp({
       const total=this.cardChips.reduce((s,c)=>s+(this.chipCounts[pid]?.[c.key]||0)*c.pts,0);
       this.roundScores[pid]=total;
     },
+    setCustomChip(card, e){
+      const v=parseInt(e.target.value);
+      if(v>0){ this.chipValues[card]=v; this.chipValues[card+'Custom']=true; this.savePrefs(); }
+    },
+
     setRoundInputMode(mode){
       if(this.roundInputMode===mode) return;
       this.roundInputMode=mode;
@@ -3693,8 +3720,8 @@ createApp({
       if(p.cookieConsent==='accepted'||p.cookieConsent==='rejected') this.cookieConsent=p.cookieConsent;
       if(p.cookieConsent==='accepted') window._loadGA4&&window._loadGA4();
       if(p.roundInputMode==='chips'||p.roundInputMode==='number') this.roundInputMode=p.roundInputMode;
-      if(p.chipValues?.ace>0)   this.chipValues.ace=p.chipValues.ace;
-      if(p.chipValues?.joker>0) this.chipValues.joker=p.chipValues.joker;
+      if(p.chipValues?.ace>0)   { this.chipValues.ace=p.chipValues.ace; this.chipValues.aceCustom=!!p.chipValues.aceCustom; }
+      if(p.chipValues?.joker>0) { this.chipValues.joker=p.chipValues.joker; this.chipValues.jokerCustom=!!p.chipValues.jokerCustom; }
     }catch(_){}
 
     // Screen Wake Lock — mantener pantalla encendida durante la partida
