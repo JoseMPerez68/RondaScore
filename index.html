@@ -492,6 +492,28 @@ body{
 .chip-step-dot.cs-done{background:var(--green-acc)}
 .chip-hint{font-size:11px;color:var(--muted);text-align:center;margin:4px 0 2px}
 
+/* ── TRUCO ── */
+.truco-board{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px 0 8px}
+.truco-team-panel{background:var(--surface);border:2px solid var(--border);border-radius:14px;padding:16px 12px;display:flex;flex-direction:column;align-items:center;gap:6px;transition:border-color .2s}
+.truco-team-panel.truco-leading{border-color:var(--gold)}
+.truco-team-name{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.truco-score-big{font-size:54px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text);line-height:1;font-family:var(--ff-display)}
+.truco-of-target{font-size:11px;color:var(--muted);margin-top:-2px}
+.truco-prog{width:100%;height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin:2px 0}
+.truco-prog-fill{height:100%;background:var(--gold);border-radius:3px;transition:width .4s}
+.truco-add-btns{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;width:100%;margin-top:4px}
+.truco-add-btn{border:1.5px solid var(--border);background:var(--bg);border-radius:8px;padding:9px 2px;font-size:13px;font-weight:700;color:var(--text);cursor:pointer;font-family:var(--ff-ui);transition:background .1s,border-color .1s;-webkit-tap-highlight-color:transparent}
+.truco-add-btn:active{background:var(--gold);color:#fff;border-color:var(--gold)}
+.truco-undo-row{display:flex;justify-content:center;padding:4px 0 2px}
+.truco-undo-btn{border:none;background:transparent;color:var(--muted);font-size:14px;cursor:pointer;padding:8px 16px;border-radius:8px;font-family:var(--ff-ui)}
+.truco-undo-btn:not([disabled]):active{color:var(--text);background:var(--border)}
+.truco-undo-btn[disabled]{opacity:.3;cursor:default}
+.truco-hist-row{display:flex;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px}
+.truco-hist-row:last-child{border-bottom:none}
+.truco-winner-card{background:var(--gold);border-radius:14px;padding:28px 16px 20px;text-align:center;margin:8px 0 12px;color:#fff}
+.truco-winner-name{font-size:30px;font-weight:700;font-family:var(--ff-display)}
+.truco-winner-sub{font-size:14px;opacity:.85;margin-top:4px}
+
 /* ── TABS ── */
 .tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:16px}
 .tab{
@@ -968,7 +990,7 @@ body{
         <div class="step-dot" :class="{on:setup.step>=3}"></div>
       </div>
       <div class="step-current-label">
-        {{['','Tipo de juego','Jugadores','Configuración'][setup.step]}}
+        {{setup.step===2&&setupIsTruco?'Equipos':['','Tipo de juego','Jugadores','Configuración'][setup.step]}}
       </div>
 
       <!-- Step 1: game type -->
@@ -992,29 +1014,49 @@ body{
         </div>
       </div>
 
-      <!-- Step 2: players -->
+      <!-- Step 2: players (or teams for Truco) -->
       <div v-else-if="setup.step===2">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-          <h2 class="modal-title" style="margin:0">Jugadores</h2>
-          <button class="btn btn-ghost btn-sm" @click="openAddPlayerFromSetup">+ Nuevo</button>
-        </div>
-        <p class="modal-hint">Selecciona 2 o más jugadores</p>
-        <div v-if="players.length===0" class="empty" style="padding:20px 0">
-          <p style="margin-bottom:12px">No hay jugadores todavía. Usa el botón "+ Nuevo" de arriba.</p>
-        </div>
-        <div class="player-chips" v-else>
-          <div v-for="p in playersSortedByUse" :key="p.id"
-            class="player-chip" :class="{sel:setup.pIds.includes(p.id)}"
-            @click="toggleSetupPlayer(p.id)"
-            role="checkbox" :aria-checked="setup.pIds.includes(p.id)">
-            <div class="av av-sm" :style="{background:p.color}">{{ini(p.name)}}</div>
-            {{p.name}}
+        <!-- Truco: nombre de equipos -->
+        <template v-if="setupIsTruco">
+          <h2 class="modal-title">Equipos</h2>
+          <p class="modal-hint">¿Cómo se llaman los equipos? (opcional)</p>
+          <div class="field" style="margin-bottom:14px">
+            <label class="field-label">Equipo 1</label>
+            <input class="inp" type="text" maxlength="20" v-model="setup.teamA" placeholder="Nosotros">
           </div>
-        </div>
-        <div class="modal-actions">
-          <button class="btn btn-muted" @click="setup.step--">← Atrás</button>
-          <button class="btn btn-primary" :disabled="setup.pIds.length<2" @click="setupNext">Siguiente →</button>
-        </div>
+          <div class="field">
+            <label class="field-label">Equipo 2</label>
+            <input class="inp" type="text" maxlength="20" v-model="setup.teamB" placeholder="Ellos">
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn-muted" @click="setup.step--">← Atrás</button>
+            <button class="btn btn-primary" @click="setupNext">Siguiente →</button>
+          </div>
+        </template>
+        <!-- Otros modos: lista de jugadores -->
+        <template v-else>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <h2 class="modal-title" style="margin:0">Jugadores</h2>
+            <button class="btn btn-ghost btn-sm" @click="openAddPlayerFromSetup">+ Nuevo</button>
+          </div>
+          <p class="modal-hint">Selecciona 2 o más jugadores</p>
+          <div v-if="players.length===0" class="empty" style="padding:20px 0">
+            <p style="margin-bottom:12px">No hay jugadores todavía. Usa el botón "+ Nuevo" de arriba.</p>
+          </div>
+          <div class="player-chips" v-else>
+            <div v-for="p in playersSortedByUse" :key="p.id"
+              class="player-chip" :class="{sel:setup.pIds.includes(p.id)}"
+              @click="toggleSetupPlayer(p.id)"
+              role="checkbox" :aria-checked="setup.pIds.includes(p.id)">
+              <div class="av av-sm" :style="{background:p.color}">{{ini(p.name)}}</div>
+              {{p.name}}
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn-muted" @click="setup.step--">← Atrás</button>
+            <button class="btn btn-primary" :disabled="setup.pIds.length<2" @click="setupNext">Siguiente →</button>
+          </div>
+        </template>
       </div>
 
       <!-- Step 3: config final (combos para fixed/libre · parámetros para otros modos) -->
@@ -1057,6 +1099,30 @@ body{
               <span class="pip pip-done" style="font-size:10px;padding:2px 7px">{{c.short}}</span>
               <span style="flex:1;font-size:14px">{{c.name}}</span>
             </div>
+          </div>
+        </template>
+
+        <!-- Truco: puntaje objetivo -->
+        <template v-else-if="setupIsTruco">
+          <h2 class="modal-title">Objetivo</h2>
+          <p class="modal-hint">¿Cuántos puntos para ganar la partida?</p>
+          <div style="display:flex;gap:8px;margin-bottom:14px">
+            <button v-for="t in [15,30]" :key="t"
+              class="btn btn-sm" style="flex:1;font-size:17px;padding:12px"
+              :class="setup.trucoTarget===t?'btn-primary':'btn-muted'"
+              @click="setup.trucoTarget=t">{{t}}</button>
+          </div>
+          <div class="field">
+            <label class="field-label">Personalizado</label>
+            <input class="inp" type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="999"
+              :value="(setup.trucoTarget!==15&&setup.trucoTarget!==30)?setup.trucoTarget:''"
+              placeholder="Otro puntaje…"
+              @input="setup.trucoTarget=parseInt($event.target.value)||30"
+              aria-label="Puntaje objetivo personalizado">
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn-muted" @click="setup.step--">← Atrás</button>
+            <button class="btn btn-primary" :disabled="!(setup.trucoTarget>0)" @click="startGame">Iniciar partida</button>
           </div>
         </template>
 
@@ -1125,7 +1191,7 @@ body{
           </template>
         </template>
 
-        <div class="modal-actions">
+        <div class="modal-actions" v-if="!setupIsTruco">
           <button class="btn btn-muted" @click="setup.step--">← Atrás</button>
           <button class="btn btn-primary"
             :disabled="((setupIsFixed||setupIsLibre)&&setup.cIds.length===0)||(setupIsScoreMode&&!(setup.targetScore>0))||(setupIsRoundsMode&&!(setup.totalRounds>0))||(setupIsLivesMode&&(!(setup.livesStart>0)||!(setup.targetScore>0)))"
@@ -1361,7 +1427,8 @@ body{
       <div class="hdr-main">RondaScore</div>
       <div class="hdr-sub" v-if="hasGame">
         {{activeGameName}}
-        <template v-if="isRoundsMode"> · Ronda {{game.round+1}}/{{game.totalRounds}}</template>
+        <template v-if="isTruco"> · {{game.teamA}} {{game.scoreA}}–{{game.scoreB}} {{game.teamB}}</template>
+        <template v-else-if="isRoundsMode"> · Ronda {{game.round+1}}/{{game.totalRounds}}</template>
         <template v-else-if="isLivesMode"> · Ronda {{game.round+1}} · ❤️×{{game.livesStart}}</template>
         <template v-else-if="!isLibre && !isScoreMode"> · Ronda {{game.round+1}}/{{game.cIds.length}}</template>
         <template v-else-if="isScoreMode"> · Ronda {{game.round+1}}<span v-if="game.targetScore"> — límite {{game.targetScore}} pts</span></template>
@@ -1392,8 +1459,9 @@ body{
         <div class="banner-body">
           <div class="banner-lbl">Partida activa ahora</div>
           <div class="banner-title">{{activeGameName}}</div>
-          <div class="banner-meta">Ronda {{game.round+1}} · {{game.pIds.length}} jugadores</div>
-          <div class="banner-scores">
+          <div class="banner-meta" v-if="isTruco">{{game.teamA}} {{game.scoreA}} — {{game.scoreB}} {{game.teamB}} · hasta {{game.target}}</div>
+          <div class="banner-meta" v-else>Ronda {{game.round+1}} · {{game.pIds.length}} jugadores</div>
+          <div class="banner-scores" v-if="!isTruco">
             <div v-for="pid in game.pIds.slice(0,5)" :key="pid" class="banner-score-item">
               <div class="av av-sm" :style="{background:pColor(pid)}">{{ini(pName(pid))}}</div>
               <span class="banner-score-val">{{totals[pid]||0}}</span>
@@ -1411,9 +1479,7 @@ body{
         <div v-for="g in pausedGames" :key="g.id" class="paused-item">
           <div class="paused-item-body">
             <div class="paused-item-title">{{gameDisplayName(g)}}</div>
-            <div class="paused-item-meta">
-              {{g.pIds.length}} jugadores · {{g.rounds.length}} rondas · {{fDate(g.pauseDate||g.date)}}
-            </div>
+            <div class="paused-item-meta">{{gameMeta(g)}} · {{fDate(g.pauseDate||g.date)}}</div>
           </div>
           <button class="btn btn-primary btn-sm" @click="resumeGame(g)">Reanudar</button>
         </div>
@@ -1438,12 +1504,13 @@ body{
             <span class="type-tag">{{gameDisplayName(g)}}</span>
             <span class="hist-date">{{fDate(g.date)}}</span>
           </div>
-          <div class="hist-winner">🏆 {{pName(g.winner)}}</div>
+          <div class="hist-winner">🏆 {{gameWinnerDisplay(g)}}</div>
           <div class="hist-meta">
-            <div class="av-row">
-              <div v-for="pid in g.pIds.slice(0,6)" :key="pid" class="av av-sm" :style="{background:pColor(pid)}">{{ini(pName(pid))}}</div>
+            <div class="av-row" v-if="g.gtId!=='truco'">
+              <div v-for="pid in (g.pIds||[]).slice(0,6)" :key="pid" class="av av-sm" :style="{background:pColor(pid)}">{{ini(pName(pid))}}</div>
             </div>
-            <span class="hist-rnds">{{g.rounds.length}} rondas</span>
+            <span class="hist-rnds" v-if="g.gtId==='truco'">{{g.teamA}} {{g.scoreA??0}}–{{g.scoreB??0}} {{g.teamB}}</span>
+            <span class="hist-rnds" v-else>{{(g.rounds||[]).length}} rondas</span>
           </div>
         </div>
       </template>
@@ -1460,9 +1527,7 @@ body{
           <div v-for="g in pausedGames" :key="g.id" class="paused-item">
             <div class="paused-item-body">
               <div class="paused-item-title">{{gameDisplayName(g)}}</div>
-              <div class="paused-item-meta">
-                {{g.pIds.map(id=>pName(id)).join(', ')}} · {{g.rounds.length}} rondas · {{fDate(g.pauseDate||g.date)}}
-              </div>
+              <div class="paused-item-meta">{{gameMeta(g)}} · {{fDate(g.pauseDate||g.date)}}</div>
             </div>
             <button class="btn btn-primary btn-sm" @click="resumeGame(g)">Reanudar</button>
           </div>
@@ -1485,8 +1550,46 @@ body{
       </div>
 
       <div v-else>
+
+        <!-- ══════════ TRUCO BOARD ══════════ -->
+        <template v-if="isTruco">
+          <div class="truco-board">
+            <div class="truco-team-panel" :class="{'truco-leading':trucoLeader==='A'}">
+              <div class="truco-team-name">{{game.teamA}}</div>
+              <div class="truco-score-big">{{game.scoreA}}</div>
+              <div class="truco-of-target">de {{game.target}}</div>
+              <div class="truco-prog"><div class="truco-prog-fill" :style="{width:Math.min(100,Math.round(game.scoreA/game.target*100))+'%'}"></div></div>
+              <div class="truco-add-btns">
+                <button v-for="pts in [1,2,3,4]" :key="pts" class="truco-add-btn"
+                  @click="trucoAdd('A',pts)" :aria-label="game.teamA + ' +' + pts">+{{pts}}</button>
+              </div>
+            </div>
+            <div class="truco-team-panel" :class="{'truco-leading':trucoLeader==='B'}">
+              <div class="truco-team-name">{{game.teamB}}</div>
+              <div class="truco-score-big">{{game.scoreB}}</div>
+              <div class="truco-of-target">de {{game.target}}</div>
+              <div class="truco-prog"><div class="truco-prog-fill" :style="{width:Math.min(100,Math.round(game.scoreB/game.target*100))+'%'}"></div></div>
+              <div class="truco-add-btns">
+                <button v-for="pts in [1,2,3,4]" :key="pts" class="truco-add-btn"
+                  @click="trucoAdd('B',pts)" :aria-label="game.teamB + ' +' + pts">+{{pts}}</button>
+              </div>
+            </div>
+          </div>
+          <div class="truco-undo-row">
+            <button class="truco-undo-btn" @click="trucoUndo" :disabled="!game.history.length"
+              aria-label="Deshacer último punto">↩ Deshacer</button>
+          </div>
+          <div class="card" v-if="game.history.length>0" style="margin-top:4px">
+            <div class="card-label">Últimas jugadas</div>
+            <div v-for="(h,i) in game.history.slice().reverse().slice(0,8)" :key="i" class="truco-hist-row">
+              <span style="flex:1;font-weight:600;color:var(--text)">{{h.team==='A'?game.teamA:game.teamB}}</span>
+              <span style="font-weight:700;color:var(--green-acc)">+{{h.pts}}</span>
+            </div>
+          </div>
+        </template>
+
         <!-- Hero para modo rondas fijas -->
-        <div class="combo-hero" v-if="isRoundsMode">
+        <div class="combo-hero" v-else-if="isRoundsMode">
           <div class="combo-hero-num">{{activeGameName}}</div>
           <div class="combo-hero-short" style="font-size:28px">Ronda {{game.round+1}} de {{game.totalRounds}}</div>
           <div class="combo-hero-name">
@@ -1555,13 +1658,13 @@ body{
         </div>
 
         <!-- Tabs for libre mode -->
-        <div class="tabs" v-if="isLibre&&!useFreeScore">
+        <div class="tabs" v-if="!isTruco&&isLibre&&!useFreeScore">
           <div class="tab" :class="{on:gtab==='scores'}" @click="gtab='scores'">Puntajes</div>
           <div class="tab" :class="{on:gtab==='combos'}" @click="gtab='combos'">Combinaciones</div>
         </div>
 
         <!-- SCORES tab -->
-        <div class="card" v-show="!isLibre || useFreeScore || gtab==='scores'">
+        <div class="card" v-show="!isTruco&&(!isLibre || useFreeScore || gtab==='scores')">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
             <div class="card-label" style="margin:0">Puntuación acumulada</div>
             <button class="btn btn-primary btn-sm" @click="openRound">+ Registrar ronda</button>
@@ -1592,7 +1695,7 @@ body{
         </div>
 
         <!-- COMBINATIONS tab (libre only) -->
-        <div class="card" v-show="isLibre && !useFreeScore && gtab==='combos'">
+        <div class="card" v-show="!isTruco && isLibre && !useFreeScore && gtab==='combos'">
           <!-- Mini score summary -->
           <div style="display:flex;gap:8px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)">
             <div v-for="p in sortedPlayers" :key="p.id"
@@ -1873,17 +1976,18 @@ body{
             </span>
             <span class="hist-date" style="margin-left:auto">{{fDate(g.date)}}</span>
           </div>
-          <div class="hist-winner" v-if="g.status==='finished'">🏆 {{pName(g.winner)}}</div>
+          <div class="hist-winner" v-if="g.status==='finished'">🏆 {{gameWinnerDisplay(g)}}</div>
           <div class="hist-winner" v-else style="color:var(--muted);font-style:italic">
-            <template v-if="g.cIds.length">Ronda {{g.round+1}} de {{g.cIds.length}}</template>
-            <template v-else>Ronda {{g.round+1}}</template>
-            — Toca para reanudar
+            <template v-if="g.gtId==='truco'">{{g.teamA}} {{g.scoreA??0}}–{{g.scoreB??0}} {{g.teamB}} — Toca para reanudar</template>
+            <template v-else-if="g.cIds.length">Ronda {{g.round+1}} de {{g.cIds.length}} — Toca para reanudar</template>
+            <template v-else>Ronda {{g.round+1}} — Toca para reanudar</template>
           </div>
           <div class="hist-meta">
-            <div class="av-row">
-              <div v-for="pid in g.pIds.slice(0,6)" :key="pid" class="av av-sm" :style="{background:pColor(pid)}">{{ini(pName(pid))}}</div>
+            <div class="av-row" v-if="g.gtId!=='truco'">
+              <div v-for="pid in (g.pIds||[]).slice(0,6)" :key="pid" class="av av-sm" :style="{background:pColor(pid)}">{{ini(pName(pid))}}</div>
             </div>
-            <span class="hist-rnds">{{g.rounds.length}} rondas</span>
+            <span class="hist-rnds" v-if="g.gtId==='truco'">{{g.teamA}} vs {{g.teamB}}</span>
+            <span class="hist-rnds" v-else>{{(g.rounds||[]).length}} rondas</span>
             <button class="icon-btn del" style="margin-left:8px" @click.stop="deleteFromHistory(g)" :aria-label="'Eliminar partida del ' + g.date" title="Eliminar">🗑</button>
           </div>
         </div>
@@ -2193,6 +2297,7 @@ const DEF_GTS = [
   {id:'llega_pierde',name:'Llega a X — pierde',mode:'score_low',icon:'🎯',desc:'Gana quien tenga menos puntos cuando alguien alcanza el límite',defaultTarget:100},
   {id:'llega_gana',name:'Llega a X — gana',mode:'score_high',icon:'🏆',desc:'Gana el primero en llegar al puntaje objetivo',defaultTarget:100},
   {id:'vidas',name:'Vidas',mode:'lives',icon:'❤️',desc:'Cada jugador tiene N vidas; pierde una al superar el límite de puntos',defaultLives:3,defaultTarget:100},
+  {id:'truco',name:'Truco',mode:'truco',icon:'♠️',desc:'Dos equipos — Nosotros vs Ellos — hasta el puntaje objetivo'},
 ];
 
 const COLORS = ['#e74c3c','#3498db','#e67e22','#9b59b6','#27ae60','#0891b2','#d35400','#c0392b'];
@@ -2207,7 +2312,7 @@ createApp({
       showMenu:false,
 
       // Setup wizard
-      setup:{step:0,gameTypeId:'',pIds:[],cIds:[],targetScore:100,totalRounds:10,roundsWinner:'low',livesStart:3,gameName:''},
+      setup:{step:0,gameTypeId:'',pIds:[],cIds:[],targetScore:100,totalRounds:10,roundsWinner:'low',livesStart:3,gameName:'',teamA:'Nosotros',teamB:'Ellos',trucoTarget:30},
 
       // History filters
       histFilterPlayer:null,
@@ -2288,7 +2393,19 @@ createApp({
     isScoreMode(){ return this.gameMode==='score_low'||this.gameMode==='score_high'; },
     isRoundsMode(){ return this.gameMode==='rounds'; },
     isLivesMode(){ return this.gameMode==='lives'; },
+    isTruco(){ return this.gameMode==='truco'; },
     useFreeScore(){ return this.isScoreMode||this.isRoundsMode||this.isLivesMode; },
+
+    setupIsTruco(){
+      const gt=this.gameTypes.find(g=>g.id===this.setup.gameTypeId);
+      return !!(gt&&gt.mode==='truco');
+    },
+    trucoLeader(){
+      if(!this.isTruco) return null;
+      if(this.game.scoreA>this.game.scoreB) return 'A';
+      if(this.game.scoreB>this.game.scoreA) return 'B';
+      return null;
+    },
 
     cardChips(){
       return [
@@ -2639,6 +2756,50 @@ createApp({
       // Muestra nombre personalizado si existe, sino el tipo de juego
       return (g.gameName&&g.gameName.trim())||this.gameTypeName(g.gtId);
     },
+    gameWinnerDisplay(g){
+      // Para Truco, winner es el nombre del equipo; para el resto, es un playerId
+      if(g.gtId==='truco') return g.winner||'';
+      return this.pName(g.winner);
+    },
+    gameMeta(g){
+      // Texto de meta para paused/history items
+      if(g.gtId==='truco'){
+        const a=g.teamA||'Nosotros', b=g.teamB||'Ellos';
+        return `${a} ${g.scoreA??0} — ${g.scoreB??0} ${b}`;
+      }
+      return `${(g.pIds||[]).length} jugadores · ${(g.rounds||[]).length} rondas`;
+    },
+
+    // ── TRUCO METHODS ──
+    trucoAdd(team, pts){
+      if(!this.isTruco||this.game.winner) return;
+      this.game.history.push({team, pts});
+      if(team==='A') this.game.scoreA+=pts;
+      else this.game.scoreB+=pts;
+      if(navigator.vibrate) navigator.vibrate(12);
+      this.save();
+      if(this.game.scoreA>=this.game.target||this.game.scoreB>=this.game.target){
+        this.trucoFinish();
+      }
+    },
+    trucoUndo(){
+      if(!this.isTruco||!this.game.history.length) return;
+      const last=this.game.history.pop();
+      if(last.team==='A') this.game.scoreA=Math.max(0,this.game.scoreA-last.pts);
+      else this.game.scoreB=Math.max(0,this.game.scoreB-last.pts);
+      this.save();
+    },
+    trucoFinish(){
+      if(!this.isTruco) return;
+      const team=this.game.scoreA>=this.game.target?'A':'B';
+      this.game.winner=team==='A'?this.game.teamA:this.game.teamB;
+      this.game.status='finished';
+      this.game.final={A:this.game.scoreA,B:this.game.scoreB};
+      this.games.push({...this.game});
+      this.game=null;
+      this.save();
+      this.nav('home');
+    },
     getComboShort(id){
       if(!id) return '';
       const c=this.combos.find(x=>x.id===id);
@@ -2693,7 +2854,7 @@ createApp({
         if(!s.gameTypeId) return;
         s.step=2;
       } else if(s.step===2){
-        if(s.pIds.length<2) return;
+        if(!this.setupIsTruco && s.pIds.length<2) return;
         // Pre-populate combo selection if entering step 3 with empty cIds
         if(this.setupIsFixed&&!s.cIds.length){
           s.cIds=this.activeCariocaCombos.map(c=>c.id);
@@ -2724,6 +2885,30 @@ createApp({
       const s=this.setup;
       const gt=this.gameTypes.find(g=>g.id===s.gameTypeId);
       const mode=gt?gt.mode:'fixed';
+
+      // ── TRUCO ──
+      if(mode==='truco'){
+        this.game={
+          id:this.uid(),
+          date:new Date().toISOString(),
+          gtId:'truco',
+          teamA:s.teamA||'Nosotros',
+          teamB:s.teamB||'Ellos',
+          scoreA:0, scoreB:0,
+          target:s.trucoTarget||30,
+          history:[],
+          // compat fields so generic code doesn't crash
+          pIds:[], rounds:[], round:0, cIds:[], doneMap:{},
+          status:'active', winner:null, final:null,
+        };
+        this.lastCfg={gtId:'truco',pIds:[],cIds:[],targetScore:s.trucoTarget||30};
+        this.setup.step=0;
+        this.save();
+        this.nav('game');
+        if(typeof gtag==='function') gtag('event','game_started',{game_type:'truco',player_count:2});
+        return;
+      }
+
       const cIds = (mode==='fixed'||mode==='libre') ? [...s.cIds] : [];
 
       const doneMap={};
@@ -3061,6 +3246,18 @@ createApp({
     },
 
     manualFinish(){
+      // Truco: terminate with leading team as winner
+      if(this.isTruco){
+        const team=this.game.scoreA>=this.game.scoreB?'A':'B';
+        this.game.winner=team==='A'?this.game.teamA:this.game.teamB;
+        this.game.status='finished';
+        this.game.final={A:this.game.scoreA,B:this.game.scoreB};
+        this.games.push({...this.game});
+        this.game=null;
+        this.save();
+        this.nav('home');
+        return;
+      }
       const final={};
       for(const pid of this.game.pIds) final[pid]=0;
       for(const r of this.game.rounds){
