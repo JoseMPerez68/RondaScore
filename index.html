@@ -1758,6 +1758,14 @@ body{
           <button class="btn btn-sm" :class="theme==='light'?'btn-primary':'btn-muted'" @click="setTheme('light')">☀️ Claro</button>
           <button class="btn btn-sm" :class="theme==='dark'?'btn-primary':'btn-muted'" @click="setTheme('dark')">🌙 Oscuro</button>
         </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+          <div>
+            <div style="font-size:14px;font-weight:600">Pantalla siempre encendida</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">Evita que la pantalla se apague durante la partida</div>
+          </div>
+          <button class="combo-toggle" :class="{on:keepScreenOn}" @click="keepScreenOn=!keepScreenOn;savePrefs()"
+            role="switch" :aria-checked="keepScreenOn"></button>
+        </div>
       </div>
       <div class="tabs">
         <div class="tab" :class="{on:stab==='players'}" @click="stab='players'">Jugadores</div>
@@ -1790,6 +1798,11 @@ body{
           <button class="btn btn-primary btn-sm" @click="openAddCombo">+ Agregar</button>
           <button class="link-btn" @click="resetCombos" style="font-size:12px">Restablecer</button>
         </div>
+        <!-- sub-tabs -->
+        <div class="tabs" style="margin-bottom:10px">
+          <div class="tab" :class="{on:comboTab==='fixed'}" @click="comboTab='fixed'">Carioca</div>
+          <div class="tab" :class="{on:comboTab==='libre'}" @click="comboTab='libre'">Carioca Libre</div>
+        </div>
         <p style="font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.5">
           Activa o desactiva combinaciones con el interruptor. Arrastra <strong>⠿</strong> para reordenar.
         </p>
@@ -1799,7 +1812,7 @@ body{
         <div class="card" style="padding:4px 10px">
           <div v-for="(c, i) in allCombos" :key="c.id"
             class="list-item combo-drag-item"
-            :class="{inactive: c.active===false, 'drag-over': dragState.toIdx===i && dragState.fromIdx!==i && dragState.active, 'is-dragging': dragState.fromIdx===i && dragState.active}"
+            :class="{inactive: comboTab==='libre' ? c.activeLibre===false : c.active===false, 'drag-over': dragState.toIdx===i && dragState.fromIdx!==i && dragState.active, 'is-dragging': dragState.fromIdx===i && dragState.active}"
             :data-combo-idx="i"
             @dragover.prevent="dragState.toIdx=i"
             @dragleave.self="dragState.toIdx=null"
@@ -1810,12 +1823,16 @@ body{
               @dragstart="desktopDragStart($event, i)"
               @touchstart.prevent="touchDragStart($event, i)">⠿</div>
             <span style="font-size:11px;font-weight:700;color:var(--muted);width:16px;text-align:center;flex-shrink:0">{{i+1}}</span>
-            <span class="pip" :class="c.active===false?'pip-open':'pip-current'" style="font-size:10px;padding:2px 7px;flex-shrink:0">{{c.short}}</span>
+            <span class="pip" :class="(comboTab==='libre' ? c.activeLibre===false : c.active===false)?'pip-open':'pip-current'" style="font-size:10px;padding:2px 7px;flex-shrink:0">{{c.short}}</span>
             <div class="list-body"><div class="list-title">{{c.name}}</div></div>
             <div class="list-acts">
-              <button class="combo-toggle" :class="{on: c.active!==false}" @click="toggleComboActive(c.id)"
-            role="switch" :aria-checked="c.active!==false" :aria-label="c.name"
-            :title="c.active!==false?'Activa':'Inactiva'"></button>
+              <button class="combo-toggle"
+                :class="{on: comboTab==='libre' ? c.activeLibre!==false : c.active!==false}"
+                @click="toggleComboActive(c.id)"
+                role="switch"
+                :aria-checked="comboTab==='libre' ? c.activeLibre!==false : c.active!==false"
+                :aria-label="c.name"
+                :title="(comboTab==='libre' ? c.activeLibre!==false : c.active!==false)?'Activa':'Inactiva'"></button>
               <button class="icon-btn" @click="openEditCombo(c.id)">✏️</button>
               <button class="icon-btn del" @click="delCombo(c.id)">🗑</button>
             </div>
@@ -1866,7 +1883,7 @@ const DEF_COMBOS = [
   {id:'c7',gtId:'carioca',order:7,name:'Tres escalas',short:'3E'},
   {id:'c8',gtId:'carioca',order:8,name:'Cuatro tríos',short:'4T'},
   {id:'c9',gtId:'carioca',order:9,name:'Escala sucia',short:'SD'},
-  {id:'c10',gtId:'carioca',order:10,name:'Escalera limpia',short:'SL'},
+  {id:'c10',gtId:'carioca',order:10,name:'Escala limpia',short:'SL'},
 ];
 
 const DEF_GTS = [
@@ -1885,6 +1902,7 @@ createApp({
     return {
       view:'home',
       stab:'players',     // settings tab
+      comboTab:'fixed',   // combos sub-tab: 'fixed' | 'libre'
       gtab:'scores',      // game tab
       showMenu:false,
 
@@ -1933,6 +1951,7 @@ createApp({
 
       // Theme
       theme:'auto',
+      keepScreenOn:true,
 
       // Persisted
       players:[],
@@ -2082,14 +2101,15 @@ createApp({
     },
 
     activeCombosCount(){
+      if(this.comboTab==='libre') return this.libreCombos.length;
       return this.activeCombos.length;
     },
 
     // aliases kept for backward compat with game logic
     cariocaCombos(){ return this.allCombos; },
-    libreCombos(){ return this.activeCombos; },
+    libreCombos(){ return this.allCombos.filter(c=>c.activeLibre!==false); },
     activeCariocaCombos(){ return this.activeCombos; },
-    activeLibreCombos(){ return this.activeCombos; },
+    activeLibreCombos(){ return this.libreCombos; },
 
     finishedGames(){
       return [...this.games].filter(g=>g.status==='finished')
@@ -2896,6 +2916,10 @@ createApp({
       }
     },
 
+    savePrefs(){
+      localStorage.setItem('carioca_prefs',JSON.stringify({keepScreenOn:this.keepScreenOn}));
+    },
+
     setTheme(t){
       this.theme=t;
       localStorage.setItem('carioca_theme',t);
@@ -2909,7 +2933,11 @@ createApp({
     toggleComboActive(id){
       const c=this.combos.find(x=>x.id===id);
       if(!c) return;
-      c.active = c.active===false ? true : false;
+      if(this.comboTab==='libre'){
+        c.activeLibre = c.activeLibre===false ? true : false;
+      } else {
+        c.active = c.active===false ? true : false;
+      }
       this.save();
     },
 
@@ -2996,7 +3024,7 @@ createApp({
       this.confirmDlg={
         msg:'¿Restaurar todas las combinaciones a los valores predeterminados? Se perderán las combinaciones personalizadas.',
         ok:()=>{
-          this.combos=[...DEF_COMBOS.map(c=>({...c,active:true}))];
+          this.combos=[...DEF_COMBOS.map(c=>({...c,active:true,activeLibre:c.id==='c10'?false:true}))];
           this.save(); this.confirmDlg=null;
         }
       };
@@ -3174,6 +3202,27 @@ createApp({
     const r=document.documentElement;
     if(savedTheme==='dark') r.setAttribute('data-theme','dark');
     else if(savedTheme==='light') r.setAttribute('data-theme','light');
+
+    // Screen Wake Lock — mantener pantalla encendida durante la partida
+    try{ const p=JSON.parse(localStorage.getItem('carioca_prefs')||'{}'); if(typeof p.keepScreenOn==='boolean') this.keepScreenOn=p.keepScreenOn; }catch(_){}
+    this._wakeLock=null;
+    const acquireWakeLock=async()=>{
+      if(!this.keepScreenOn||!('wakeLock' in navigator)) return;
+      try{
+        if(this._wakeLock) return;
+        this._wakeLock=await navigator.wakeLock.request('screen');
+        this._wakeLock.addEventListener('release',()=>{ this._wakeLock=null; });
+      }catch(_){}
+    };
+    const releaseWakeLock=()=>{
+      if(this._wakeLock){ this._wakeLock.release(); this._wakeLock=null; }
+    };
+    // Re-adquirir cuando la página vuelve al primer plano
+    document.addEventListener('visibilitychange',()=>{
+      if(document.visibilityState==='visible'&&this.hasGame&&this.keepScreenOn) acquireWakeLock();
+    });
+    this.$watch('hasGame', val=>{ val ? acquireWakeLock() : releaseWakeLock(); }, {immediate:true});
+    this.$watch('keepScreenOn', val=>{ val&&this.hasGame ? acquireWakeLock() : releaseWakeLock(); });
 
     // Cancel drag if mouse released outside a drop target
     document.addEventListener('dragend', ()=>{
