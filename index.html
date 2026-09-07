@@ -461,23 +461,31 @@ body{
 .chip-total-badge{margin-left:auto;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text)}
 .chip-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:6px 0 4px}
 .chip-card{
-  position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  display:flex;flex-direction:column;align-items:center;
   background:var(--bg);border:2px solid var(--border);border-radius:10px;
-  padding:9px 4px 7px;cursor:pointer;min-height:54px;
+  overflow:hidden;min-height:54px;
   font-family:var(--ff-ui);transition:border-color .12s,background .12s;
   -webkit-tap-highlight-color:transparent;
 }
-.chip-card:active{opacity:.75}
-.chip-card.chip-on{border-color:var(--gold);background:rgba(201,146,40,.08)}
+.chip-card.chip-on{border-color:var(--gold);background:rgba(201,146,40,.06)}
+.chip-add-zone{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  flex:1;width:100%;padding:9px 4px 7px;
+  border:none;background:transparent;cursor:pointer;
+  font-family:var(--ff-ui);-webkit-tap-highlight-color:transparent;
+}
+.chip-add-zone:active{opacity:.7}
 .chip-card-label{font-size:15px;font-weight:700;color:var(--text);line-height:1}
 .chip-card-pts{font-size:10px;color:var(--muted);margin-top:2px;line-height:1}
-.chip-card-count{
-  position:absolute;top:-7px;right:-7px;
-  background:var(--gold);color:#fff;border-radius:10px;
-  font-size:11px;font-weight:700;padding:1px 5px;line-height:1.5;
-  cursor:pointer;transition:background .12s;
+.chip-card-count-inline{font-size:11px;font-weight:700;color:var(--gold);margin-top:2px;line-height:1}
+.chip-remove-zone{
+  width:100%;text-align:center;padding:5px 0 4px;
+  font-size:12px;font-weight:700;color:var(--red);
+  background:var(--red-lt);
+  border:none;border-top:1px solid var(--border);cursor:pointer;line-height:1;
+  font-family:var(--ff-ui);-webkit-tap-highlight-color:transparent;
 }
-.chip-card-count:hover,.chip-card-count:active{background:var(--red)}
+.chip-remove-zone:active{opacity:.7}
 .chip-steps{display:flex;justify-content:center;gap:6px;margin:10px 0 2px}
 .chip-step-dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:all .2s;flex-shrink:0}
 .chip-step-dot.cs-active{background:var(--gold);width:20px;border-radius:4px}
@@ -1258,21 +1266,24 @@ body{
         <!-- Grid de chips (oculto si es el ganador en modo Carioca) -->
         <template v-if="chipCurrentPid && !(roundWinner===chipCurrentPid && !useFreeScore)">
           <div class="chip-grid">
-            <button v-for="chip in cardChips" :key="chip.key"
-              class="chip-card" :class="{[`chip-on`]: chipCounts[chipCurrentPid]?.[chip.key]>0}"
-              @click="tapChip(chipCurrentPid, chip)"
-              :aria-label="chip.sub||chip.label">
-              <span class="chip-card-label">{{chip.label}}</span>
-              <span class="chip-card-pts">{{chip.pts}} pts</span>
-              <span v-if="chipCounts[chipCurrentPid]?.[chip.key]>0"
-                class="chip-card-count"
-                @click.stop="removeChip(chipCurrentPid, chip)"
-                :aria-label="'Quitar ' + chip.label">
-                ×{{chipCounts[chipCurrentPid][chip.key]}}
-              </span>
-            </button>
+            <div v-for="chip in cardChips" :key="chip.key"
+              class="chip-card" :class="{'chip-on': chipCounts[chipCurrentPid]?.[chip.key]>0}">
+              <button class="chip-add-zone"
+                @click="tapChip(chipCurrentPid, chip)"
+                :aria-label="(chip.sub||chip.label) + ' — sumar ' + chip.pts + ' puntos'">
+                <span class="chip-card-label">{{chip.label}}</span>
+                <span v-if="chipCounts[chipCurrentPid]?.[chip.key]>0" class="chip-card-count-inline">×{{chipCounts[chipCurrentPid][chip.key]}}</span>
+                <span v-else class="chip-card-pts">{{chip.pts}} pts</span>
+              </button>
+              <button v-if="chipCounts[chipCurrentPid]?.[chip.key]>0"
+                class="chip-remove-zone"
+                @click="removeChip(chipCurrentPid, chip)"
+                :aria-label="'Quitar una ' + (chip.sub||chip.label)">
+                − quitar
+              </button>
+            </div>
           </div>
-          <div class="chip-hint">Toca para sumar · Toca ×N para quitar</div>
+          <div class="chip-hint">Toca la carta para sumar · Franja roja para quitar</div>
         </template>
         <div v-else-if="chipCurrentPid && roundWinner===chipCurrentPid && !useFreeScore"
           style="text-align:center;padding:20px 0;font-size:24px">👑<br>
