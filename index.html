@@ -453,6 +453,37 @@ body{
   border-radius:8px;
 }
 
+/* ── CHIP KEYBOARD ── */
+.mode-toggle{display:flex;gap:2px;background:var(--border);border-radius:8px;padding:2px;flex-shrink:0}
+.mode-btn{border:none;background:transparent;padding:4px 11px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;color:var(--muted);font-family:var(--ff-ui);transition:all .15s}
+.mode-btn.on{background:var(--surface);color:var(--text);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.chip-player-hdr{display:flex;align-items:center;gap:10px;padding:6px 0 14px}
+.chip-total-badge{margin-left:auto;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text)}
+.chip-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:6px 0 4px}
+.chip-card{
+  position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:var(--bg);border:2px solid var(--border);border-radius:10px;
+  padding:9px 4px 7px;cursor:pointer;min-height:54px;
+  font-family:var(--ff-ui);transition:border-color .12s,background .12s;
+  -webkit-tap-highlight-color:transparent;
+}
+.chip-card:active{opacity:.75}
+.chip-card.chip-on{border-color:var(--gold);background:rgba(201,146,40,.08)}
+.chip-card-label{font-size:15px;font-weight:700;color:var(--text);line-height:1}
+.chip-card-pts{font-size:10px;color:var(--muted);margin-top:2px;line-height:1}
+.chip-card-count{
+  position:absolute;top:-7px;right:-7px;
+  background:var(--gold);color:#fff;border-radius:10px;
+  font-size:11px;font-weight:700;padding:1px 5px;line-height:1.5;
+  cursor:pointer;transition:background .12s;
+}
+.chip-card-count:hover,.chip-card-count:active{background:var(--red)}
+.chip-steps{display:flex;justify-content:center;gap:6px;margin:10px 0 2px}
+.chip-step-dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:all .2s;flex-shrink:0}
+.chip-step-dot.cs-active{background:var(--gold);width:20px;border-radius:4px}
+.chip-step-dot.cs-done{background:var(--green-acc)}
+.chip-hint{font-size:11px;color:var(--muted);text-align:center;margin:4px 0 2px}
+
 /* ── TABS ── */
 .tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:16px}
 .tab{
@@ -1160,40 +1191,110 @@ body{
   <div class="overlay" v-if="showRound">
     <div class="modal">
       <div class="modal-pull"></div>
-      <h2 class="modal-title">{{roundTitle}}</h2>
-      <p class="modal-hint" v-if="useFreeScore">Ingresa los puntos de cada jugador en esta ronda</p>
-      <p class="modal-hint" v-else>👑 Toca la corona del ganador · ingresa las penalizaciones</p>
-      <div v-for="pid in game.pIds" :key="pid" class="entry-row">
-        <div class="av" :style="{background:pColor(pid)}">{{ini(pName(pid))}}</div>
-        <div class="entry-name">{{pName(pid)}}</div>
-        <!-- Modos Carioca: corona + 0 para el ganador -->
-        <template v-if="!useFreeScore">
-          <button class="crown-btn" :class="{on:roundWinner===pid}" @click="setWinner(pid)"
-            :aria-pressed="roundWinner===pid" :aria-label="'Ganador: ' + pName(pid)">
-            {{roundWinner===pid?'👑':'○'}}
+      <!-- Título + selector de modo -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <h2 class="modal-title" style="margin:0">{{roundTitle}}</h2>
+        <div class="mode-toggle" role="group" aria-label="Modo de entrada">
+          <button class="mode-btn" :class="{on:roundInputMode==='number'}" @click="setRoundInputMode('number')" aria-label="Entrada numérica">123</button>
+          <button class="mode-btn" :class="{on:roundInputMode==='chips'}" @click="setRoundInputMode('chips')" aria-label="Chips de cartas">🃏</button>
+        </div>
+      </div>
+
+      <!-- ── MODO NUMÉRICO (existente) ── -->
+      <template v-if="roundInputMode==='number'">
+        <p class="modal-hint" v-if="useFreeScore">Ingresa los puntos de cada jugador en esta ronda</p>
+        <p class="modal-hint" v-else>👑 Toca la corona del ganador · ingresa las penalizaciones</p>
+        <div v-for="pid in game.pIds" :key="pid" class="entry-row">
+          <div class="av" :style="{background:pColor(pid)}">{{ini(pName(pid))}}</div>
+          <div class="entry-name">{{pName(pid)}}</div>
+          <template v-if="!useFreeScore">
+            <button class="crown-btn" :class="{on:roundWinner===pid}" @click="setWinner(pid)"
+              :aria-pressed="roundWinner===pid" :aria-label="'Ganador: ' + pName(pid)">
+              {{roundWinner===pid?'👑':'○'}}
+            </button>
+            <div v-if="roundWinner===pid" class="score-zero">0</div>
+            <input v-else type="number" inputmode="numeric" pattern="[0-9]*"
+              class="score-inp" :value="roundScores[pid]||0"
+              @focus="$event.target.select()"
+              @input="roundScores[pid]=parseInt($event.target.value)||0"
+              min="0" placeholder="0">
+          </template>
+          <template v-else>
+            <input type="number" inputmode="numeric" pattern="[0-9]*"
+              class="score-inp" :value="roundScores[pid]||0"
+              @focus="$event.target.select()"
+              @input="roundScores[pid]=parseInt($event.target.value)||0"
+              min="0" placeholder="0">
+          </template>
+          <div v-if="game.rounds.length>0" style="font-size:11px;color:var(--muted);min-width:38px;text-align:right;white-space:nowrap">→ {{roundProjectedTotals[pid]}}</div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-muted" @click="showRound=false">Cancelar</button>
+          <button class="btn btn-primary" @click="saveRound">Guardar ronda</button>
+        </div>
+      </template>
+
+      <!-- ── MODO CHIPS (stepper por jugador) ── -->
+      <template v-else>
+        <!-- Cabecera del jugador actual -->
+        <div class="chip-player-hdr" v-if="chipCurrentPid">
+          <div class="av" :style="{background:pColor(chipCurrentPid)}">{{ini(pName(chipCurrentPid))}}</div>
+          <div>
+            <div style="font-weight:600;font-size:15px">{{pName(chipCurrentPid)}}</div>
+            <div style="font-size:12px;color:var(--muted)">{{chipPlayerIdx+1}} de {{game.pIds.length}}</div>
+          </div>
+          <button v-if="!useFreeScore" class="crown-btn" :class="{on:roundWinner===chipCurrentPid}"
+            @click="setWinner(chipCurrentPid)"
+            :aria-pressed="roundWinner===chipCurrentPid"
+            :aria-label="'Ganador: ' + pName(chipCurrentPid)">
+            {{roundWinner===chipCurrentPid?'👑':'○'}}
           </button>
-          <div v-if="roundWinner===pid" class="score-zero">0</div>
-          <input v-else type="number" inputmode="numeric" pattern="[0-9]*"
-            class="score-inp" :value="roundScores[pid]||0"
-            @focus="$event.target.select()"
-            @input="roundScores[pid]=parseInt($event.target.value)||0"
-            min="0" placeholder="0">
+          <div class="chip-total-badge">
+            <span v-if="roundWinner===chipCurrentPid && !useFreeScore" style="color:var(--green-acc)">0 pts</span>
+            <span v-else>{{roundScores[chipCurrentPid]||0}} pts</span>
+          </div>
+        </div>
+
+        <!-- Grid de chips (oculto si es el ganador en modo Carioca) -->
+        <template v-if="chipCurrentPid && !(roundWinner===chipCurrentPid && !useFreeScore)">
+          <div class="chip-grid">
+            <button v-for="chip in cardChips" :key="chip.key"
+              class="chip-card" :class="{[`chip-on`]: chipCounts[chipCurrentPid]?.[chip.key]>0}"
+              @click="tapChip(chipCurrentPid, chip)"
+              :aria-label="chip.sub||chip.label">
+              <span class="chip-card-label">{{chip.label}}</span>
+              <span class="chip-card-pts">{{chip.pts}} pts</span>
+              <span v-if="chipCounts[chipCurrentPid]?.[chip.key]>0"
+                class="chip-card-count"
+                @click.stop="removeChip(chipCurrentPid, chip)"
+                :aria-label="'Quitar ' + chip.label">
+                ×{{chipCounts[chipCurrentPid][chip.key]}}
+              </span>
+            </button>
+          </div>
+          <div class="chip-hint">Toca para sumar · Toca ×N para quitar</div>
         </template>
-        <!-- Modos puntuación / rondas: entrada libre de puntos -->
-        <template v-else>
-          <input type="number" inputmode="numeric" pattern="[0-9]*"
-            class="score-inp" :value="roundScores[pid]||0"
-            @focus="$event.target.select()"
-            @input="roundScores[pid]=parseInt($event.target.value)||0"
-            min="0" placeholder="0">
-        </template>
-        <!-- Total proyectado -->
-        <div v-if="game.rounds.length>0" style="font-size:11px;color:var(--muted);min-width:38px;text-align:right;white-space:nowrap">→ {{roundProjectedTotals[pid]}}</div>
-      </div>
-      <div class="modal-actions">
-        <button class="btn btn-muted" @click="showRound=false">Cancelar</button>
-        <button class="btn btn-primary" @click="saveRound">Guardar ronda</button>
-      </div>
+        <div v-else-if="chipCurrentPid && roundWinner===chipCurrentPid && !useFreeScore"
+          style="text-align:center;padding:20px 0;font-size:24px">👑<br>
+          <span style="font-size:14px;color:var(--muted)">Ganador de la ronda — 0 puntos</span>
+        </div>
+
+        <!-- Indicador de pasos -->
+        <div v-if="game.pIds.length>1" class="chip-steps" aria-hidden="true">
+          <div v-for="(pid,i) in game.pIds" :key="pid" class="chip-step-dot"
+            :class="{'cs-active':i===chipPlayerIdx,'cs-done':i<chipPlayerIdx}"></div>
+        </div>
+
+        <!-- Proyectado al lado del nombre (mini resumen de otros jugadores) -->
+        <div v-if="game.rounds.length>0 && chipCurrentPid" style="font-size:11px;color:var(--muted);text-align:right;margin-bottom:4px">
+          Total acumulado si guardar: → {{roundProjectedTotals[chipCurrentPid]}}
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-muted" @click="chipPrev">{{chipPlayerIdx>0?'← Atrás':'Cancelar'}}</button>
+          <button class="btn btn-primary" @click="chipNext">{{chipIsLast?'Guardar ronda':'Siguiente →'}}</button>
+        </div>
+      </template>
     </div>
   </div>
 
@@ -2056,6 +2157,9 @@ createApp({
       showRound:false,
       roundWinner:'',
       roundScores:{},
+      roundInputMode:'number',  // 'number' | 'chips'
+      chipCounts:{},            // { [pid]: { joker:0, ace:0, face:0, '10':0, ... } }
+      chipPlayerIdx:0,          // jugador activo en el stepper de chips
 
       // Player modal
       pModal:{open:false,id:null,name:'',color:COLORS[0]},
@@ -2122,6 +2226,29 @@ createApp({
     isRoundsMode(){ return this.gameMode==='rounds'; },
     isLivesMode(){ return this.gameMode==='lives'; },
     useFreeScore(){ return this.isScoreMode||this.isRoundsMode||this.isLivesMode; },
+
+    cardChips(){
+      return [
+        {key:'joker',label:'🃏',pts:30,sub:'Comodín'},
+        {key:'ace',  label:'A', pts:15,sub:'As'},
+        {key:'face', label:'K·Q·J',pts:10,sub:'Figura'},
+        {key:'10',   label:'10',pts:10,sub:''},
+        {key:'9',    label:'9', pts:9, sub:''},
+        {key:'8',    label:'8', pts:8, sub:''},
+        {key:'7',    label:'7', pts:7, sub:''},
+        {key:'6',    label:'6', pts:6, sub:''},
+        {key:'5',    label:'5', pts:5, sub:''},
+        {key:'4',    label:'4', pts:4, sub:''},
+        {key:'3',    label:'3', pts:3, sub:''},
+        {key:'2',    label:'2', pts:2, sub:''},
+      ];
+    },
+    chipCurrentPid(){
+      return this.game?.pIds?.[this.chipPlayerIdx]??null;
+    },
+    chipIsLast(){
+      return !this.game||this.chipPlayerIdx>=this.game.pIds.length-1;
+    },
 
     setupIsScoreMode(){
       const gt=this.gameTypes.find(g=>g.id===this.setup.gameTypeId);
@@ -2607,9 +2734,59 @@ createApp({
     openRound(){
       this.roundWinner='';
       this.roundScores={};
+      this.chipPlayerIdx=0;
       for(const pid of this.game.pIds) this.roundScores[pid]=0;
+      this.initChipCounts();
       this.showRound=true;
-      this.$nextTick(()=>{ const el=document.querySelector('.score-inp'); if(el) el.focus(); });
+      if(this.roundInputMode==='number'){
+        this.$nextTick(()=>{ const el=document.querySelector('.score-inp'); if(el) el.focus(); });
+      }
+    },
+
+    // ── CHIP KEYBOARD ──
+    initChipCounts(){
+      const keys=['joker','ace','face','10','9','8','7','6','5','4','3','2'];
+      const cc={};
+      if(!this.game) return;
+      for(const pid of this.game.pIds){
+        cc[pid]={};
+        for(const k of keys) cc[pid][k]=0;
+      }
+      this.chipCounts=cc;
+    },
+    tapChip(pid,chip){
+      if(!this.chipCounts[pid]) return;
+      this.chipCounts[pid][chip.key]=(this.chipCounts[pid][chip.key]||0)+1;
+      this.syncChipScore(pid);
+      if(navigator.vibrate) navigator.vibrate(8);
+    },
+    removeChip(pid,chip){
+      if(!this.chipCounts[pid]) return;
+      const n=this.chipCounts[pid][chip.key]||0;
+      if(n>0){ this.chipCounts[pid][chip.key]=n-1; this.syncChipScore(pid); }
+    },
+    syncChipScore(pid){
+      const total=this.cardChips.reduce((s,c)=>s+(this.chipCounts[pid]?.[c.key]||0)*c.pts,0);
+      this.roundScores[pid]=total;
+    },
+    setRoundInputMode(mode){
+      if(this.roundInputMode===mode) return;
+      this.roundInputMode=mode;
+      if(mode==='chips'){
+        // Reiniciar chips y scores al cambiar a modo chips
+        for(const pid of (this.game?.pIds||[])) this.roundScores[pid]=0;
+        this.initChipCounts();
+        this.chipPlayerIdx=0;
+      }
+      this.savePrefs();
+    },
+    chipNext(){
+      if(!this.chipIsLast) this.chipPlayerIdx++;
+      else this.saveRound();
+    },
+    chipPrev(){
+      if(this.chipPlayerIdx>0) this.chipPlayerIdx--;
+      else this.showRound=false;
     },
     setWinner(pid){
       this.roundWinner=pid;
@@ -3111,7 +3288,7 @@ createApp({
     },
 
     savePrefs(){
-      localStorage.setItem('carioca_prefs',JSON.stringify({keepScreenOn:this.keepScreenOn,cookieConsent:this.cookieConsent}));
+      localStorage.setItem('carioca_prefs',JSON.stringify({keepScreenOn:this.keepScreenOn,cookieConsent:this.cookieConsent,roundInputMode:this.roundInputMode}));
     },
 
     acceptCookies(){
@@ -3453,7 +3630,7 @@ createApp({
       if (this.privacyModal)    { this.privacyModal = false; return; }
       if (this.rulesModal)      { this.rulesModal = null; return; }
       if (this.winnerModal)     { /* no cerrar: resultado de partida */ return; }
-      if (this.showRound)       { this.showRound = false; return; }
+      if (this.showRound)       { if(this.roundInputMode==='chips'&&this.chipPlayerIdx>0) this.chipPlayerIdx--; else this.showRound=false; return; }
       if (this.pModal?.open)    { this.pModal.open = false; return; }
       if (this.cModal?.open)    { this.cModal.open = false; return; }
       if (this.editScoreDlg)    { this.editScoreDlg = null; return; }
@@ -3485,6 +3662,7 @@ createApp({
       if(typeof p.keepScreenOn==='boolean') this.keepScreenOn=p.keepScreenOn;
       if(p.cookieConsent==='accepted'||p.cookieConsent==='rejected') this.cookieConsent=p.cookieConsent;
       if(p.cookieConsent==='accepted') window._loadGA4&&window._loadGA4();
+      if(p.roundInputMode==='chips'||p.roundInputMode==='number') this.roundInputMode=p.roundInputMode;
     }catch(_){}
 
     // Screen Wake Lock — mantener pantalla encendida durante la partida
