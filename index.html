@@ -1917,7 +1917,7 @@ body{
                 placeholder="…"
                 @focus="chipValues.aceCustom=true"
                 @input="setCustomChip('ace',$event)"
-                @blur="if(!chipValues.aceCustom||!chipValues.ace){chipValues.aceCustom=false}"
+                @blur="chipValues.aceCustom = chipValues.aceCustom && chipValues.ace > 0"
                 class="score-inp" style="width:52px;font-size:15px;padding:6px 4px"
                 aria-label="Valor personalizado para el As">
             </div>
@@ -1939,7 +1939,7 @@ body{
                 placeholder="…"
                 @focus="chipValues.jokerCustom=true"
                 @input="setCustomChip('joker',$event)"
-                @blur="if(!chipValues.jokerCustom||!chipValues.joker){chipValues.jokerCustom=false}"
+                @blur="chipValues.jokerCustom = chipValues.jokerCustom && chipValues.joker > 0"
                 class="score-inp" style="width:52px;font-size:15px;padding:6px 4px"
                 aria-label="Valor personalizado para el Comodín">
             </div>
