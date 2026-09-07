@@ -908,7 +908,7 @@ body{
         <p class="modal-hint">¿Qué modalidad van a jugar?</p>
         <div v-for="gt in gameTypes" :key="gt.id"
           class="gt-card" :class="{sel:setup.gameTypeId===gt.id}"
-          @click="setup.gameTypeId=gt.id;onSetupGameTypeChange()">
+          @click="setup.gameTypeId=gt.id;onSetupGameTypeChange();setupNext()">
           <span class="gt-icon">{{gt.icon}}</span>
           <div style="flex:1;min-width:0">
             <div class="gt-name">{{gt.name}}</div>
@@ -921,9 +921,6 @@ body{
             <span v-if="setup.gameTypeId===gt.id" class="gt-check">✓</span>
           </div>
         </div>
-        <button class="btn btn-primary btn-block"
-          :disabled="!setup.gameTypeId"
-          @click="setupNext" style="margin-top:8px">Siguiente →</button>
       </div>
 
       <!-- Step 2: players -->
