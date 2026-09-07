@@ -2745,7 +2745,7 @@ createApp({
       if(!d) return;
       const g=this.games.find(x=>x.id===d.gameId);
       if(!g||!g.rounds[d.ri]) return;
-      const newVal=parseInt(d.value)||0;
+      const newVal=Math.max(0,Math.min(9999,parseInt(d.value)||0));
       g.rounds[d.ri].scores[d.pid]=newVal;
       // Recalculate final totals
       const final={};
@@ -3165,6 +3165,7 @@ createApp({
             short:String(c.short||'').slice(0,8),
             pips:Math.max(0,Math.min(99,parseInt(c.pips)||0)),
             ...typeof c.active==='boolean'?{active:c.active}:{},
+            ...typeof c.activeLibre==='boolean'?{activeLibre:c.activeLibre}:{},
             ...typeof c.order==='number'?{order:c.order}:{},
           }));
           const sorted=[...loaded].sort((a,b)=>a.order-b.order);
