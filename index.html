@@ -3065,7 +3065,7 @@ createApp({
     confirmRetirePlayer(pid){
       // Si el jugador fue añadido a mitad y aún no ha jugado ninguna ronda, ofrecer eliminación completa
       const joined=(this.game.joinedPIds||[]).find(j=>j.pid===pid);
-      const notPlayedYet=joined&&joined.fromRound>this.game.round+1;
+      const notPlayedYet=joined&&joined.fromRound>this.game.round;
       this.retirePlayerDlg={pid, remove:!!notPlayedYet};
     },
     doRetirePlayer(){
