@@ -513,6 +513,12 @@ body{
 .truco-winner-card{background:var(--gold);border-radius:14px;padding:28px 16px 20px;text-align:center;margin:8px 0 12px;color:#fff}
 .truco-winner-name{font-size:30px;font-weight:700;font-family:var(--ff-display)}
 .truco-winner-sub{font-size:14px;opacity:.85;margin-top:4px}
+.truco-dealer-bar{display:flex;align-items:center;justify-content:center;gap:10px;padding:6px 0 2px}
+.truco-dealer-label{font-size:12px;color:var(--muted)}
+.truco-dealer-name{font-size:13px;font-weight:700;color:var(--text)}
+.truco-dealer-btn{border:1.5px solid var(--border);background:var(--bg);border-radius:8px;padding:5px 14px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;font-family:var(--ff-ui);-webkit-tap-highlight-color:transparent;transition:background .1s,color .1s}
+.truco-dealer-btn:active{background:var(--border);color:var(--text)}
+.truco-team-panel.truco-dealing{border-style:dashed}
 
 /* ── TABS ── */
 .tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:16px}
@@ -1554,8 +1560,8 @@ body{
         <!-- ══════════ TRUCO BOARD ══════════ -->
         <template v-if="isTruco">
           <div class="truco-board">
-            <div class="truco-team-panel" :class="{'truco-leading':trucoLeader==='A'}">
-              <div class="truco-team-name">{{game.teamA}}</div>
+            <div class="truco-team-panel" :class="{'truco-leading':trucoLeader==='A','truco-dealing':game.dealer==='A'}">
+              <div class="truco-team-name">{{game.teamA}}<template v-if="game.dealer==='A'"> 🃏</template></div>
               <div class="truco-score-big">{{game.scoreA}}</div>
               <div class="truco-of-target">de {{game.target}}</div>
               <div class="truco-prog"><div class="truco-prog-fill" :style="{width:Math.min(100,Math.round(game.scoreA/game.target*100))+'%'}"></div></div>
@@ -1564,8 +1570,8 @@ body{
                   @click="trucoAdd('A',pts)" :aria-label="game.teamA + ' +' + pts">+{{pts}}</button>
               </div>
             </div>
-            <div class="truco-team-panel" :class="{'truco-leading':trucoLeader==='B'}">
-              <div class="truco-team-name">{{game.teamB}}</div>
+            <div class="truco-team-panel" :class="{'truco-leading':trucoLeader==='B','truco-dealing':game.dealer==='B'}">
+              <div class="truco-team-name">{{game.teamB}}<template v-if="game.dealer==='B'"> 🃏</template></div>
               <div class="truco-score-big">{{game.scoreB}}</div>
               <div class="truco-of-target">de {{game.target}}</div>
               <div class="truco-prog"><div class="truco-prog-fill" :style="{width:Math.min(100,Math.round(game.scoreB/game.target*100))+'%'}"></div></div>
@@ -1574,6 +1580,11 @@ body{
                   @click="trucoAdd('B',pts)" :aria-label="game.teamB + ' +' + pts">+{{pts}}</button>
               </div>
             </div>
+          </div>
+          <div class="truco-dealer-bar">
+            <span class="truco-dealer-label">Reparte:</span>
+            <span class="truco-dealer-name">{{trucoDealerName}}</span>
+            <button class="truco-dealer-btn" @click="trucoPasarReparto" aria-label="Pasar turno de reparto">Pasar →</button>
           </div>
           <div class="truco-undo-row">
             <button class="truco-undo-btn" @click="trucoUndo" :disabled="!game.history.length"
@@ -2148,6 +2159,25 @@ body{
         </div>
       </div>
 
+      <!-- Sugerencias -->
+      <div class="card" style="margin-top:16px">
+        <div class="card-label">Sugerencias y contacto</div>
+        <p style="font-size:13px;color:var(--muted);margin:0 0 10px;line-height:1.5">
+          ¿Tienes una idea para mejorar RondaScore? Cuéntanos y la tenemos en cuenta.
+        </p>
+        <textarea v-model="feedbackText" rows="3"
+          placeholder="Escribe tu sugerencia aquí…"
+          style="width:100%;box-sizing:border-box;resize:vertical;border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;font-size:14px;font-family:var(--ff-ui);color:var(--text);background:var(--bg);outline:none;line-height:1.5"
+          maxlength="1000" aria-label="Sugerencia de mejora"></textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+          <span style="font-size:11px;color:var(--muted)">{{feedbackText.length}}/1000</span>
+          <button class="btn btn-primary btn-sm" :disabled="!feedbackText.trim()" @click="sendFeedback"
+            style="font-size:13px;padding:8px 18px">
+            ✉️ Enviar sugerencia
+          </button>
+        </div>
+      </div>
+
       <!-- Legal y Privacidad -->
       <div class="card" style="margin-top:16px">
         <div class="card-label">Privacidad y legal</div>
@@ -2334,6 +2364,7 @@ createApp({
 
       // Confirm
       confirmDlg:null,
+      feedbackText:'',
 
       // Toast
       toast:null,
@@ -2405,6 +2436,10 @@ createApp({
       if(this.game.scoreA>this.game.scoreB) return 'A';
       if(this.game.scoreB>this.game.scoreA) return 'B';
       return null;
+    },
+    trucoDealerName(){
+      if(!this.isTruco||!this.game) return '';
+      return this.game.dealer==='A'?this.game.teamA:this.game.teamB;
     },
 
     cardChips(){
@@ -2789,6 +2824,19 @@ createApp({
       else this.game.scoreB=Math.max(0,this.game.scoreB-last.pts);
       this.save();
     },
+    trucoPasarReparto(){
+      if(!this.isTruco) return;
+      this.game.dealer=this.game.dealer==='A'?'B':'A';
+      if(navigator.vibrate) navigator.vibrate(8);
+      this.save();
+    },
+    sendFeedback(){
+      const body=this.feedbackText.trim();
+      if(!body) return;
+      const link=`mailto:jperezg@duoc.cl?subject=${encodeURIComponent('Sugerencia RondaScore')}&body=${encodeURIComponent(body)}`;
+      window.open(link,'_blank');
+      this.feedbackText='';
+    },
     trucoFinish(){
       if(!this.isTruco) return;
       const team=this.game.scoreA>=this.game.target?'A':'B';
@@ -2897,6 +2945,7 @@ createApp({
           scoreA:0, scoreB:0,
           target:s.trucoTarget||30,
           history:[],
+          dealer:Math.random()<0.5?'A':'B',
           // compat fields so generic code doesn't crash
           pIds:[], rounds:[], round:0, cIds:[], doneMap:{},
           status:'active', winner:null, final:null,
