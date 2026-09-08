@@ -519,6 +519,12 @@ body{
 .truco-dealer-btn{border:1.5px solid var(--border);background:var(--bg);border-radius:8px;padding:5px 14px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;font-family:var(--ff-ui);-webkit-tap-highlight-color:transparent;transition:background .1s,color .1s}
 .truco-dealer-btn:active{background:var(--border);color:var(--text)}
 .truco-team-panel.truco-dealing{border-style:dashed}
+.dealer-order-list{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.dealer-order-item{display:flex;align-items:center;gap:10px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:9px 10px;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;transition:opacity .15s,box-shadow .15s}
+.dealer-order-item.dnd-src{opacity:.35}
+.dealer-order-item.dnd-over{box-shadow:0 0 0 2px var(--gold);border-color:var(--gold)}
+.drag-handle{font-size:18px;color:var(--muted);line-height:1;flex-shrink:0;letter-spacing:-2px}
+.dealer-order-num{font-size:11px;font-weight:700;color:var(--muted);min-width:18px;text-align:center;flex-shrink:0}
 
 /* ── TABS ── */
 .tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:16px}
@@ -1058,6 +1064,31 @@ body{
               {{p.name}}
             </div>
           </div>
+          <!-- Orden de reparto -->
+          <div v-if="setup.pIds.length>=2" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+            <div class="card-label" style="margin-bottom:4px">Orden de reparto</div>
+            <p class="modal-hint" style="margin:0 0 8px">El 1° reparte en la primera mano · arrastrá para reordenar</p>
+            <div class="dealer-order-list">
+              <div v-for="(pid,i) in setup.pIds" :key="pid"
+                class="dealer-order-item"
+                :class="{'dnd-src':dragFrom===i,'dnd-over':dragTo===i&&dragFrom!==i}"
+                :data-drag-i="i"
+                draggable="true"
+                @dragstart="setupDragStart($event,i)"
+                @dragover.prevent="setupDragOver($event,i)"
+                @drop="setupDrop(i)"
+                @dragend="setupDragEnd"
+                @touchstart.passive="setupTouchStart($event,i)"
+                @touchmove.prevent="setupTouchMove($event)"
+                @touchend="setupTouchEnd">
+                <span class="drag-handle">⠿</span>
+                <span class="dealer-order-num">{{i+1}}°</span>
+                <div class="av av-sm" :style="{background:pColor(pid)}">{{ini(pName(pid))}}</div>
+                <span style="font-size:14px;font-weight:600;color:var(--text);flex:1">{{pName(pid)}}</span>
+                <span v-if="i===0" style="font-size:11px;font-weight:700;color:var(--gold)">Primera mano</span>
+              </div>
+            </div>
+          </div>
           <div class="modal-actions">
             <button class="btn btn-muted" @click="setup.step--">← Atrás</button>
             <button class="btn btn-primary" :disabled="setup.pIds.length<2" @click="setupNext">Siguiente →</button>
@@ -1556,6 +1587,13 @@ body{
       </div>
 
       <div v-else>
+
+        <!-- Indicador de reparto (modos no-Truco) -->
+        <div v-if="!isTruco && currentDealerName" class="truco-dealer-bar" style="margin-bottom:4px">
+          <span class="truco-dealer-label">Reparte:</span>
+          <span class="truco-dealer-name">{{currentDealerName}}</span>
+          <button class="truco-dealer-btn" @click="pasarReparto" aria-label="Pasar turno de reparto">Pasar →</button>
+        </div>
 
         <!-- ══════════ TRUCO BOARD ══════════ -->
         <template v-if="isTruco">
@@ -2327,7 +2365,7 @@ const DEF_GTS = [
   {id:'llega_pierde',name:'Llega a X — pierde',mode:'score_low',icon:'🎯',desc:'Gana quien tenga menos puntos cuando alguien alcanza el límite',defaultTarget:100},
   {id:'llega_gana',name:'Llega a X — gana',mode:'score_high',icon:'🏆',desc:'Gana el primero en llegar al puntaje objetivo',defaultTarget:100},
   {id:'vidas',name:'Vidas',mode:'lives',icon:'❤️',desc:'Cada jugador tiene N vidas; pierde una al superar el límite de puntos',defaultLives:3,defaultTarget:100},
-  {id:'truco',name:'Truco',mode:'truco',icon:'♠️',desc:'Dos equipos — Nosotros vs Ellos — hasta el puntaje objetivo'},
+  // {id:'truco',name:'Truco',mode:'truco',icon:'♠️',desc:'Dos equipos — Nosotros vs Ellos — hasta el puntaje objetivo'}, // deshabilitado temporalmente
 ];
 
 const COLORS = ['#e74c3c','#3498db','#e67e22','#9b59b6','#27ae60','#0891b2','#d35400','#c0392b'];
@@ -2365,6 +2403,8 @@ createApp({
       // Confirm
       confirmDlg:null,
       feedbackText:'',
+      dragFrom:null,
+      dragTo:null,
 
       // Toast
       toast:null,
@@ -2440,6 +2480,14 @@ createApp({
     trucoDealerName(){
       if(!this.isTruco||!this.game) return '';
       return this.game.dealer==='A'?this.game.teamA:this.game.teamB;
+    },
+    currentDealerPid(){
+      if(!this.game||this.isTruco||!this.game.pIds.length) return null;
+      const idx=(this.game.dealerIdx??0)%this.game.pIds.length;
+      return this.game.pIds[idx];
+    },
+    currentDealerName(){
+      return this.currentDealerPid?this.pName(this.currentDealerPid):'';
     },
 
     cardChips(){
@@ -2830,6 +2878,45 @@ createApp({
       if(navigator.vibrate) navigator.vibrate(8);
       this.save();
     },
+    pasarReparto(){
+      if(!this.game||!this.game.pIds.length) return;
+      this.game.dealerIdx=((this.game.dealerIdx??0)+1)%this.game.pIds.length;
+      if(navigator.vibrate) navigator.vibrate(8);
+      this.save();
+    },
+    // ── Drag & drop reordenar jugadores en setup ──
+    reorderSetupPlayers(toIdx){
+      if(this.dragFrom===null||this.dragFrom===toIdx) return;
+      const arr=[...this.setup.pIds];
+      const [item]=arr.splice(this.dragFrom,1);
+      arr.splice(toIdx,0,item);
+      this.setup.pIds=arr;
+      this.dragFrom=toIdx;
+    },
+    setupDragStart(e,i){ this.dragFrom=i; this.dragTo=i; },
+    setupDragOver(e,i){
+      if(this.dragFrom===null) return;
+      this.dragTo=i;
+      this.reorderSetupPlayers(i);
+    },
+    setupDrop(i){ this.dragFrom=null; this.dragTo=null; },
+    setupDragEnd(){ this.dragFrom=null; this.dragTo=null; },
+    setupTouchStart(e,i){
+      this.dragFrom=i; this.dragTo=i;
+    },
+    setupTouchMove(e){
+      if(this.dragFrom===null) return;
+      const touch=e.touches[0];
+      const el=document.elementFromPoint(touch.clientX,touch.clientY);
+      if(!el) return;
+      const item=el.closest('[data-drag-i]');
+      if(!item) return;
+      const to=parseInt(item.dataset.dragI);
+      if(!isNaN(to)&&to!==this.dragFrom){
+        this.reorderSetupPlayers(to);
+      }
+    },
+    setupTouchEnd(){ this.dragFrom=null; this.dragTo=null; },
     sendFeedback(){
       const body=this.feedbackText.trim();
       if(!body) return;
@@ -2977,6 +3064,7 @@ createApp({
         status:'active',
         winner:null,
         final:null,
+        dealerIdx:0,
         targetScore:(mode==='score_low'||mode==='score_high'||mode==='lives')?(s.targetScore||100):null,
         totalRounds:mode==='rounds'?(s.totalRounds||10):null,
         roundsWinner:mode==='rounds'?(s.roundsWinner||'low'):null,
@@ -3154,6 +3242,7 @@ createApp({
       }
 
       this.game.round++;
+      if(this.game.pIds.length) this.game.dealerIdx=((this.game.dealerIdx??0)+1)%this.game.pIds.length;
 
       // Condición de fin para modos de puntuación
       if(isScoreM){
