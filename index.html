@@ -3836,7 +3836,8 @@ createApp({
     saveEditedStartScore(){
       const d=this.editStartScoreDlg;
       if(!d) return;
-      const g=this.games.find(x=>x.id===d.gameId);
+      // La partida activa está en this.game; las pausadas/finalizadas en this.games
+      const g=(this.game&&this.game.id===d.gameId) ? this.game : this.games.find(x=>x.id===d.gameId);
       if(!g) return;
       const j=(g.joinedPIds||[]).find(x=>x.pid===d.pid);
       if(!j) return;
@@ -3853,7 +3854,7 @@ createApp({
     saveEditedScore(){
       const d=this.editScoreDlg;
       if(!d) return;
-      const g=this.games.find(x=>x.id===d.gameId);
+      const g=(this.game&&this.game.id===d.gameId) ? this.game : this.games.find(x=>x.id===d.gameId);
       if(!g||!g.rounds[d.ri]) return;
       const newVal=Math.max(0,Math.min(9999,parseInt(d.value)||0));
       g.rounds[d.ri].scores[d.pid]=newVal;
