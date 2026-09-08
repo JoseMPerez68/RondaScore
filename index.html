@@ -1099,6 +1099,27 @@ body{
     </div>
   </div>
 
+  <!-- ===== EDIT START SCORE DIALOG ===== -->
+  <div class="overlay" v-if="editStartScoreDlg" @click.self="editStartScoreDlg=null">
+    <div class="modal" style="border-radius:22px;margin:auto">
+      <div class="modal-pull"></div>
+      <h2 class="modal-title">Corregir puntaje de incorporación</h2>
+      <p class="modal-hint">{{pName(editStartScoreDlg.pid)}} · puntaje inicial</p>
+      <div class="field">
+        <label class="field-label">Puntaje</label>
+        <input class="inp" type="number" inputmode="numeric" min="0"
+          v-model.number="editStartScoreDlg.value"
+          @keyup.enter="saveEditedStartScore"
+          style="font-size:24px;text-align:center;padding:14px"
+          ref="editStartScoreInp">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-muted" @click="editStartScoreDlg=null">Cancelar</button>
+        <button class="btn btn-primary" @click="saveEditedStartScore">Guardar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== EDIT SCORE DIALOG ===== -->
   <div class="overlay" v-if="editScoreDlg" @click.self="editScoreDlg=null">
     <div class="modal" style="border-radius:22px;margin:auto">
@@ -1956,7 +1977,9 @@ body{
                   <!-- Fila de incorporación: aparece justo antes de la primera ronda del nuevo jugador -->
                   <tr v-if="(game.joinedPIds||[]).some(j=>j.fromRound===i+1)" class="join-row">
                     <td class="lft">↓ incorpora</td>
-                    <td v-for="pid in game.pIds" :key="pid">
+                    <td v-for="pid in game.pIds" :key="pid"
+                      :class="{'editable-cell':(game.joinedPIds||[]).some(j=>j.pid===pid&&j.fromRound===i+1)}"
+                      @click="(game.joinedPIds||[]).some(j=>j.pid===pid&&j.fromRound===i+1)&&openEditStartScore(pid)">
                       <template v-if="(game.joinedPIds||[]).find(j=>j.pid===pid&&j.fromRound===i+1)">
                         <span style="font-weight:700;color:var(--gold)">{{(game.joinedPIds||[]).find(j=>j.pid===pid&&j.fromRound===i+1).startScore}}</span>
                       </template>
@@ -2593,7 +2616,8 @@ createApp({
 
       // History detail
       detailGame:null,
-      editScoreDlg:null, // {gameId, ri, pid, value}
+      editScoreDlg:null,      // {gameId, ri, pid, value}
+      editStartScoreDlg:null, // {gameId, pid, value}
 
       // Rules modal
       rulesModal:null, // gtId ('carioca' | 'libre') when open
@@ -3803,6 +3827,25 @@ createApp({
       };
     },
 
+    openEditStartScore(pid){
+      const j=(this.game.joinedPIds||[]).find(x=>x.pid===pid);
+      if(!j) return;
+      this.editStartScoreDlg={gameId:this.game.id, pid, value:j.startScore||0};
+      this.$nextTick(()=>{ const el=this.$refs.editStartScoreInp; if(el){ el.focus(); el.select(); } });
+    },
+    saveEditedStartScore(){
+      const d=this.editStartScoreDlg;
+      if(!d) return;
+      const g=this.games.find(x=>x.id===d.gameId);
+      if(!g) return;
+      const j=(g.joinedPIds||[]).find(x=>x.pid===d.pid);
+      if(!j) return;
+      j.startScore=Math.max(0,d.value||0);
+      this.editStartScoreDlg=null;
+      this.save();
+      this.showToast('Puntaje de incorporación corregido ✓');
+    },
+
     openEditScore(g, ri, pid){
       this.editScoreDlg={gameId:g.id, ri, pid, value:g.rounds[ri].scores[pid]||0};
       this.$nextTick(()=>{ const el=this.$refs.editScoreInp; if(el){ el.focus(); el.select(); } });
@@ -4408,6 +4451,7 @@ createApp({
       if (this.showRound)       { if(this.roundInputMode==='chips'&&this.chipPlayerIdx>0) this.chipPlayerIdx--; else this.showRound=false; return; }
       if (this.pModal?.open)    { this.pModal.open = false; return; }
       if (this.cModal?.open)    { this.cModal.open = false; return; }
+      if (this.editStartScoreDlg){ this.editStartScoreDlg = null; return; }
       if (this.editScoreDlg)    { this.editScoreDlg = null; return; }
       if (this.confirmDlg)      { this.confirmDlg = null; return; }
       if (this.showMenu)        { this.showMenu = false; return; }
