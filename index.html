@@ -574,6 +574,9 @@ body{
 .round-tbl td.editable-cell::after{content:'';position:absolute;inset:0;border-radius:4px;transition:background .1s}
 .round-tbl td.editable-cell:active::after{background:rgba(0,0,0,.06)}
 .round-tbl tr.tot-row td{font-weight:700;border-top:2px solid var(--border);background:var(--bg)}
+.round-tbl tr.join-row td{background:color-mix(in srgb,var(--gold) 7%,var(--surface));border-top:1px dashed color-mix(in srgb,var(--gold) 40%,transparent);border-bottom:none;padding:4px 6px;font-size:10px;color:var(--muted)}
+.round-tbl tr.join-row td.lft{font-weight:700;color:var(--gold);letter-spacing:.02em}
+.round-tbl td.pre-join{color:var(--muted);opacity:.4}
 .rnd-short{font-family:var(--ff-display);font-size:11px;color:var(--muted);margin-left:4px}
 
 /* ── LIST ITEMS ── */
@@ -1949,17 +1952,32 @@ body{
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(r,i) in game.rounds" :key="i">
-                  <td class="lft">
-                    <span style="font-variant-numeric:tabular-nums;font-weight:600">R{{i+1}}</span>
-                    <span v-if="!isLibre" class="rnd-short">{{getComboShort(r.cId)}}</span>
-                  </td>
-                  <td v-for="pid in game.pIds" :key="pid"
-                    :class="{win:r.winner===pid,'editable-cell':true}"
-                    @click="openEditScore(game,i,pid)">
-                    <span v-if="isLivesMode&&roundLostLife(i,pid)" title="Vida perdida en esta ronda" style="font-size:10px">💔</span>{{r.scores[pid]||0}}
-                  </td>
-                </tr>
+                <template v-for="(r,i) in game.rounds" :key="i">
+                  <!-- Fila de incorporación: aparece justo antes de la primera ronda del nuevo jugador -->
+                  <tr v-if="(game.joinedPIds||[]).some(j=>j.fromRound===i+1)" class="join-row">
+                    <td class="lft">↓ incorpora</td>
+                    <td v-for="pid in game.pIds" :key="pid">
+                      <template v-if="(game.joinedPIds||[]).find(j=>j.pid===pid&&j.fromRound===i+1)">
+                        <span style="font-weight:700;color:var(--gold)">{{(game.joinedPIds||[]).find(j=>j.pid===pid&&j.fromRound===i+1).startScore}}</span>
+                      </template>
+                    </td>
+                  </tr>
+                  <!-- Fila de ronda normal -->
+                  <tr>
+                    <td class="lft">
+                      <span style="font-variant-numeric:tabular-nums;font-weight:600">R{{i+1}}</span>
+                      <span v-if="!isLibre" class="rnd-short">{{getComboShort(r.cId)}}</span>
+                    </td>
+                    <td v-for="pid in game.pIds" :key="pid"
+                      :class="{win:r.winner===pid,'editable-cell':!(game.joinedPIds||[]).some(j=>j.pid===pid&&j.fromRound>i+1),'pre-join':(game.joinedPIds||[]).some(j=>j.pid===pid&&j.fromRound>i+1)}"
+                      @click="!(game.joinedPIds||[]).some(j=>j.pid===pid&&j.fromRound>i+1)&&openEditScore(game,i,pid)">
+                      <template v-if="(game.joinedPIds||[]).some(j=>j.pid===pid&&j.fromRound>i+1)">—</template>
+                      <template v-else>
+                        <span v-if="isLivesMode&&roundLostLife(i,pid)" title="Vida perdida en esta ronda" style="font-size:10px">💔</span>{{r.scores[pid]||0}}
+                      </template>
+                    </td>
+                  </tr>
+                </template>
                 <tr class="tot-row">
                   <td class="lft">Total</td>
                   <td v-for="pid in game.pIds" :key="pid">{{totals[pid]}}</td>
@@ -2023,17 +2041,30 @@ body{
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(r,i) in detailGame.rounds" :key="i">
-                  <td class="lft">
-                    <span style="font-weight:600">R{{i+1}}</span>
-                    <span class="rnd-short">{{getComboShort(r.cId)}}</span>
-                  </td>
-                  <td v-for="pid in detailGame.pIds" :key="pid"
-                    :class="{win:r.winner===pid}"
-                    :style="(r.scores[pid]||0)===0&&r.winner===pid?{color:'var(--green-acc)',fontWeight:'700'}:{}">
-                    <span v-if="detailGame.gtId&&gameTypes.find(x=>x.id===detailGame.gtId)&&gameTypes.find(x=>x.id===detailGame.gtId).mode==='lives'&&roundLostLifeInGame(detailGame,i,pid)" style="font-size:10px">💔</span>{{r.scores[pid]||0}}
-                  </td>
-                </tr>
+                <template v-for="(r,i) in detailGame.rounds" :key="i">
+                  <tr v-if="(detailGame.joinedPIds||[]).some(j=>j.fromRound===i+1)" class="join-row">
+                    <td class="lft">↓ incorpora</td>
+                    <td v-for="pid in detailGame.pIds" :key="pid">
+                      <template v-if="(detailGame.joinedPIds||[]).find(j=>j.pid===pid&&j.fromRound===i+1)">
+                        <span style="font-weight:700;color:var(--gold)">{{(detailGame.joinedPIds||[]).find(j=>j.pid===pid&&j.fromRound===i+1).startScore}}</span>
+                      </template>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="lft">
+                      <span style="font-weight:600">R{{i+1}}</span>
+                      <span class="rnd-short">{{getComboShort(r.cId)}}</span>
+                    </td>
+                    <td v-for="pid in detailGame.pIds" :key="pid"
+                      :class="{win:r.winner===pid,'pre-join':(detailGame.joinedPIds||[]).some(j=>j.pid===pid&&j.fromRound>i+1)}"
+                      :style="(r.scores[pid]||0)===0&&r.winner===pid?{color:'var(--green-acc)',fontWeight:'700'}:{}">
+                      <template v-if="(detailGame.joinedPIds||[]).some(j=>j.pid===pid&&j.fromRound>i+1)">—</template>
+                      <template v-else>
+                        <span v-if="detailGame.gtId&&gameTypes.find(x=>x.id===detailGame.gtId)&&gameTypes.find(x=>x.id===detailGame.gtId).mode==='lives'&&roundLostLifeInGame(detailGame,i,pid)" style="font-size:10px">💔</span>{{r.scores[pid]||0}}
+                      </template>
+                    </td>
+                  </tr>
+                </template>
                 <tr class="tot-row">
                   <td class="lft">Total</td>
                   <td v-for="pid in detailGame.pIds" :key="pid">{{(detailGame.final||{})[pid]||0}}</td>
