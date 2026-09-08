@@ -1121,6 +1121,7 @@ body{
   <div class="overlay" v-if="setup.step > 0" @click.self="tryCloseSetup">
     <div class="modal">
       <div class="modal-pull"></div>
+      <button @click="tryCloseSetup" aria-label="Cerrar" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;line-height:1;padding:4px">✕</button>
       <div class="steps">
         <div class="step-dot" :class="{on:setup.step>=1}"></div>
         <div class="step-dot" :class="{on:setup.step>=2}"></div>
