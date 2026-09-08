@@ -405,7 +405,7 @@ body{
 .score-row:hover .retire-btn,.score-row:focus-within .retire-btn{opacity:1}
 .retired-label{font-size:10px;color:var(--muted);font-weight:600;letter-spacing:.04em}
 /* add-player modal */
-.add-player-modal .dealer-order-list{margin-top:8px}
+.add-player-modal .dealer-order-list{margin-top:8px;max-height:220px;overflow-y:auto}
 .add-player-modal .dealer-order-item.new-player{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 8%,var(--bg))}
 .score-val{
   font-size:22px;font-weight:700;
@@ -939,18 +939,31 @@ body{
     </div>
   </div>
 
-  <!-- ===== RETIRE PLAYER DIALOG ===== -->
+  <!-- ===== RETIRE / REMOVE PLAYER DIALOG ===== -->
   <div class="overlay" v-if="retirePlayerDlg" @click.self="retirePlayerDlg=null">
     <div class="modal" style="border-radius:22px;margin:auto">
-      <div class="modal-title" style="text-align:center;margin-bottom:8px">Retirar jugador</div>
-      <p style="font-size:14px;color:var(--muted);text-align:center;margin:0 0 18px;line-height:1.5">
-        <strong style="color:var(--text)">{{pName(retirePlayerDlg.pid)}}</strong> quedará retirado/a<br>
-        desde esta ronda. Sus puntajes anteriores se conservan.
-      </p>
-      <div class="modal-actions">
-        <button class="btn btn-muted" @click="retirePlayerDlg=null">Cancelar</button>
-        <button class="btn btn-danger" @click="doRetirePlayer">Retirar</button>
-      </div>
+      <template v-if="retirePlayerDlg.remove">
+        <div class="modal-title" style="text-align:center;margin-bottom:8px">Eliminar jugador</div>
+        <p style="font-size:14px;color:var(--muted);text-align:center;margin:0 0 18px;line-height:1.5">
+          <strong style="color:var(--text)">{{pName(retirePlayerDlg.pid)}}</strong> aún no ha jugado ninguna ronda.<br>
+          Se eliminará de la partida sin dejar rastro.
+        </p>
+        <div class="modal-actions">
+          <button class="btn btn-muted" @click="retirePlayerDlg=null">Cancelar</button>
+          <button class="btn btn-danger" @click="doRemovePlayer">Eliminar</button>
+        </div>
+      </template>
+      <template v-else>
+        <div class="modal-title" style="text-align:center;margin-bottom:8px">Retirar jugador</div>
+        <p style="font-size:14px;color:var(--muted);text-align:center;margin:0 0 18px;line-height:1.5">
+          <strong style="color:var(--text)">{{pName(retirePlayerDlg.pid)}}</strong> quedará retirado/a<br>
+          desde esta ronda. Sus puntajes anteriores se conservan.
+        </p>
+        <div class="modal-actions">
+          <button class="btn btn-muted" @click="retirePlayerDlg=null">Cancelar</button>
+          <button class="btn btn-danger" @click="doRetirePlayer">Retirar</button>
+        </div>
+      </template>
     </div>
   </div>
 
@@ -961,17 +974,42 @@ body{
       <!-- Paso 1: elegir jugador -->
       <template v-if="addPlayerModal.step==='pick'">
         <div class="modal-title" style="margin-bottom:12px">Incorporar jugador</div>
-        <p class="modal-hint" style="margin:0 0 12px">Selecciona quién se incorpora a la partida</p>
-        <div style="display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto">
+        <div style="display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto">
           <button v-for="p in addablePlayers" :key="p.id"
             style="display:flex;align-items:center;gap:10px;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;cursor:pointer;text-align:left;font-family:var(--ff-ui)"
             @click="addPlayerPickPid(p.id)">
             <div class="av av-sm" :style="{background:p.color}">{{ini(p.name)}}</div>
             <span style="font-size:14px;font-weight:600;color:var(--text)">{{p.name}}</span>
           </button>
+          <!-- Crear jugador nuevo -->
+          <button
+            style="display:flex;align-items:center;gap:10px;background:var(--bg);border:1.5px dashed var(--border);border-radius:12px;padding:10px 12px;cursor:pointer;text-align:left;font-family:var(--ff-ui)"
+            @click="addPlayerModal={...addPlayerModal,step:'new'}">
+            <div class="av av-sm" style="background:var(--muted);font-size:18px;display:flex;align-items:center;justify-content:center">＋</div>
+            <span style="font-size:14px;font-weight:600;color:var(--muted)">Nuevo jugador…</span>
+          </button>
         </div>
         <div class="modal-actions" style="margin-top:14px">
           <button class="btn btn-muted btn-block" @click="addPlayerModal=null">Cancelar</button>
+        </div>
+      </template>
+
+      <!-- Paso 1b: crear jugador nuevo -->
+      <template v-else-if="addPlayerModal.step==='new'">
+        <div class="modal-title" style="margin-bottom:12px">Nuevo jugador</div>
+        <input ref="addNewNameInp" type="text" v-model="addPlayerModal.newName" maxlength="20"
+          placeholder="Nombre del jugador"
+          style="width:100%;box-sizing:border-box;font-size:16px;font-weight:600;border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;font-family:var(--ff-ui);color:var(--text);background:var(--bg);outline:none;margin-bottom:14px"
+          @keydown.enter="addPlayerCreateAndPick">
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+          <div v-for="c in COLORS" :key="c"
+            style="width:32px;height:32px;border-radius:50%;cursor:pointer;flex-shrink:0;transition:box-shadow .1s"
+            :style="{background:c, boxShadow:addPlayerModal.newColor===c?'0 0 0 3px var(--gold)':''}"
+            @click="addPlayerModal.newColor=c"></div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-muted" @click="addPlayerModal={...addPlayerModal,step:'pick'}">← Atrás</button>
+          <button class="btn btn-primary" :disabled="!addPlayerModal.newName.trim()" @click="addPlayerCreateAndPick">Continuar →</button>
         </div>
       </template>
 
@@ -998,7 +1036,7 @@ body{
             :data-ap-i="i" draggable="true"
             @dragstart="addPlayerDragStart(i)" @dragover.prevent="addPlayerDragOver(i)"
             @drop="addPlayerDragEnd" @dragend="addPlayerDragEnd"
-            @touchstart.passive="addPlayerTouchStart($event,i)" @touchmove.prevent="addPlayerTouchMove($event)"
+            @touchstart.passive="addPlayerTouchStart($event,i)" @touchmove="addPlayerTouchMove($event)"
             @touchend="addPlayerTouchEnd">
             <span class="drag-handle">⠿</span>
             <span class="dealer-order-num">{{i+1}}°</span>
@@ -1009,8 +1047,8 @@ body{
           </div>
         </div>
 
-        <div class="modal-actions" style="margin-top:14px">
-          <button class="btn btn-muted" @click="addPlayerModal.step='pick'">← Atrás</button>
+        <div class="modal-actions" style="margin-top:14px;position:sticky;bottom:-36px;background:var(--surface);padding-top:12px;margin-bottom:-36px;border-top:1px solid var(--border)">
+          <button class="btn btn-muted" @click="addPlayerModal={...addPlayerModal,step:'pick',dragFrom:null,dragTo:null}">← Atrás</button>
           <button class="btn btn-primary" @click="confirmAddPlayer">Incorporar ✓</button>
         </div>
       </template>
@@ -1804,7 +1842,7 @@ body{
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
             <div class="card-label" style="margin:0">Puntuación acumulada</div>
             <div style="display:flex;gap:6px;align-items:center">
-              <button v-if="!isTruco&&addablePlayers.length>0" class="btn btn-muted btn-sm" @click="openAddPlayer" style="font-size:12px;padding:6px 10px">＋ Jugador</button>
+              <button v-if="!isTruco" class="btn btn-muted btn-sm" @click="openAddPlayer" style="font-size:12px;padding:6px 10px">＋ Jugador</button>
               <button class="btn btn-primary btn-sm" @click="openRound">+ Registrar ronda</button>
             </div>
           </div>
@@ -1832,7 +1870,7 @@ body{
                 </div>
               </template>
               <div v-else class="score-val" :class="{zero:totals[p.id]===0}">{{totals[p.id]}}</div>
-              <button v-if="!retiredSet.has(p.id)&&activePIds.length>1" class="retire-btn" @click="confirmRetirePlayer(p.id)" :title="'Retirar a '+p.name" aria-label="Retirar jugador">✕</button>
+              <button v-if="!retiredSet.has(p.id)&&activePIds.length>2" class="retire-btn" @click="confirmRetirePlayer(p.id)" :title="'Retirar a '+p.name" aria-label="Retirar jugador">✕</button>
             </div>
           </div>
 
@@ -2213,7 +2251,7 @@ body{
 
       <!-- PLAYERS -->
       <div v-show="stab==='players'">
-        <button class="btn btn-primary btn-block" style="margin-bottom:14px" @click="openAddPlayer">+ Agregar jugador</button>
+        <button class="btn btn-primary btn-block" style="margin-bottom:14px" @click="openNewPlayerModal">+ Agregar jugador</button>
         <div v-if="players.length===0" class="empty" style="padding:20px 0">
           <p>Agrega jugadores para comenzar a jugar</p>
         </div>
@@ -3022,16 +3060,19 @@ createApp({
       this.save();
     },
 
-    // ── RETIRO DE JUGADOR ──
+    // ── RETIRO / ELIMINACIÓN DE JUGADOR ──
     confirmRetirePlayer(pid){
-      this.retirePlayerDlg={pid};
+      // Si el jugador fue añadido a mitad y aún no ha jugado ninguna ronda, ofrecer eliminación completa
+      const joined=(this.game.joinedPIds||[]).find(j=>j.pid===pid);
+      const notPlayedYet=joined&&joined.fromRound>this.game.round+1;
+      this.retirePlayerDlg={pid, remove:!!notPlayedYet};
     },
     doRetirePlayer(){
       if(!this.game||!this.retirePlayerDlg) return;
       const {pid}=this.retirePlayerDlg;
       if(!this.game.retiredPIds) this.game.retiredPIds=[];
       this.game.retiredPIds.push({pid, fromRound:this.game.round+1});
-      // Si era el mano, avanzar dealerIdx
+      // Si era el mano, recalcular dealerIdx
       const activeAfter=this.game.pIds.filter(p=>!(this.game.retiredPIds||[]).some(r=>r.pid===p));
       if(activeAfter.length>0){
         this.game.dealerIdx=(this.game.dealerIdx??0)%activeAfter.length;
@@ -3040,6 +3081,24 @@ createApp({
       if(navigator.vibrate) navigator.vibrate(8);
       this.save();
       this.showToast(this.pName(pid)+' retirado/a de la partida');
+    },
+    doRemovePlayer(){
+      if(!this.game||!this.retirePlayerDlg) return;
+      const {pid}=this.retirePlayerDlg;
+      const name=this.pName(pid);
+      // Quitar de pIds
+      this.game.pIds=this.game.pIds.filter(p=>p!==pid);
+      // Quitar de joinedPIds
+      this.game.joinedPIds=(this.game.joinedPIds||[]).filter(j=>j.pid!==pid);
+      // Recalcular dealerIdx
+      const activeAfter=this.game.pIds.filter(p=>!(this.game.retiredPIds||[]).some(r=>r.pid===p));
+      if(activeAfter.length>0){
+        this.game.dealerIdx=(this.game.dealerIdx??0)%activeAfter.length;
+      }
+      this.retirePlayerDlg=null;
+      if(navigator.vibrate) navigator.vibrate(8);
+      this.save();
+      this.showToast(name+' eliminado/a de la partida');
     },
 
     // ── AGREGAR JUGADOR A MITAD ──
@@ -3052,14 +3111,31 @@ createApp({
         pIds:[...this.game.pIds],  // copia del orden actual para drag
         dragFrom:null,
         dragTo:null,
+        newName:'',
+        newColor:this.COLORS[Math.floor(Math.random()*this.COLORS.length)],
       };
+    },
+    addPlayerCreateAndPick(){
+      const m=this.addPlayerModal;
+      if(!m||!m.newName.trim()) return;
+      // Crear jugador en el roster
+      const newP={id:this.uid(), name:m.newName.trim(), color:m.newColor||this.COLORS[0]};
+      this.players.push(newP);
+      this.save();
+      // Pasar directo al paso de posición
+      this.addPlayerPickPid(newP.id);
     },
     addPlayerPickPid(pid){
       if(!this.addPlayerModal) return;
-      this.addPlayerModal.pid=pid;
-      // Insertar al final para comenzar
-      this.addPlayerModal.pIds=[...this.game.pIds, pid];
-      this.addPlayerModal.step='position';
+      // Reemplazar el objeto completo para garantizar reactividad en Vue 3 CDN
+      this.addPlayerModal={
+        ...this.addPlayerModal,
+        pid,
+        pIds:[...this.game.pIds, pid],
+        dragFrom:null,
+        dragTo:null,
+        step:'position',
+      };
     },
     addPlayerReorder(toIdx){
       const m=this.addPlayerModal;
@@ -3067,16 +3143,16 @@ createApp({
       const arr=[...m.pIds];
       const [item]=arr.splice(m.dragFrom,1);
       arr.splice(toIdx,0,item);
-      m.pIds=arr;
-      m.dragFrom=toIdx;
+      this.addPlayerModal={...m,pIds:arr,dragFrom:toIdx};
     },
-    addPlayerDragStart(i){ if(this.addPlayerModal){ this.addPlayerModal.dragFrom=i; this.addPlayerModal.dragTo=i; } },
-    addPlayerDragOver(i){ if(!this.addPlayerModal||this.addPlayerModal.dragFrom===null) return; this.addPlayerModal.dragTo=i; this.addPlayerReorder(i); },
-    addPlayerDragEnd(){ if(this.addPlayerModal){ this.addPlayerModal.dragFrom=null; this.addPlayerModal.dragTo=null; } },
-    addPlayerTouchStart(e,i){ if(this.addPlayerModal){ this.addPlayerModal.dragFrom=i; this.addPlayerModal.dragTo=i; } },
+    addPlayerDragStart(i){ if(this.addPlayerModal) this.addPlayerModal={...this.addPlayerModal,dragFrom:i,dragTo:i}; },
+    addPlayerDragOver(i){ if(!this.addPlayerModal||this.addPlayerModal.dragFrom===null) return; this.addPlayerModal={...this.addPlayerModal,dragTo:i}; this.addPlayerReorder(i); },
+    addPlayerDragEnd(){ if(this.addPlayerModal) this.addPlayerModal={...this.addPlayerModal,dragFrom:null,dragTo:null}; },
+    addPlayerTouchStart(e,i){ if(this.addPlayerModal) this.addPlayerModal={...this.addPlayerModal,dragFrom:i,dragTo:i}; },
     addPlayerTouchMove(e){
       const m=this.addPlayerModal;
       if(!m||m.dragFrom===null) return;
+      e.preventDefault(); // solo bloquear scroll cuando hay arrastre activo
       const touch=e.touches[0];
       const el=document.elementFromPoint(touch.clientX,touch.clientY);
       if(!el) return;
@@ -3085,7 +3161,7 @@ createApp({
       const to=parseInt(item.dataset.apI);
       if(!isNaN(to)&&to!==m.dragFrom) this.addPlayerReorder(to);
     },
-    addPlayerTouchEnd(){ if(this.addPlayerModal){ this.addPlayerModal.dragFrom=null; this.addPlayerModal.dragTo=null; } },
+    addPlayerTouchEnd(){ if(this.addPlayerModal) this.addPlayerModal={...this.addPlayerModal,dragFrom:null,dragTo:null}; },
     confirmAddPlayer(){
       const m=this.addPlayerModal;
       if(!m||!m.pid||!this.game) return;
@@ -3752,7 +3828,7 @@ createApp({
     },
 
     // ── PLAYERS ──
-    openAddPlayer(){
+    openNewPlayerModal(){
       const colorIdx=this.players.length%COLORS.length;
       this.pModal={open:true,id:null,name:'',color:COLORS[colorIdx]};
     },
