@@ -1,7 +1,7 @@
 <title>RondaScore</title>
 <style>html{background:#152f25}</style>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://www.google-analytics.com; connect-src https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://www.google-analytics.com; connect-src https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'">
 <meta name="theme-color" content="#152f25">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,6 +13,7 @@
 <script>
   window.dataLayer=window.dataLayer||[];
   function gtag(){dataLayer.push(arguments);}
+  gtag('consent','default',{analytics_storage:'denied',ad_storage:'denied'});
   window._loadGA4=function(){
     if(window._ga4Loaded) return;
     window._ga4Loaded=true;
@@ -2289,13 +2290,13 @@ body{
         <p style="margin-bottom:14px">Google LLC (EE.UU.) procesa los datos analíticos. Google está certificado bajo el EU–US Data Privacy Framework (Decisión de Adecuación CE, julio 2023). Más info: <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style="color:var(--gold)">policies.google.com/privacy</a>.</p>
 
         <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px">Tus derechos (RGPD Arts. 15–22)</div>
-        <p style="margin-bottom:14px">Tienes derecho a acceder, rectificar, suprimir, limitar y portar tus datos, y a oponerte a su tratamiento. Para datos en el dispositivo, usa el botón <em>Borrar todos mis datos</em> en Ajustes. Para datos en Google Analytics, visita <a href="https://myaccount.google.com" target="_blank" rel="noopener" style="color:var(--gold)">myaccount.google.com</a>.</p>
+        <p style="margin-bottom:14px">Tienes derecho a acceder, rectificar, suprimir, limitar y <strong>portar</strong> tus datos, y a oponerte a su tratamiento. Para datos almacenados en tu dispositivo, usa el botón <em>Borrar todos mis datos</em> en Ajustes; tus partidas y jugadores se guardan únicamente en tu dispositivo y nunca salen de él. Para datos en Google Analytics (solo si aceptaste la analítica), visita <a href="https://myaccount.google.com" target="_blank" rel="noopener noreferrer" style="color:var(--gold)">myaccount.google.com</a>.</p>
 
         <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px">Conservación</div>
         <p style="margin-bottom:14px">Los datos locales se conservan hasta que los borres manualmente. Google Analytics conserva los datos de uso 14 meses (configuración predeterminada GA4).</p>
 
         <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px">Menores de edad</div>
-        <p style="margin-bottom:14px">Esta aplicación no está dirigida a menores de 14 años (umbral establecido por la Ley 21.719 de Chile y el RGPD en España). No recopilamos de forma consciente datos de menores. Si eres padre o tutor y crees que un menor ha utilizado la analítica sin supervisión, puedes revocar el consentimiento y borrar los datos desde Ajustes → Privacidad → Borrar todos mis datos.</p>
+        <p style="margin-bottom:14px">Esta aplicación no está dirigida a menores de 16 años (umbral establecido por la Ley 21.719 de Chile). No recopilamos de forma consciente datos de menores. Si eres padre o tutor y crees que un menor ha utilizado la analítica sin supervisión, puedes revocar el consentimiento y borrar los datos desde Ajustes → Privacidad → Borrar todos mis datos.</p>
 
         <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px">Cookies</div>
         <p style="margin-bottom:18px">Si aceptas la analítica, Google Analytics instala las cookies <code>_ga</code> (duración 2 años) y <code>_ga_EYZJ48R2RV</code> (2 años) para identificar sesiones y medir uso.</p>
@@ -2921,7 +2922,7 @@ createApp({
       const body=this.feedbackText.trim();
       if(!body) return;
       const link=`mailto:jperezg@duoc.cl?subject=${encodeURIComponent('Sugerencia RondaScore')}&body=${encodeURIComponent(body)}`;
-      window.open(link,'_blank');
+      window.open(link,'_blank','noopener,noreferrer');
       this.feedbackText='';
     },
     trucoFinish(){
@@ -3651,6 +3652,9 @@ createApp({
         lines.push(totPrefix+totScores);
       }
 
+      lines.push('');
+      lines.push('─────────────────────────');
+      lines.push('Generado con RondaScore · Los nombres son apodos ingresados por el usuario');
       const text=lines.join('\n');
       if(navigator.share){
         try{
@@ -3697,15 +3701,20 @@ createApp({
     acceptCookies(){
       this.cookieConsent='accepted';
       this.savePrefs();
+      if(typeof gtag==='function') gtag('consent','update',{analytics_storage:'granted'});
       window._loadGA4&&window._loadGA4();
     },
 
     rejectCookies(){
       this.cookieConsent='rejected';
       this.savePrefs();
+      if(typeof gtag==='function') gtag('consent','update',{analytics_storage:'denied',ad_storage:'denied'});
       // Eliminar cookies GA4 existentes
-      document.cookie='_ga=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
-      document.cookie='_ga_EYZJ48R2RV=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+      ['_ga','_ga_EYZJ48R2RV'].forEach(name=>{
+        document.cookie=name+'=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+        document.cookie=name+'=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain='+location.hostname;
+        document.cookie=name+'=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.'+location.hostname;
+      });
     },
 
     clearAllData(){
@@ -3713,8 +3722,11 @@ createApp({
       localStorage.removeItem('carioca_prefs');
       localStorage.removeItem('carioca_theme');
       // Eliminar cookies GA4
-      document.cookie='_ga=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
-      document.cookie='_ga_EYZJ48R2RV=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+      ['_ga','_ga_EYZJ48R2RV'].forEach(name=>{
+        document.cookie=name+'=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+        document.cookie=name+'=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain='+location.hostname;
+        document.cookie=name+'=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.'+location.hostname;
+      });
       setTimeout(()=>window.location.reload(),300);
     },
 
@@ -3999,6 +4011,18 @@ createApp({
             pauseDate:g.pauseDate?String(g.pauseDate).slice(0,30):undefined,
             targetScore:typeof g.targetScore==='number'&&g.targetScore>0?g.targetScore:null,
             gameName:typeof g.gameName==='string'?g.gameName.slice(0,30):null,
+            dealerIdx:typeof g.dealerIdx==='number'?Math.max(0,Math.min(99,g.dealerIdx)):0,
+            // Campos Truco
+            dealer:['A','B'].includes(g.dealer)?g.dealer:null,
+            teamA:typeof g.teamA==='string'?g.teamA.slice(0,30):null,
+            teamB:typeof g.teamB==='string'?g.teamB.slice(0,30):null,
+            scoreA:typeof g.scoreA==='number'?Math.max(0,Math.min(9999,g.scoreA)):undefined,
+            scoreB:typeof g.scoreB==='number'?Math.max(0,Math.min(9999,g.scoreB)):undefined,
+            target:typeof g.target==='number'&&g.target>0?Math.min(9999,g.target):undefined,
+            history:Array.isArray(g.history)?g.history.slice(0,500).map(h=>({
+              A:Math.max(0,Math.min(9999,parseInt(h.A)||0)),
+              B:Math.max(0,Math.min(9999,parseInt(h.B)||0)),
+            })):[],
           };
         };
 
