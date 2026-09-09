@@ -115,18 +115,6 @@ body{
   flex-direction:column;
 }
 [v-cloak]{display:none!important}
-#app-splash{
-  position:fixed;inset:0;background:var(--felt-dark,#152f25);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:16px;z-index:9999;
-  transition:opacity .3s ease;
-}
-#app-splash .splash-icon{width:96px;height:96px;border-radius:22px;box-shadow:0 4px 24px rgba(0,0,0,.4)}
-#app-splash .splash-name{font-family:'Playfair Display',serif;font-size:28px;color:#c99228;letter-spacing:2px}
-#app-splash .splash-skeleton{display:flex;flex-direction:column;gap:8px;margin-top:8px;width:160px}
-#app-splash .splash-bar{height:8px;border-radius:4px;background:rgba(255,255,255,.08);animation:shimmer 1.4s ease infinite}
-#app-splash .splash-bar:nth-child(2){width:70%;animation-delay:.2s}
-#app-splash .splash-bar:nth-child(3){width:50%;animation-delay:.4s}
 @keyframes shimmer{0%,100%{opacity:.4}50%{opacity:.9}}
 
 /* ── HEADER ── */
@@ -910,16 +898,6 @@ body{
 .winner-actions{display:flex;gap:10px}
 </style>
 
-<!-- Splash visible mientras Vue monta; se oculta con JS al montar -->
-<div id="app-splash">
-  <img class="splash-icon" src="icon-192.png" alt="Carioca">
-  <div class="splash-name">Carioca</div>
-  <div class="splash-skeleton" aria-hidden="true">
-    <div class="splash-bar"></div>
-    <div class="splash-bar"></div>
-    <div class="splash-bar"></div>
-  </div>
-</div>
 
 <div id="app" v-cloak style="display:none">
 
@@ -2334,50 +2312,101 @@ body{
       <!-- Valores de cartas -->
       <div class="card" style="margin-bottom:12px">
         <div class="card-label">Valores de cartas (teclado 🃏)</div>
-        <!-- As -->
-        <div style="margin-bottom:14px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            <div>
-              <div style="font-size:14px;font-weight:600">As</div>
-              <div style="font-size:12px;color:var(--muted)">Puntos cuando queda en mano</div>
-            </div>
-            <div style="display:flex;gap:4px;align-items:center">
-              <button v-for="v in [15,20,25]" :key="v"
-                class="btn btn-sm" :class="chipValues.ace===v&&!chipValues.aceCustom?'btn-primary':'btn-muted'"
-                @click="chipValues.ace=v;chipValues.aceCustom=false;savePrefs()" :aria-pressed="chipValues.ace===v&&!chipValues.aceCustom">{{v}}</button>
-              <input type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="999"
-                :value="chipValues.aceCustom?chipValues.ace:''"
-                placeholder="…"
-                @focus="chipValues.aceCustom=true"
-                @input="setCustomChip('ace',$event)"
-                @blur="chipValues.aceCustom = chipValues.aceCustom && chipValues.ace > 0"
-                class="score-inp" style="width:52px;font-size:15px;padding:6px 4px"
-                aria-label="Valor personalizado para el As">
+        <!-- Tabs Carioca / Continental -->
+        <div style="display:flex;gap:6px;margin-bottom:14px">
+          <button class="btn btn-sm" :class="chipTab==='carioca'?'btn-primary':'btn-muted'" @click="chipTab='carioca'">Carioca</button>
+          <button class="btn btn-sm" :class="chipTab==='continental'?'btn-primary':'btn-muted'" @click="chipTab='continental'">Continental</button>
+        </div>
+        <!-- Carioca values -->
+        <template v-if="chipTab==='carioca'">
+          <div style="margin-bottom:14px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <div>
+                <div style="font-size:14px;font-weight:600">As</div>
+                <div style="font-size:12px;color:var(--muted)">Puntos cuando queda en mano</div>
+              </div>
+              <div style="display:flex;gap:4px;align-items:center">
+                <button v-for="v in [15,20,25]" :key="v"
+                  class="btn btn-sm" :class="chipValues.ace===v&&!chipValues.aceCustom?'btn-primary':'btn-muted'"
+                  @click="chipValues.ace=v;chipValues.aceCustom=false;savePrefs()" :aria-pressed="chipValues.ace===v&&!chipValues.aceCustom">{{v}}</button>
+                <input type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="999"
+                  :value="chipValues.aceCustom?chipValues.ace:''"
+                  placeholder="…"
+                  @focus="chipValues.aceCustom=true"
+                  @input="setCustomChip('ace',$event)"
+                  @blur="chipValues.aceCustom = chipValues.aceCustom && chipValues.ace > 0"
+                  class="score-inp" style="width:52px;font-size:15px;padding:6px 4px"
+                  aria-label="Valor personalizado para el As (Carioca)">
+              </div>
             </div>
           </div>
-        </div>
-        <!-- Comodín -->
-        <div style="padding-top:12px;border-top:1px solid var(--border)">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            <div>
-              <div style="font-size:14px;font-weight:600">🃏 Comodín</div>
-              <div style="font-size:12px;color:var(--muted)">Puntos cuando queda en mano</div>
-            </div>
-            <div style="display:flex;gap:4px;align-items:center">
-              <button v-for="v in [20,30,50]" :key="v"
-                class="btn btn-sm" :class="chipValues.joker===v&&!chipValues.jokerCustom?'btn-primary':'btn-muted'"
-                @click="chipValues.joker=v;chipValues.jokerCustom=false;savePrefs()" :aria-pressed="chipValues.joker===v&&!chipValues.jokerCustom">{{v}}</button>
-              <input type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="999"
-                :value="chipValues.jokerCustom?chipValues.joker:''"
-                placeholder="…"
-                @focus="chipValues.jokerCustom=true"
-                @input="setCustomChip('joker',$event)"
-                @blur="chipValues.jokerCustom = chipValues.jokerCustom && chipValues.joker > 0"
-                class="score-inp" style="width:52px;font-size:15px;padding:6px 4px"
-                aria-label="Valor personalizado para el Comodín">
+          <div style="padding-top:12px;border-top:1px solid var(--border)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <div>
+                <div style="font-size:14px;font-weight:600">🃏 Comodín</div>
+                <div style="font-size:12px;color:var(--muted)">Puntos cuando queda en mano</div>
+              </div>
+              <div style="display:flex;gap:4px;align-items:center">
+                <button v-for="v in [20,30,50]" :key="v"
+                  class="btn btn-sm" :class="chipValues.joker===v&&!chipValues.jokerCustom?'btn-primary':'btn-muted'"
+                  @click="chipValues.joker=v;chipValues.jokerCustom=false;savePrefs()" :aria-pressed="chipValues.joker===v&&!chipValues.jokerCustom">{{v}}</button>
+                <input type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="999"
+                  :value="chipValues.jokerCustom?chipValues.joker:''"
+                  placeholder="…"
+                  @focus="chipValues.jokerCustom=true"
+                  @input="setCustomChip('joker',$event)"
+                  @blur="chipValues.jokerCustom = chipValues.jokerCustom && chipValues.joker > 0"
+                  class="score-inp" style="width:52px;font-size:15px;padding:6px 4px"
+                  aria-label="Valor personalizado para el Comodín (Carioca)">
+              </div>
             </div>
           </div>
-        </div>
+        </template>
+        <!-- Continental values -->
+        <template v-else>
+          <div style="margin-bottom:14px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <div>
+                <div style="font-size:14px;font-weight:600">As</div>
+                <div style="font-size:12px;color:var(--muted)">Puntos cuando queda en mano</div>
+              </div>
+              <div style="display:flex;gap:4px;align-items:center">
+                <button v-for="v in [15,20,25]" :key="v"
+                  class="btn btn-sm" :class="chipValuesContinental.ace===v&&!chipValuesContinental.aceCustom?'btn-primary':'btn-muted'"
+                  @click="chipValuesContinental.ace=v;chipValuesContinental.aceCustom=false;savePrefs()" :aria-pressed="chipValuesContinental.ace===v&&!chipValuesContinental.aceCustom">{{v}}</button>
+                <input type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="999"
+                  :value="chipValuesContinental.aceCustom?chipValuesContinental.ace:''"
+                  placeholder="…"
+                  @focus="chipValuesContinental.aceCustom=true"
+                  @input="setCustomChip('ace',$event,'continental')"
+                  @blur="chipValuesContinental.aceCustom = chipValuesContinental.aceCustom && chipValuesContinental.ace > 0"
+                  class="score-inp" style="width:52px;font-size:15px;padding:6px 4px"
+                  aria-label="Valor personalizado para el As (Continental)">
+              </div>
+            </div>
+          </div>
+          <div style="padding-top:12px;border-top:1px solid var(--border)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <div>
+                <div style="font-size:14px;font-weight:600">🃏 Comodín</div>
+                <div style="font-size:12px;color:var(--muted)">Puntos cuando queda en mano</div>
+              </div>
+              <div style="display:flex;gap:4px;align-items:center">
+                <button v-for="v in [20,30,50]" :key="v"
+                  class="btn btn-sm" :class="chipValuesContinental.joker===v&&!chipValuesContinental.jokerCustom?'btn-primary':'btn-muted'"
+                  @click="chipValuesContinental.joker=v;chipValuesContinental.jokerCustom=false;savePrefs()" :aria-pressed="chipValuesContinental.joker===v&&!chipValuesContinental.jokerCustom">{{v}}</button>
+                <input type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="999"
+                  :value="chipValuesContinental.jokerCustom?chipValuesContinental.joker:''"
+                  placeholder="…"
+                  @focus="chipValuesContinental.jokerCustom=true"
+                  @input="setCustomChip('joker',$event,'continental')"
+                  @blur="chipValuesContinental.jokerCustom = chipValuesContinental.jokerCustom && chipValuesContinental.joker > 0"
+                  class="score-inp" style="width:52px;font-size:15px;padding:6px 4px"
+                  aria-label="Valor personalizado para el Comodín (Continental)">
+              </div>
+            </div>
+          </div>
+        </template>
       </div>
 
       <div class="tabs">
@@ -2621,11 +2650,11 @@ window._pwaInstallPrompt = null;
 const DEF_COMBOS = [
   {id:'c1',gtId:'carioca',order:1,name:'Dos tríos',short:'2T'},
   {id:'c2',gtId:'carioca',order:2,name:'Una escalera y un trío',short:'1E+1T'},
-  {id:'c3',gtId:'carioca',order:3,name:'Dos escalas',short:'2E'},
+  {id:'c3',gtId:'carioca',order:3,name:'Dos escaleras',short:'2E'},
   {id:'c4',gtId:'carioca',order:4,name:'Tres tríos',short:'3T'},
   {id:'c5',gtId:'carioca',order:5,name:'Una escalera y dos tríos',short:'1E+2T'},
-  {id:'c6',gtId:'carioca',order:6,name:'Dos escalas y un trío',short:'2E+1T'},
-  {id:'c7',gtId:'carioca',order:7,name:'Tres escalas',short:'3E'},
+  {id:'c6',gtId:'carioca',order:6,name:'Dos escaleras y un trío',short:'2E+1T'},
+  {id:'c7',gtId:'carioca',order:7,name:'Tres escaleras',short:'3E'},
   {id:'c8',gtId:'carioca',order:8,name:'Cuatro tríos',short:'4T'},
   {id:'c9',gtId:'carioca',order:9,name:'Escalera sucia',short:'SD'},
   {id:'c10',gtId:'carioca',order:10,name:'Escalera limpia',short:'SL'},
@@ -2726,6 +2755,8 @@ createApp({
 
       // Chip keyboard card values
       chipValues:{ joker:30, ace:20, aceCustom:false, jokerCustom:false },
+      chipValuesContinental:{ joker:30, ace:20, aceCustom:false, jokerCustom:false },
+      chipTab:'carioca',
 
       // Privacy / RGPD
       cookieConsent:null,   // null=pendiente, 'accepted'=aceptado, 'rejected'=rechazado
@@ -2816,9 +2847,10 @@ createApp({
 
     // ── Chips ──
     cardChips(){
+      const cv=this.game?.gtId==='continental'?this.chipValuesContinental:this.chipValues;
       return [
-        {key:'joker',label:'🃏',pts:this.chipValues.joker,sub:'Comodín'},
-        {key:'ace',  label:'A', pts:this.chipValues.ace,  sub:'As'},
+        {key:'joker',label:'🃏',pts:cv.joker,sub:'Comodín'},
+        {key:'ace',  label:'A', pts:cv.ace,  sub:'As'},
         {key:'face', label:'K·Q·J',pts:10,sub:'Figura'},
         {key:'10',   label:'10',pts:10,sub:''},
         {key:'9',    label:'9', pts:9, sub:''},
@@ -3636,9 +3668,10 @@ createApp({
       const total=this.cardChips.reduce((s,c)=>s+(this.chipCounts[pid]?.[c.key]||0)*c.pts,0);
       this.roundScores[pid]=total;
     },
-    setCustomChip(card, e){
+    setCustomChip(card, e, mode='carioca'){
       const v=parseInt(e.target.value);
-      if(v>0){ this.chipValues[card]=v; this.chipValues[card+'Custom']=true; this.savePrefs(); }
+      const vals=mode==='continental'?this.chipValuesContinental:this.chipValues;
+      if(v>0){ vals[card]=v; vals[card+'Custom']=true; this.savePrefs(); }
     },
 
     setRoundInputMode(mode){
@@ -4202,7 +4235,7 @@ createApp({
     },
 
     savePrefs(){
-      localStorage.setItem('cartascore_prefs',JSON.stringify({keepScreenOn:this.keepScreenOn,cookieConsent:this.cookieConsent,roundInputMode:this.roundInputMode,chipValues:this.chipValues,autoUpdate:this.autoUpdate}));
+      localStorage.setItem('cartascore_prefs',JSON.stringify({keepScreenOn:this.keepScreenOn,cookieConsent:this.cookieConsent,roundInputMode:this.roundInputMode,chipValues:this.chipValues,chipValuesContinental:this.chipValuesContinental,autoUpdate:this.autoUpdate}));
     },
 
     acceptCookies(){
@@ -4619,6 +4652,8 @@ createApp({
       if(p.roundInputMode==='chips'||p.roundInputMode==='number') this.roundInputMode=p.roundInputMode;
       if(p.chipValues?.ace>0)   { this.chipValues.ace=p.chipValues.ace; this.chipValues.aceCustom=!!p.chipValues.aceCustom; }
       if(p.chipValues?.joker>0) { this.chipValues.joker=p.chipValues.joker; this.chipValues.jokerCustom=!!p.chipValues.jokerCustom; }
+      if(p.chipValuesContinental?.ace>0)  { this.chipValuesContinental.ace=p.chipValuesContinental.ace; this.chipValuesContinental.aceCustom=!!p.chipValuesContinental.aceCustom; }
+      if(p.chipValuesContinental?.joker>0){ this.chipValuesContinental.joker=p.chipValuesContinental.joker; this.chipValuesContinental.jokerCustom=!!p.chipValuesContinental.jokerCustom; }
     }catch(_){}
 
     // Screen Wake Lock — mantener pantalla encendida durante la partida
@@ -4670,15 +4705,9 @@ createApp({
     }
   }
 }).mount('#app');
-// Mostrar app y ocultar splash una vez Vue montó
+// Mostrar app una vez Vue montó
 const appEl = document.getElementById('app');
-const splash = document.getElementById('app-splash');
 if (appEl) appEl.style.display = '';
-if (splash) {
-  splash.style.transition = 'opacity 0.2s';
-  splash.style.opacity = '0';
-  setTimeout(() => splash.remove(), 200);
-}
 </script>
 
 <!-- ===== SERVICE WORKER REGISTRATION ===== -->
