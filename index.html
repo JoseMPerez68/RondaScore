@@ -15,7 +15,7 @@
 .brand-header .bh-name strong{font-weight:700}
 </style>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://www.google-analytics.com; connect-src https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://www.google-analytics.com; connect-src https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com https://www.googletagmanager.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'">
 <meta name="theme-color" content="#152f25">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -4552,9 +4552,9 @@ createApp({
             return;
           }
           const d=payload.data;
-          if(d.cartascore_v1)    localStorage.setItem('cartascore_v1',d.cartascore_v1);
-          if(d.cartascore_prefs) localStorage.setItem('cartascore_prefs',d.cartascore_prefs);
-          if(d.cartascore_theme) localStorage.setItem('cartascore_theme',d.cartascore_theme);
+          if(d.cartascore_v1    && d.cartascore_v1.length    < 500000) localStorage.setItem('cartascore_v1',d.cartascore_v1);
+          if(d.cartascore_prefs && d.cartascore_prefs.length < 50000)  localStorage.setItem('cartascore_prefs',d.cartascore_prefs);
+          if(d.cartascore_theme && d.cartascore_theme.length < 100)    localStorage.setItem('cartascore_theme',d.cartascore_theme);
           this.importStatus={ok:true,msg:'Backup restaurado. Recargando…'};
           setTimeout(()=>location.reload(),1200);
         }catch(err){
