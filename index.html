@@ -912,7 +912,10 @@ body{
   <!-- ===== SW UPDATE BAR ===== -->
   <div v-if="swUpdate" class="sw-update-bar">
     <span>🆕 Nueva versión disponible</span>
-    <button @click="updateApp">Actualizar</button>
+    <div style="display:flex;gap:8px">
+      <button @click="swUpdate=null" style="background:rgba(255,255,255,.15)">Posponer</button>
+      <button @click="updateApp">Actualizar ahora</button>
+    </div>
   </div>
 
   <!-- ===== INSTALL BANNER ===== -->
@@ -2249,6 +2252,14 @@ body{
           <button class="combo-toggle" :class="{on:keepScreenOn}" @click="keepScreenOn=!keepScreenOn;savePrefs()"
             role="switch" :aria-checked="keepScreenOn" aria-label="Pantalla siempre encendida"></button>
         </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+          <div>
+            <div style="font-size:14px;font-weight:600">Actualizaciones automáticas</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">Aplicar nuevas versiones al instante o recibir un aviso y decidir cuándo actualizar</div>
+          </div>
+          <button class="combo-toggle" :class="{on:autoUpdate}" @click="autoUpdate=!autoUpdate;savePrefs()"
+            role="switch" :aria-checked="autoUpdate" aria-label="Actualizaciones automáticas"></button>
+        </div>
       </div>
       <!-- Valores de cartas -->
       <div class="card" style="margin-bottom:12px">
@@ -2625,6 +2636,7 @@ createApp({
       // Theme
       theme:'auto',
       keepScreenOn:true,
+      autoUpdate:true,   // true=aplicar automáticamente, false=avisar y esperar
 
       // Chip keyboard card values
       chipValues:{ joker:30, ace:20, aceCustom:false, jokerCustom:false },
@@ -4078,7 +4090,7 @@ createApp({
     },
 
     savePrefs(){
-      localStorage.setItem('carioca_prefs',JSON.stringify({keepScreenOn:this.keepScreenOn,cookieConsent:this.cookieConsent,roundInputMode:this.roundInputMode,chipValues:this.chipValues}));
+      localStorage.setItem('carioca_prefs',JSON.stringify({keepScreenOn:this.keepScreenOn,cookieConsent:this.cookieConsent,roundInputMode:this.roundInputMode,chipValues:this.chipValues,autoUpdate:this.autoUpdate}));
     },
 
     acceptCookies(){
@@ -4480,6 +4492,7 @@ createApp({
     try{
       const p=JSON.parse(localStorage.getItem('carioca_prefs')||'{}');
       if(typeof p.keepScreenOn==='boolean') this.keepScreenOn=p.keepScreenOn;
+      if(typeof p.autoUpdate==='boolean') this.autoUpdate=p.autoUpdate;
       if(p.cookieConsent==='accepted'||p.cookieConsent==='rejected') this.cookieConsent=p.cookieConsent;
       if(p.cookieConsent==='accepted') window._loadGA4&&window._loadGA4();
       if(p.roundInputMode==='chips'||p.roundInputMode==='number') this.roundInputMode=p.roundInputMode;
@@ -4552,11 +4565,6 @@ if (splash) {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').then(reg => {
-      // Auto-recarga cuando el nuevo SW toma control
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        window.location.reload();
-      });
-
       reg.addEventListener('updatefound', () => {
         const newSW = reg.installing;
         newSW.addEventListener('statechange', () => {
@@ -4564,7 +4572,11 @@ if ('serviceWorker' in navigator) {
           // El banner queda como fallback por si el usuario prefiere hacerlo manual
           if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
             const vueApp = document.querySelector('#app').__vue_app__;
-            if (vueApp) vueApp._instance.proxy.swUpdate = newSW;
+            if (vueApp) {
+              const vm = vueApp._instance.proxy;
+              vm.swUpdate = newSW;
+              if (vm.autoUpdate) vm.updateApp();
+            }
           }
         });
       });
