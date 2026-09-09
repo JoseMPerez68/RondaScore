@@ -1,4 +1,4 @@
-<title>RondaScore</title>
+<title>CartaScore</title>
 <style>html{background:#152f25}</style>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://www.google-analytics.com; connect-src https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'">
@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="RondaScore">
+<meta name="apple-mobile-web-app-title" content="CartaScore">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <!-- GA4 se carga solo tras consentimiento explícito del usuario (RGPD/ePrivacy) -->
@@ -4145,7 +4145,7 @@ createApp({
       const text=lines.join('\n');
       if(navigator.share){
         try{
-          await navigator.share({title:'RondaScore',text});
+          await navigator.share({title:'CartaScore',text});
           if(typeof gtag==='function') gtag('event','game_shared',{game_type:g.gtId,method:'native'});
         }catch(e){}
       } else {
@@ -4182,7 +4182,7 @@ createApp({
     },
 
     savePrefs(){
-      localStorage.setItem('carioca_prefs',JSON.stringify({keepScreenOn:this.keepScreenOn,cookieConsent:this.cookieConsent,roundInputMode:this.roundInputMode,chipValues:this.chipValues,autoUpdate:this.autoUpdate}));
+      localStorage.setItem('cartascore_prefs',JSON.stringify({keepScreenOn:this.keepScreenOn,cookieConsent:this.cookieConsent,roundInputMode:this.roundInputMode,chipValues:this.chipValues,autoUpdate:this.autoUpdate}));
     },
 
     acceptCookies(){
@@ -4205,9 +4205,9 @@ createApp({
     },
 
     clearAllData(){
-      localStorage.removeItem('carioca_v1');
-      localStorage.removeItem('carioca_prefs');
-      localStorage.removeItem('carioca_theme');
+      localStorage.removeItem('cartascore_v1');
+      localStorage.removeItem('cartascore_prefs');
+      localStorage.removeItem('cartascore_theme');
       // Eliminar cookies GA4
       ['_ga','_ga_EYZJ48R2RV'].forEach(name=>{
         document.cookie=name+'=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
@@ -4219,7 +4219,7 @@ createApp({
 
     setTheme(t){
       this.theme=t;
-      localStorage.setItem('carioca_theme',t);
+      localStorage.setItem('cartascore_theme',t);
       const r=document.documentElement;
       if(t==='dark') r.setAttribute('data-theme','dark');
       else if(t==='light') r.setAttribute('data-theme','light');
@@ -4436,12 +4436,12 @@ createApp({
     save(){
       try{
         const d={players:this.players,combos:this.combos,games:this.games,game:this.game,lastCfg:this.lastCfg};
-        localStorage.setItem('carioca_v1',JSON.stringify(d));
+        localStorage.setItem('cartascore_v1',JSON.stringify(d));
       }catch(e){}
     },
     load(){
       try{
-        const raw=localStorage.getItem('carioca_v1');
+        const raw=localStorage.getItem('cartascore_v1');
         if(!raw||raw.length>500000) return; // guard against bloated payloads
         const d=JSON.parse(raw);
         // Schema guards: reject non-object or unexpected types
@@ -4580,7 +4580,7 @@ createApp({
     });
 
     // Apply saved theme
-    const savedTheme=localStorage.getItem('carioca_theme')||'auto';
+    const savedTheme=localStorage.getItem('cartascore_theme')||'auto';
     this.theme=savedTheme;
     const r=document.documentElement;
     if(savedTheme==='dark') r.setAttribute('data-theme','dark');
@@ -4588,7 +4588,7 @@ createApp({
 
     // Restaurar preferencias (wake lock + consentimiento)
     try{
-      const p=JSON.parse(localStorage.getItem('carioca_prefs')||'{}');
+      const p=JSON.parse(localStorage.getItem('cartascore_prefs')||'{}');
       if(typeof p.keepScreenOn==='boolean') this.keepScreenOn=p.keepScreenOn;
       if(typeof p.autoUpdate==='boolean') this.autoUpdate=p.autoUpdate;
       if(p.cookieConsent==='accepted'||p.cookieConsent==='rejected') this.cookieConsent=p.cookieConsent;

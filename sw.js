@@ -1,6 +1,6 @@
 // ── CARIOCA SERVICE WORKER ──
 // Cambiar CACHE_VERSION con cada deploy para forzar actualización
-const CACHE_VERSION = 'carioca-v4';
+const CACHE_VERSION = 'cartascore-v1';
 const ASSETS = [
   './',
   './index.html',

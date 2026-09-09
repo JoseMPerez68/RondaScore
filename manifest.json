@@ -1,7 +1,7 @@
 {
-  "name": "Carioca",
-  "short_name": "Carioca",
-  "description": "Anotador de partidas de Carioca",
+  "name": "CartaScore",
+  "short_name": "CartaScore",
+  "description": "Anotador de partidas de cartas: Carioca, Continental, Truco y más",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#152f25",
