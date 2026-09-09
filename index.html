@@ -4447,7 +4447,10 @@ createApp({
           }));
           const sorted=[...loaded].sort((a,b)=>a.order-b.order);
           sorted.forEach((c,i)=>{ c.order=i+1; });
-          this.combos=sorted;
+          // Merge: add any DEF_COMBOS entries not yet in localStorage (e.g. new game modes)
+          const savedIds=new Set(sorted.map(c=>c.id));
+          const missing=DEF_COMBOS.filter(c=>!savedIds.has(c.id)).map(c=>({...c,active:c.active!==false}));
+          this.combos=[...sorted,...missing];
         } else {
           this.combos=DEF_COMBOS.map(c=>({...c,active:true}));
         }
