@@ -1250,7 +1250,7 @@ body{
       <div v-else-if="setup.step===3">
 
         <!-- Carioca normal: combinaciones en orden fijo -->
-        <template v-if="setupIsFixed">
+        <template v-if="setupIsFixed && setup.gameTypeId!=='continental'">
           <h2 class="modal-title">Combinaciones</h2>
           <p class="modal-hint">Elige las rondas a jugar <span style="font-weight:400;text-transform:none">(en orden)</span></p>
           <div style="display:flex;justify-content:space-between;margin-bottom:10px">
@@ -1258,6 +1258,23 @@ body{
             <button class="link-btn" @click="setup.cIds=[]">Ninguna</button>
           </div>
           <div v-for="(c,i) in activeCariocaCombos" :key="c.id"
+            class="combo-sel-item"
+            @click="toggleSetupCombo(c.id)">
+            <div class="check-box" :class="{on:setup.cIds.includes(c.id)}">{{setup.cIds.includes(c.id)?'✓':''}}</div>
+            <span class="pip pip-done" style="font-size:10px;padding:2px 7px">{{i+1}}</span>
+            <span style="flex:1;font-size:14px">{{c.name}}</span>
+          </div>
+        </template>
+
+        <!-- Continental: combinaciones en orden fijo -->
+        <template v-else-if="setup.gameTypeId==='continental'">
+          <h2 class="modal-title">Combinaciones</h2>
+          <p class="modal-hint">Elige las rondas a jugar <span style="font-weight:400;text-transform:none">(en orden)</span></p>
+          <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+            <button class="link-btn" @click="setup.cIds=activeContinentalCombos.map(c=>c.id)">Todas</button>
+            <button class="link-btn" @click="setup.cIds=[]">Ninguna</button>
+          </div>
+          <div v-for="(c,i) in activeContinentalCombos" :key="c.id"
             class="combo-sel-item"
             @click="toggleSetupCombo(c.id)">
             <div class="check-box" :class="{on:setup.cIds.includes(c.id)}">{{setup.cIds.includes(c.id)?'✓':''}}</div>
@@ -1409,6 +1426,29 @@ body{
           <div class="rules-section-title">Puntaje</div>
           <p class="rules-intro" style="margin-bottom:0">
             El <strong>ganador</strong> de cada ronda (quien baja primero su combinación) anota <strong>0 puntos</strong>. Los demás cuentan el valor de las cartas que les quedan en mano. Al final de todas las rondas, <strong>gana quien acumuló menos puntos</strong>.
+          </p>
+          <p class="rules-note">
+            Valores orientativos: Comodín 25 pts · As 1 pt · 2–9 valor nominal · 10/J/Q/K 10 pts. Las reglas exactas pueden variar según el grupo.
+          </p>
+        </div>
+      </template>
+
+      <!-- Continental -->
+      <template v-else-if="rulesModal==='continental'">
+        <h2 class="modal-title">🎯 Reglas: Continental</h2>
+        <div class="rules-body">
+          <p class="rules-intro">
+            Juego de cartas con 2 mazos estándar (incluyendo comodines). Se reparten <strong>12 cartas</strong> a cada jugador. Se juega en <strong>7 rondas</strong> con combinaciones en orden fijo.
+          </p>
+          <div class="rules-section-title">Rondas</div>
+          <div v-for="(c,i) in activeContinentalCombos" :key="c.id" class="rules-combo-row">
+            <span class="rules-num">{{i+1}}</span>
+            <span class="pip pip-done" style="font-size:10px;padding:2px 7px;flex-shrink:0">{{c.short}}</span>
+            <span>{{c.name}}</span>
+          </div>
+          <div class="rules-section-title">Puntaje</div>
+          <p class="rules-intro" style="margin-bottom:0">
+            El <strong>ganador</strong> de cada ronda (quien baja primero su combinación) anota <strong>0 puntos</strong>. Los demás cuentan el valor de las cartas que les quedan en mano. Al final de las 7 rondas, <strong>gana quien acumuló menos puntos</strong>.
           </p>
           <p class="rules-note">
             Valores orientativos: Comodín 25 pts · As 1 pt · 2–9 valor nominal · 10/J/Q/K 10 pts. Las reglas exactas pueden variar según el grupo.
@@ -2364,16 +2404,17 @@ body{
         <!-- sub-tabs -->
         <div class="tabs" style="margin-bottom:10px">
           <div class="tab" :class="{on:comboTab==='fixed'}" @click="comboTab='fixed'">Carioca</div>
+          <div class="tab" :class="{on:comboTab==='continental'}" @click="comboTab='continental'">Continental</div>
           <div class="tab" :class="{on:comboTab==='libre'}" @click="comboTab='libre'">Carioca Libre</div>
         </div>
         <p style="font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.5">
           Activa o desactiva combinaciones con el interruptor. Arrastra <strong>⠿</strong> para reordenar.
         </p>
         <div style="font-size:12px;color:var(--muted);margin-bottom:10px">
-          {{activeCombosCount}} de {{allCombos.length}} activas
+          {{activeCombosCount}} de {{tabCombos.length}} activas
         </div>
         <div class="card" style="padding:4px 10px">
-          <div v-for="(c, i) in allCombos" :key="c.id"
+          <div v-for="(c, i) in tabCombos" :key="c.id"
             class="list-item combo-drag-item"
             :class="{inactive: comboTab==='libre' ? c.activeLibre===false : c.active===false, 'drag-over': dragState.toIdx===i && dragState.fromIdx!==i && dragState.active, 'is-dragging': dragState.fromIdx===i && dragState.active}"
             :data-combo-idx="i"
@@ -2400,7 +2441,7 @@ body{
               <button class="icon-btn del" @click="delCombo(c.id)" :aria-label="'Eliminar combinación ' + c.name">🗑</button>
             </div>
           </div>
-          <div v-if="allCombos.length===0" style="padding:16px 0;text-align:center;color:var(--muted);font-size:13px">
+          <div v-if="tabCombos.length===0" style="padding:16px 0;text-align:center;color:var(--muted);font-size:13px">
             Sin combinaciones. <button class="link-btn" @click="resetCombos">Restablecer predeterminadas</button>
           </div>
         </div>
@@ -2565,11 +2606,20 @@ const DEF_COMBOS = [
   {id:'c8',gtId:'carioca',order:8,name:'Cuatro tríos',short:'4T'},
   {id:'c9',gtId:'carioca',order:9,name:'Escala sucia',short:'SD'},
   {id:'c10',gtId:'carioca',order:10,name:'Escala limpia',short:'SL'},
+  // Continental
+  {id:'co1',gtId:'continental',order:1,name:'Dos tríos',short:'2T'},
+  {id:'co2',gtId:'continental',order:2,name:'Un trío y una escalera',short:'1T+1E'},
+  {id:'co3',gtId:'continental',order:3,name:'Dos escaleras',short:'2E'},
+  {id:'co4',gtId:'continental',order:4,name:'Tres tríos',short:'3T'},
+  {id:'co5',gtId:'continental',order:5,name:'Dos tríos y una escalera',short:'2T+1E'},
+  {id:'co6',gtId:'continental',order:6,name:'Un trío y dos escaleras',short:'1T+2E'},
+  {id:'co7',gtId:'continental',order:7,name:'Tres escaleras',short:'3E'},
 ];
 
 const DEF_GTS = [
   {id:'carioca',name:'Carioca',mode:'fixed',icon:'🃏',desc:'10 rondas con combinaciones en orden fijo'},
   {id:'libre',name:'Carioca Libre',mode:'libre',icon:'🎴',desc:'Combinaciones seleccionadas, en cualquier orden'},
+  {id:'continental',name:'Continental',mode:'fixed',icon:'🎯',desc:'7 rondas clásicas en orden fijo'},
   {id:'rondas_fijas',name:'Rondas fijas',mode:'rounds',icon:'🔢',desc:'Número fijo de rondas; gana quien tenga menos puntos al final',defaultRounds:10},
   {id:'llega_pierde',name:'Llega a X — pierde',mode:'score_low',icon:'🎯',desc:'Gana quien tenga menos puntos cuando alguien alcanza el límite',defaultTarget:100},
   {id:'llega_gana',name:'Llega a X — gana',mode:'score_high',icon:'🏆',desc:'Gana el primero en llegar al puntaje objetivo',defaultTarget:100},
@@ -2880,7 +2930,18 @@ createApp({
     },
 
     allCombos(){
-      return [...this.combos].sort((a,b)=>(a.order||0)-(b.order||0));
+      return [...this.combos].filter(c=>!c.gtId||c.gtId==='carioca').sort((a,b)=>(a.order||0)-(b.order||0));
+    },
+    continentalCombos(){
+      return [...this.combos].filter(c=>c.gtId==='continental').sort((a,b)=>(a.order||0)-(b.order||0));
+    },
+    activeContinentalCombos(){
+      return this.continentalCombos.filter(c=>c.active!==false);
+    },
+    // combos del tab activo en Ajustes
+    tabCombos(){
+      if(this.comboTab==='continental') return this.continentalCombos;
+      return this.allCombos;
     },
 
     activeCombos(){
@@ -2889,6 +2950,7 @@ createApp({
 
     activeCombosCount(){
       if(this.comboTab==='libre') return this.libreCombos.length;
+      if(this.comboTab==='continental') return this.activeContinentalCombos.length;
       return this.activeCombos.length;
     },
 
@@ -3372,7 +3434,7 @@ createApp({
         if(!this.setupIsTruco && s.pIds.length<2) return;
         // Pre-populate combo selection if entering step 3 with empty cIds
         if(this.setupIsFixed&&!s.cIds.length){
-          s.cIds=this.activeCariocaCombos.map(c=>c.id);
+          s.cIds=(s.gameTypeId==='continental'?this.activeContinentalCombos:this.activeCariocaCombos).map(c=>c.id);
         } else if(this.setupIsLibre&&!s.cIds.length){
           s.cIds=this.activeLibreCombos.map(c=>c.id);
         }
@@ -3469,7 +3531,7 @@ createApp({
       }
       const gt=this.gameTypes.find(g=>g.id===m.gtId);
       const mode=gt?gt.mode:'fixed';
-      const cIds=mode==='fixed'?this.activeCariocaCombos.map(c=>c.id):mode==='libre'?[...m.cIds||[]]:[];
+      const cIds=mode==='fixed'?(m.gtId==='continental'?this.activeContinentalCombos:this.activeCariocaCombos).map(c=>c.id):mode==='libre'?[...m.cIds||[]]:[];
       const doneMap={};
       if(mode==='libre'){ for(const pid of m.pIds) doneMap[pid]=[]; }
       this.game={
@@ -3987,7 +4049,7 @@ createApp({
       const gt=this.gameTypes.find(g=>g.id===cfg.gtId);
       const mode=gt?gt.mode:'fixed';
       const cIds=mode==='fixed'
-        ? this.activeCariocaCombos.map(c=>c.id)
+        ? (cfg.gtId==='continental'?this.activeContinentalCombos:this.activeCariocaCombos).map(c=>c.id)
         : mode==='libre' ? [...(cfg.cIds||[])].filter(id=>this.combos.some(c=>c.id===id)) : [];
       const doneMap={};
       if(mode==='libre'){
