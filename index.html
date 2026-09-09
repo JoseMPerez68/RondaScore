@@ -2595,6 +2595,9 @@ const { createApp } = Vue;
 // Prompt de instalación PWA en window (verdaderamente global)
 window._pwaInstallPrompt = null;
 
+// ═══════════════════════════════════════
+// ── DATOS ESTÁTICOS (DEF_COMBOS / DEF_GTS) ──
+// ═══════════════════════════════════════
 const DEF_COMBOS = [
   {id:'c1',gtId:'carioca',order:1,name:'Dos tríos',short:'2T'},
   {id:'c2',gtId:'carioca',order:2,name:'Una escalera y un trío',short:'1E+1T'},
@@ -2630,6 +2633,9 @@ const DEF_GTS = [
 const COLORS = ['#e74c3c','#3498db','#e67e22','#9b59b6','#27ae60','#0891b2','#d35400','#c0392b'];
 
 createApp({
+  // ═══════════════════════════════════════
+  // ── DATA ──
+  // ═══════════════════════════════════════
   data(){
     return {
       view:'home',
@@ -2717,7 +2723,11 @@ createApp({
     };
   },
 
+  // ═══════════════════════════════════════
+  // ── COMPUTED ──
+  // ═══════════════════════════════════════
   computed:{
+    // ── Estado de partida / modo ──
     hasGame(){ return !!this.game && this.game.status==='active'; },
 
     gameMode(){
@@ -2746,6 +2756,7 @@ createApp({
       if(!this.isTruco||!this.game) return '';
       return this.game.dealer==='A'?this.game.teamA:this.game.teamB;
     },
+    // ── Dealer / jugadores activos ──
     currentDealerPid(){
       if(!this.game||this.isTruco||!this.activePIds.length) return null;
       const idx=(this.game.dealerIdx??0)%this.activePIds.length;
@@ -2783,6 +2794,7 @@ createApp({
       return this.players.filter(p=>!inGame.has(p.id));
     },
 
+    // ── Chips ──
     cardChips(){
       return [
         {key:'joker',label:'🃏',pts:this.chipValues.joker,sub:'Comodín'},
@@ -2806,6 +2818,7 @@ createApp({
       return !this.game||this.chipPlayerIdx>=this.activePIds.length-1;
     },
 
+    // ── Setup wizard ──
     setupIsScoreMode(){
       const gt=this.gameTypes.find(g=>g.id===this.setup.gameTypeId);
       return gt&&(gt.mode==='score_low'||gt.mode==='score_high');
@@ -2838,6 +2851,7 @@ createApp({
       return {livesLeft,cycleScores};
     },
 
+    // ── Modal ganador ──
     winnerModalPlayers(){
       if(!this.winnerModal) return [];
       const {final, pIds, scoringDir, roundsWinner, winner} = this.winnerModal;
@@ -2857,6 +2871,7 @@ createApp({
       return (this.game.gameName&&this.game.gameName.trim())||this.gameTypeName(this.game.gtId);
     },
 
+    // ── Progreso de partida ──
     curCombo(){
       if(!this.hasGame) return null;
       if(this.isLibre) return null;
@@ -2919,6 +2934,7 @@ createApp({
       return [...active,...ret];
     },
 
+    // ── Combos ──
     gameCombos(){
       if(!this.hasGame) return [];
       return this.game.cIds.map(id=>this.combos.find(c=>c.id===id)).filter(Boolean);
@@ -2960,6 +2976,7 @@ createApp({
     activeCariocaCombos(){ return this.activeCombos; },
     activeLibreCombos(){ return this.libreCombos; },
 
+    // ── Historial ──
     finishedGames(){
       return [...this.games].filter(g=>g.status==='finished')
         .sort((a,b)=>new Date(b.endDate||b.date)-new Date(a.endDate||a.date));
@@ -3130,6 +3147,9 @@ createApp({
     },
   },
 
+  // ═══════════════════════════════════════
+  // ── METHODS ──
+  // ═══════════════════════════════════════
   methods:{
     // nav
     nav(v){ this.view=v; this.detailGame=null; this.showMenu=false; },
@@ -3168,7 +3188,7 @@ createApp({
       return `${(g.pIds||[]).length} jugadores · ${(g.rounds||[]).length} rondas`;
     },
 
-    // ── TRUCO METHODS ──
+    // ── TRUCO ──
     trucoAdd(team, pts){
       if(!this.isTruco||this.game.winner) return;
       this.game.history.push({team, pts});
@@ -3200,7 +3220,7 @@ createApp({
       this.save();
     },
 
-    // ── RETIRO / ELIMINACIÓN DE JUGADOR ──
+    // ── RETIRO / ELIMINACIÓN ──
     confirmRetirePlayer(pid){
       // Si el jugador fue añadido a mitad y aún no ha jugado ninguna ronda, ofrecer eliminación completa
       const joined=(this.game.joinedPIds||[]).find(j=>j.pid===pid);
@@ -3396,7 +3416,7 @@ createApp({
       return Math.round(((this.game.doneMap[pid]||[]).length/this.game.cIds.length)*100);
     },
 
-    // ── SETUP ──
+    // ── SETUP WIZARD ──
     openSetup(){
       const gtId=this.lastCfg.gtId||'carioca';
       const gt=this.gameTypes.find(g=>g.id===gtId);
@@ -3557,7 +3577,7 @@ createApp({
       this.nav('game');
     },
 
-    // ── ROUND ENTRY ──
+    // ── ENTRADA DE RONDA ──
     openRound(){
       this.roundWinner='';
       this.roundScores={};
@@ -3570,7 +3590,7 @@ createApp({
       }
     },
 
-    // ── CHIP KEYBOARD ──
+    // ── TECLADO CHIPS ──
     initChipCounts(){
       const keys=['joker','ace','face','10','9','8','7','6','5','4','3','2'];
       const cc={};
@@ -3964,7 +3984,7 @@ createApp({
       this.showToast('Puntaje corregido ✓');
     },
 
-    // ── LIBRE COMBOS ──
+    // ── COMBOS LIBRE ──
     toggleComboDone(pid,cid){
       if(!this.game||!this.game.doneMap) return;
       const arr=this.game.doneMap[pid]||[];
@@ -3987,7 +4007,7 @@ createApp({
       }
     },
 
-    // ── PLAYERS ──
+    // ── JUGADORES ──
     openNewPlayerModal(){
       const colorIdx=this.players.length%COLORS.length;
       this.pModal={open:true,id:null,name:'',color:COLORS[colorIdx]};
@@ -4206,7 +4226,7 @@ createApp({
       else r.removeAttribute('data-theme');
     },
 
-    // ── COMBOS ──
+    // ── COMBOS (AJUSTES) ──
     toggleComboActive(id){
       const c=this.combos.find(x=>x.id===id);
       if(!c) return;
@@ -4265,7 +4285,7 @@ createApp({
       this.dragState={ active:false, fromIdx:null, toIdx:null };
     },
 
-    // ── Player drag reorder ──
+    // ── DRAG REORDER JUGADORES ──
     desktopDragStartPlayer(e, idx){
       e.dataTransfer.effectAllowed='move';
       this.playerDragState={ active:true, fromIdx:idx, toIdx:idx };
@@ -4350,7 +4370,7 @@ createApp({
       };
     },
 
-    // ── HISTORY ──
+    // ── HISTORIAL ──
     viewGame(g){ this.view='history'; this.showMenu=false; this.detailGame=g; },
     // Returns true if player `pid` lost a life at round index `ri` in the active game
     roundLostLife(ri, pid){
@@ -4412,7 +4432,7 @@ createApp({
       return players.sort((a,b)=>desc?(f[b.id]||0)-(f[a.id]||0):(f[a.id]||0)-(f[b.id]||0));
     },
 
-    // ── PERSISTENCE ──
+    // ── PERSISTENCIA (save/load) ──
     save(){
       try{
         const d={players:this.players,combos:this.combos,games:this.games,game:this.game,lastCfg:this.lastCfg};
@@ -4527,6 +4547,9 @@ createApp({
     },
   },
 
+  // ═══════════════════════════════════════
+  // ── MOUNTED ──
+  // ═══════════════════════════════════════
   mounted(){
     this.load();
 
