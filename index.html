@@ -4718,7 +4718,7 @@ createApp({
       if(typeof p.keepScreenOn==='boolean') this.keepScreenOn=p.keepScreenOn;
       if(typeof p.autoUpdate==='boolean') this.autoUpdate=p.autoUpdate;
       if(p.cookieConsent==='accepted'||p.cookieConsent==='rejected') this.cookieConsent=p.cookieConsent;
-      if(p.cookieConsent==='accepted') window._loadGA4&&window._loadGA4();
+      if(p.cookieConsent==='accepted'){ window._loadGA4&&window._loadGA4(); gtag('consent','update',{analytics_storage:'granted',ad_storage:'denied'}); }
       if(p.roundInputMode==='chips'||p.roundInputMode==='number') this.roundInputMode=p.roundInputMode;
       if(p.chipValues?.ace>0)   { this.chipValues.ace=p.chipValues.ace; this.chipValues.aceCustom=!!p.chipValues.aceCustom; }
       if(p.chipValues?.joker>0) { this.chipValues.joker=p.chipValues.joker; this.chipValues.jokerCustom=!!p.chipValues.jokerCustom; }
