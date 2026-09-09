@@ -911,7 +911,7 @@ body{
   <div v-if="installPrompt" class="install-banner" @click="installApp">
     <div class="install-banner-icon">🃏</div>
     <div class="install-banner-text">
-      <strong>Instalar RondaScore</strong>
+      <strong>Instalar CartaScore</strong>
       <span>Toca aquí para añadir a tu pantalla de inicio</span>
     </div>
     <button class="install-banner-dismiss" @click.stop="installPrompt=false" aria-label="Cerrar aviso de instalación">✕</button>
@@ -1643,7 +1643,7 @@ body{
   <header class="app-hdr">
     <span class="hdr-suit" aria-hidden="true">♠♥</span>
     <div class="hdr-titles">
-      <div class="hdr-main">RondaScore</div>
+      <div class="hdr-main">CartaScore</div>
       <div class="hdr-sub" v-if="hasGame">
         {{activeGameName}}
         <template v-if="isTruco"> · {{game.teamA}} {{game.scoreA}}–{{game.scoreB}} {{game.teamB}}</template>
@@ -2562,7 +2562,7 @@ body{
         <!-- Enlace política -->
         <div style="padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
           <button class="link-btn" style="font-size:13px" @click="privacyModal=true">Política de Privacidad y Aviso Legal</button>
-          <span style="font-size:11px;color:var(--muted)">v4 · RondaScore</span>
+          <span style="font-size:11px;color:var(--muted)">v1 · CartaScore</span>
         </div>
       </div>
 
@@ -3456,7 +3456,7 @@ createApp({
     sendFeedback(){
       const body=this.feedbackText.trim();
       if(!body) return;
-      const link=`mailto:jperezg@duoc.cl?subject=${encodeURIComponent('Sugerencia RondaScore')}&body=${encodeURIComponent(body)}`;
+      const link=`mailto:jperezg@duoc.cl?subject=${encodeURIComponent('Sugerencia CartaScore')}&body=${encodeURIComponent(body)}`;
       window.open(link,'_blank','noopener,noreferrer');
       this.feedbackText='';
     },
@@ -4176,7 +4176,7 @@ createApp({
 
       // Encabezado
       const lines=[];
-      lines.push(`🎴 RondaScore – ${this.gameTypeName(g.gtId)}`);
+      lines.push(`🎴 CartaScore – ${this.gameTypeName(g.gtId)}`);
       lines.push(`📅 ${this.fDate(g.date)} · ${g.rounds.length} rondas`);
       lines.push('');
 
@@ -4216,7 +4216,7 @@ createApp({
 
       lines.push('');
       lines.push('─────────────────────────');
-      lines.push('Generado con RondaScore · Los nombres son apodos ingresados por el usuario');
+      lines.push('Generado con CartaScore · Los nombres son apodos ingresados por el usuario');
       const text=lines.join('\n');
       if(navigator.share){
         try{
