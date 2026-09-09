@@ -910,12 +910,9 @@ body{
 <div id="app" v-cloak style="display:none">
 
   <!-- ===== SW UPDATE BAR ===== -->
-  <div v-if="swUpdate" class="sw-update-bar">
+  <div v-if="swUpdate && autoUpdate" class="sw-update-bar">
     <span>🆕 Nueva versión disponible</span>
-    <div style="display:flex;gap:8px">
-      <button @click="swUpdate=null" style="background:rgba(255,255,255,.15)">Posponer</button>
-      <button @click="updateApp">Actualizar ahora</button>
-    </div>
+    <button @click="updateApp">Actualizar ahora</button>
   </div>
 
   <!-- ===== INSTALL BANNER ===== -->
@@ -2259,6 +2256,19 @@ body{
           </div>
           <button class="combo-toggle" :class="{on:autoUpdate}" @click="autoUpdate=!autoUpdate;savePrefs()"
             role="switch" :aria-checked="autoUpdate" aria-label="Actualizaciones automáticas"></button>
+        </div>
+        <div v-if="!autoUpdate" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:14px;font-weight:600">Versión de la app</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">
+              <span v-if="swUpdate" style="color:var(--accent);font-weight:600">🆕 Actualización disponible</span>
+              <span v-else style="color:var(--green-acc)">✓ Al día</span>
+            </div>
+          </div>
+          <button class="btn btn-sm" :class="swUpdate ? 'btn-primary' : 'btn-muted'"
+            :disabled="!swUpdate" @click="updateApp" style="min-width:120px">
+            {{ swUpdate ? 'Actualizar ahora' : 'Sin novedades' }}
+          </button>
         </div>
       </div>
       <!-- Valores de cartas -->
@@ -4565,6 +4575,16 @@ if (splash) {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').then(reg => {
+      // Si ya había un SW en espera de una sesión anterior, lo recuperamos
+      if (reg.waiting && navigator.serviceWorker.controller) {
+        const vueApp = document.querySelector('#app').__vue_app__;
+        if (vueApp) {
+          const vm = vueApp._instance.proxy;
+          vm.swUpdate = reg.waiting;
+          if (vm.autoUpdate) vm.updateApp();
+        }
+      }
+
       reg.addEventListener('updatefound', () => {
         const newSW = reg.installing;
         newSW.addEventListener('statechange', () => {
