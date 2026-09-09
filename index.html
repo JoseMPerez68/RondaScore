@@ -4587,6 +4587,7 @@ createApp({
             ...typeof c.active==='boolean'?{active:c.active}:{},
             ...typeof c.activeLibre==='boolean'?{activeLibre:c.activeLibre}:{},
             ...typeof c.order==='number'?{order:c.order}:{},
+            ...typeof c.gtId==='string'&&c.gtId?{gtId:c.gtId}:{},
           }));
           const sorted=[...loaded].sort((a,b)=>a.order-b.order);
           sorted.forEach((c,i)=>{ c.order=i+1; });
