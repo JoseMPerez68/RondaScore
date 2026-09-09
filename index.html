@@ -2500,7 +2500,7 @@ body{
       <div class="card" style="margin-top:16px">
         <div class="card-label">Sugerencias y contacto</div>
         <p style="font-size:13px;color:var(--muted);margin:0 0 10px;line-height:1.5">
-          ¿Tienes una idea para mejorar RondaScore? Cuéntanos y la tenemos en cuenta.
+          ¿Tienes una idea para mejorar CartaScore? Cuéntanos y la tenemos en cuenta.
         </p>
         <textarea v-model="feedbackText" rows="3"
           placeholder="Escribe tu sugerencia aquí…"
@@ -2512,6 +2512,27 @@ body{
             style="font-size:13px;padding:8px 18px">
             ✉️ Enviar sugerencia
           </button>
+        </div>
+      </div>
+
+      <!-- Exportar / Importar datos -->
+      <div class="card" style="margin-top:16px">
+        <div class="card-label">Exportar e importar datos</div>
+        <p style="font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.5">
+          Guarda una copia de seguridad de tus partidas, jugadores y configuración, o restáuralos desde un backup anterior.
+        </p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" @click="exportData" style="flex:1;min-width:120px">
+            ⬇️ Exportar backup
+          </button>
+          <button class="btn btn-muted btn-sm" @click="$refs.importFile.click()" style="flex:1;min-width:120px">
+            ⬆️ Importar backup
+          </button>
+        </div>
+        <input ref="importFile" type="file" accept=".json" style="display:none" @change="importData">
+        <div v-if="importStatus" style="margin-top:10px;font-size:12px;padding:8px 10px;border-radius:8px"
+          :style="{background:importStatus.ok?'color-mix(in srgb,var(--green-acc) 12%,var(--bg))':'color-mix(in srgb,var(--red) 12%,var(--bg))',color:importStatus.ok?'var(--green-acc)':'var(--red)'}">
+          {{importStatus.msg}}
         </div>
       </div>
 
@@ -2756,6 +2777,7 @@ createApp({
       // Chip keyboard card values
       chipValues:{ joker:30, ace:20, aceCustom:false, jokerCustom:false },
       chipValuesContinental:{ joker:30, ace:20, aceCustom:false, jokerCustom:false },
+      importStatus:null,
       chipTab:'carioca',
 
       // Privacy / RGPD
@@ -4483,6 +4505,54 @@ createApp({
       const f=g.final||{};
       const desc=(mode==='score_high')||(mode==='rounds'&&g.roundsWinner==='high');
       return players.sort((a,b)=>desc?(f[b.id]||0)-(f[a.id]||0):(f[a.id]||0)-(f[b.id]||0));
+    },
+
+    // ── BACKUP: exportar / importar ──
+    exportData(){
+      try{
+        const payload={
+          app:'CartaScore',
+          version:1,
+          exportDate:new Date().toISOString(),
+          data:{
+            cartascore_v1:localStorage.getItem('cartascore_v1'),
+            cartascore_prefs:localStorage.getItem('cartascore_prefs'),
+            cartascore_theme:localStorage.getItem('cartascore_theme'),
+          }
+        };
+        const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement('a');
+        const date=new Date().toISOString().slice(0,10);
+        a.href=url; a.download=`cartascore-backup-${date}.json`;
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }catch(e){ this.importStatus={ok:false,msg:'Error al exportar: '+e.message}; }
+    },
+    importData(event){
+      const file=event.target.files[0];
+      if(!file){ return; }
+      const reader=new FileReader();
+      reader.onload=e=>{
+        try{
+          const payload=JSON.parse(e.target.result);
+          if(!payload||payload.app!=='CartaScore'||!payload.data){
+            this.importStatus={ok:false,msg:'Archivo no válido. Usa un backup generado por CartaScore.'};
+            return;
+          }
+          const d=payload.data;
+          if(d.cartascore_v1)    localStorage.setItem('cartascore_v1',d.cartascore_v1);
+          if(d.cartascore_prefs) localStorage.setItem('cartascore_prefs',d.cartascore_prefs);
+          if(d.cartascore_theme) localStorage.setItem('cartascore_theme',d.cartascore_theme);
+          this.importStatus={ok:true,msg:'Backup restaurado. Recargando…'};
+          setTimeout(()=>location.reload(),1200);
+        }catch(err){
+          this.importStatus={ok:false,msg:'Error al leer el archivo: '+err.message};
+        }
+        this.$refs.importFile.value='';
+      };
+      reader.readAsText(file);
     },
 
     // ── PERSISTENCIA (save/load) ──
