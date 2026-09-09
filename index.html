@@ -2562,7 +2562,7 @@ body{
         <!-- Enlace política -->
         <div style="padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
           <button class="link-btn" style="font-size:13px" @click="privacyModal=true">Política de Privacidad y Aviso Legal</button>
-          <span style="font-size:11px;color:var(--muted)">v1 · CartaScore</span>
+          <span style="font-size:11px;color:var(--muted)">v1 · CartaScore · <span :title="buildDate">{{buildDateShort}}</span></span>
         </div>
       </div>
 
@@ -3038,6 +3038,14 @@ createApp({
       return this.allCombos.filter(c=>c.active!==false);
     },
 
+    buildDate(){
+      const d=new Date(document.lastModified);
+      return d.toLocaleString('es-CL',{dateStyle:'short',timeStyle:'short'});
+    },
+    buildDateShort(){
+      const d=new Date(document.lastModified);
+      return d.toLocaleDateString('es-CL',{day:'2-digit',month:'2-digit',year:'2-digit'})+' '+d.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
+    },
     activeCombosCount(){
       if(this.comboTab==='libre') return this.libreCombos.length;
       if(this.comboTab==='continental') return this.activeContinentalCombos.length;
