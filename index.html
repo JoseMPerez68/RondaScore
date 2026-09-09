@@ -2562,7 +2562,7 @@ body{
         <!-- Enlace política -->
         <div style="padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
           <button class="link-btn" style="font-size:13px" @click="privacyModal=true">Política de Privacidad y Aviso Legal</button>
-          <span style="font-size:11px;color:var(--muted)">v1 · CartaScore · <span :title="buildDate">{{buildDateShort}}</span></span>
+          <span style="font-size:11px;color:var(--muted);white-space:nowrap">v1 · CartaScore &nbsp;·&nbsp; <span style="font-variant-numeric:tabular-nums">🕐 {{buildDate}}</span></span>
         </div>
       </div>
 
@@ -3040,12 +3040,14 @@ createApp({
 
     buildDate(){
       const d=new Date(document.lastModified);
-      return d.toLocaleString('es-CL',{dateStyle:'short',timeStyle:'short'});
+      const dd=String(d.getDate()).padStart(2,'0');
+      const mm=String(d.getMonth()+1).padStart(2,'0');
+      const yy=String(d.getFullYear()).slice(2);
+      const hh=String(d.getHours()).padStart(2,'0');
+      const min=String(d.getMinutes()).padStart(2,'0');
+      return `${dd}/${mm}/${yy} ${hh}:${min}`;
     },
-    buildDateShort(){
-      const d=new Date(document.lastModified);
-      return d.toLocaleDateString('es-CL',{day:'2-digit',month:'2-digit',year:'2-digit'})+' '+d.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
-    },
+    buildDateShort(){ return this.buildDate; },
     activeCombosCount(){
       if(this.comboTab==='libre') return this.libreCombos.length;
       if(this.comboTab==='continental') return this.activeContinentalCombos.length;
