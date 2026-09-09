@@ -1,5 +1,19 @@
 <title>CartaScore</title>
-<style>html{background:#152f25}</style>
+<style>html{background:#152f25}
+/* ── SPLASH ── */
+#splash{position:fixed;inset:0;background:#152f25;display:flex;align-items:center;justify-content:center;z-index:9999;transition:opacity .45s ease}
+#splash.hidden{opacity:0;pointer-events:none}
+.splash-inner{text-align:center;user-select:none}
+.splash-symbol{display:block;font-size:52px;line-height:1;color:#27805a;margin-bottom:14px}
+.splash-name{font-size:26px;font-weight:300;letter-spacing:3px;color:#e8f0eb}
+.splash-name strong{font-weight:700}
+
+/* ── BRAND HEADER (home) ── */
+.brand-header{display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 0 14px;opacity:.72}
+.brand-header .bh-symbol{font-size:15px;color:var(--green-acc)}
+.brand-header .bh-name{font-size:13px;letter-spacing:1.5px;color:var(--text);font-weight:300}
+.brand-header .bh-name strong{font-weight:700}
+</style>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://www.google-analytics.com; connect-src https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'">
 <meta name="theme-color" content="#152f25">
@@ -1680,6 +1694,12 @@ body{
 
     <!-- ========= HOME ========= -->
     <section class="view" v-show="view==='home'">
+
+      <!-- Brand header -->
+      <div class="brand-header">
+        <span class="bh-symbol">♠</span>
+        <span class="bh-name">Carta<strong>Score</strong></span>
+      </div>
 
       <!-- Active game banner -->
       <div v-if="hasGame" class="game-banner" @click="nav('game')" style="margin-bottom:10px">
@@ -4551,6 +4571,9 @@ createApp({
   // ── MOUNTED ──
   // ═══════════════════════════════════════
   mounted(){
+    // Ocultar splash al montar
+    const splash=document.getElementById('splash');
+    if(splash){ splash.classList.add('hidden'); setTimeout(()=>splash.remove(),500); }
     this.load();
 
     // Accesibilidad: cerrar modales con Escape (WCAG 2.1 — SC 1.4.13 / SC 2.1.2)
