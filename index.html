@@ -923,7 +923,7 @@ body{
   <div v-if="toast" class="toast" role="status" aria-live="polite" aria-atomic="true">{{toast}}</div>
 
   <!-- ===== CONFIRM DIALOG ===== -->
-  <div class="overlay" v-if="confirmDlg" @click.self="confirmDlg=null">
+  <div class="overlay" v-if="confirmDlg" @click.self="confirmDlg=null" style="z-index:800">
     <div class="modal" style="border-radius:22px;max-height:auto;margin:auto">
       <p class="confirm-msg">{{ confirmDlg.msg }}</p>
       <div v-if="confirmDlg.info" class="modal-actions">
