@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.cartascore.app",
+        "sha256_cert_fingerprints": ["DA:99:4B:BB:D5:EC:30:B9:0E:47:1E:9F:88:AF:D2:D6:06:1F:4C:1E:A3:91:64:69:25:00:01:AC:75:23:54:19"]
+      }
+    }]
