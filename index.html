@@ -2926,6 +2926,12 @@ const DEF_COMBOS = [
   {id:'co7',gtId:'continental',order:7,name:'Tres escaleras',short:'3E'},
 ];
 
+const DEF_CUSTOM_GAMES = [
+  {id:'dcg_chinchon', name:'Chinchón', gtIds:['llega_pierde']},
+  {id:'dcg_remigio',  name:'Remigio',  gtIds:['llega_pierde']},
+  {id:'dcg_canasta',  name:'Canasta',  gtIds:['llega_gana','rondas_fijas']},
+];
+
 const DEF_GTS = [
   {id:'carioca',name:'Carioca',mode:'fixed',icon:'🃏',desc:'10 rondas con combinaciones en orden fijo'},
   {id:'libre',name:'Carioca Libre',mode:'libre',icon:'🎴',desc:'Combinaciones seleccionadas, en cualquier orden'},
@@ -5265,11 +5271,16 @@ createApp({
           if(g) this.game=g;
         }
         if(Array.isArray(d.customGames)){
-          this.customGames=d.customGames.slice(0,100).map(g=>({
+          const loaded=d.customGames.slice(0,100).map(g=>({
             id:String(g.id||'').slice(0,20),
             name:String(g.name||'').slice(0,30),
             gtIds:Array.isArray(g.gtIds)?g.gtIds.slice(0,10).map(x=>String(x).slice(0,20)):[],
           })).filter(g=>g.id&&g.name&&g.gtIds.length>0);
+          const savedIds=new Set(loaded.map(g=>g.id));
+          const missing=DEF_CUSTOM_GAMES.filter(g=>!savedIds.has(g.id));
+          this.customGames=[...loaded,...missing];
+        } else {
+          this.customGames=[...DEF_CUSTOM_GAMES];
         }
         if(d.lastCfg&&typeof d.lastCfg==='object'){
           this.lastCfg={
