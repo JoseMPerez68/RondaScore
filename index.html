@@ -2227,7 +2227,7 @@ body{
                           <span v-if="r.escobaDetail[pid].oros" title="Oros">🪙</span>
                           <span v-if="r.escobaDetail[pid].settebello" title="Settebello">7</span>
                           <span v-if="r.escobaDetail[pid].primera" title="Primera">P</span>
-                          <span v-if="r.escobaDetail[pid].escobas" title="Escobas">🥄{{r.escobaDetail[pid].escobas}}</span>
+                          <span v-if="r.escobaDetail[pid].escobas" title="Escobas">🧹{{r.escobaDetail[pid].escobas}}</span>
                         </template>
                       </template>
                     </td>
@@ -2330,7 +2330,7 @@ body{
                           <span v-if="r.escobaDetail[pid].oros" title="Oros">🪙</span>
                           <span v-if="r.escobaDetail[pid].settebello" title="Settebello">7</span>
                           <span v-if="r.escobaDetail[pid].primera" title="Primera">P</span>
-                          <span v-if="r.escobaDetail[pid].escobas" title="Escobas">🥄{{r.escobaDetail[pid].escobas}}</span>
+                          <span v-if="r.escobaDetail[pid].escobas" title="Escobas">🧹{{r.escobaDetail[pid].escobas}}</span>
                         </template>
                       </template>
                     </td>
@@ -2936,7 +2936,7 @@ const DEF_GTS = [
   {id:'carioca',name:'Carioca',mode:'fixed',icon:'🃏',desc:'10 rondas con combinaciones en orden fijo'},
   {id:'libre',name:'Carioca Libre',mode:'libre',icon:'🎴',desc:'Combinaciones seleccionadas, en cualquier orden'},
   {id:'continental',name:'Continental',mode:'fixed',icon:'🎯',desc:'7 rondas clásicas en orden fijo'},
-  {id:'escoba',name:'Escoba de Quince',mode:'escoba',icon:'🥄',desc:'Cartas, Oros, Settebello, Primera y Escobas — gana quien llegue primero al objetivo',defaultTarget:11},
+  {id:'escoba',name:'Escoba de Quince',mode:'escoba',icon:'🧹',desc:'Cartas, Oros, Settebello, Primera y Escobas — gana quien llegue primero al objetivo',defaultTarget:11},
   {id:'rondas_fijas',name:'Rondas fijas',mode:'rounds',icon:'🔢',desc:'Número fijo de rondas; gana quien tenga menos puntos al final',defaultRounds:10},
   {id:'llega_pierde',name:'Llega a X — pierde',mode:'score_low',icon:'🎯',desc:'Gana quien tenga menos puntos cuando alguien alcanza el límite',defaultTarget:100},
   {id:'llega_gana',name:'Llega a X — gana',mode:'score_high',icon:'🏆',desc:'Gana el primero en llegar al puntaje objetivo',defaultTarget:100},
