@@ -1330,9 +1330,25 @@ body{
           <!-- Modos score_low / score_high -->
           <template v-if="setupIsScoreMode">
             <div class="field">
-              <label class="field-label">Nombre del juego <span style="font-weight:400;text-transform:none">(opcional)</span></label>
-              <input class="inp" type="text" maxlength="30"
-                v-model="setup.gameName" placeholder="Ej: Dominó, Truco, Canasta…">
+              <label class="field-label">Juego <span style="font-weight:400;text-transform:none">(opcional)</span></label>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+                <button v-for="cg in cgForSetup" :key="cg.id" type="button"
+                  class="btn btn-sm" style="font-size:13px"
+                  :class="setup.customGameId===cg.id?'btn-primary':'btn-muted'"
+                  @click="selectSetupGame(cg.id,cg.name)">{{cg.name}}</button>
+                <button type="button" class="btn btn-sm" style="font-size:13px"
+                  :class="setup.customGameId==='otro'?'btn-primary':'btn-muted'"
+                  @click="selectSetupGame('otro','')">✏️ Otro…</button>
+              </div>
+              <template v-if="setup.customGameId==='otro'||cgForSetup.length===0">
+                <input class="inp" type="text" maxlength="30" style="margin-top:8px"
+                  v-model="setup.gameName" placeholder="Ej: Dominó, Truco, Canasta…">
+                <button v-if="setup.gameName.trim()" type="button" class="link-btn"
+                  style="font-size:12px;margin-top:6px"
+                  @click="quickSaveCustomGame(setup.gameName,setup.gameTypeId)">
+                  + Guardar "{{setup.gameName}}" en Mis juegos
+                </button>
+              </template>
             </div>
             <div class="field">
               <label class="field-label">Puntos límite</label>
@@ -1347,9 +1363,25 @@ body{
           <!-- Modo rondas fijas -->
           <template v-if="setupIsRoundsMode">
             <div class="field">
-              <label class="field-label">Nombre del juego <span style="font-weight:400;text-transform:none">(opcional)</span></label>
-              <input class="inp" type="text" maxlength="30"
-                v-model="setup.gameName" placeholder="Ej: Canasta, Gin Rummy…">
+              <label class="field-label">Juego <span style="font-weight:400;text-transform:none">(opcional)</span></label>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+                <button v-for="cg in cgForSetup" :key="cg.id" type="button"
+                  class="btn btn-sm" style="font-size:13px"
+                  :class="setup.customGameId===cg.id?'btn-primary':'btn-muted'"
+                  @click="selectSetupGame(cg.id,cg.name)">{{cg.name}}</button>
+                <button type="button" class="btn btn-sm" style="font-size:13px"
+                  :class="setup.customGameId==='otro'?'btn-primary':'btn-muted'"
+                  @click="selectSetupGame('otro','')">✏️ Otro…</button>
+              </div>
+              <template v-if="setup.customGameId==='otro'||cgForSetup.length===0">
+                <input class="inp" type="text" maxlength="30" style="margin-top:8px"
+                  v-model="setup.gameName" placeholder="Ej: Canasta, Gin Rummy…">
+                <button v-if="setup.gameName.trim()" type="button" class="link-btn"
+                  style="font-size:12px;margin-top:6px"
+                  @click="quickSaveCustomGame(setup.gameName,setup.gameTypeId)">
+                  + Guardar "{{setup.gameName}}" en Mis juegos
+                </button>
+              </template>
             </div>
             <div class="field">
               <label class="field-label">Número de rondas</label>
@@ -1389,9 +1421,25 @@ body{
           <!-- Modo vidas -->
           <template v-if="setupIsLivesMode">
             <div class="field">
-              <label class="field-label">Nombre del juego <span style="font-weight:400;text-transform:none">(opcional)</span></label>
-              <input class="inp" type="text" maxlength="30"
-                v-model="setup.gameName" placeholder="Ej: Burako, Truco, Gin Rummy…">
+              <label class="field-label">Juego <span style="font-weight:400;text-transform:none">(opcional)</span></label>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+                <button v-for="cg in cgForSetup" :key="cg.id" type="button"
+                  class="btn btn-sm" style="font-size:13px"
+                  :class="setup.customGameId===cg.id?'btn-primary':'btn-muted'"
+                  @click="selectSetupGame(cg.id,cg.name)">{{cg.name}}</button>
+                <button type="button" class="btn btn-sm" style="font-size:13px"
+                  :class="setup.customGameId==='otro'?'btn-primary':'btn-muted'"
+                  @click="selectSetupGame('otro','')">✏️ Otro…</button>
+              </div>
+              <template v-if="setup.customGameId==='otro'||cgForSetup.length===0">
+                <input class="inp" type="text" maxlength="30" style="margin-top:8px"
+                  v-model="setup.gameName" placeholder="Ej: Burako, Truco, Gin Rummy…">
+                <button v-if="setup.gameName.trim()" type="button" class="link-btn"
+                  style="font-size:12px;margin-top:6px"
+                  @click="quickSaveCustomGame(setup.gameName,setup.gameTypeId)">
+                  + Guardar "{{setup.gameName}}" en Mis juegos
+                </button>
+              </template>
             </div>
             <div class="field">
               <label class="field-label">Vidas por jugador</label>
@@ -1511,7 +1559,7 @@ body{
 
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
         <button class="btn btn-primary btn-block" @click="rulesModal=null">Entendido</button>
-        <button class="btn btn-ghost btn-sm" style="width:100%;font-size:12px;color:var(--muted)" @click="rulesModal=null;nav('settings');stab='combos'">⚙️ Editar combinaciones en Ajustes</button>
+        <button v-if="rulesModal!=='escoba'" class="btn btn-ghost btn-sm" style="width:100%;font-size:12px;color:var(--muted)" @click="rulesModal=null;nav('settings');stab='combos'">⚙️ Editar combinaciones en Ajustes</button>
       </div>
     </div>
   </div>
@@ -2544,6 +2592,7 @@ body{
       <div class="tabs">
         <div class="tab" :class="{on:stab==='players'}" @click="stab='players'">Jugadores</div>
         <div class="tab" :class="{on:stab==='combos'}" @click="stab='combos'">Combinaciones</div>
+        <div class="tab" :class="{on:stab==='games'}" @click="stab='games'">Mis juegos</div>
       </div>
 
       <!-- PLAYERS -->
@@ -2624,6 +2673,67 @@ body{
           </div>
           <div v-if="tabCombos.length===0" style="padding:16px 0;text-align:center;color:var(--muted);font-size:13px">
             Sin combinaciones. <button class="link-btn" @click="resetCombos">Restablecer predeterminadas</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MIS JUEGOS -->
+      <div v-show="stab==='games'">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <p style="font-size:12px;color:var(--muted);margin:0;line-height:1.5">Juegos que aparecerán como opciones al crear una partida genérica.</p>
+          <button class="btn btn-primary btn-sm" style="white-space:nowrap;margin-left:12px" @click="openAddCustomGame()">+ Añadir</button>
+        </div>
+        <div v-if="customGames.length===0" class="empty" style="padding:20px 0">
+          <p>Aún no hay juegos. Añade uno para verlo disponible al crear partidas.</p>
+        </div>
+        <div class="card" v-else style="padding:4px 10px">
+          <div v-for="cg in customGames" :key="cg.id" class="list-item">
+            <div class="list-body">
+              <div class="list-title" style="font-size:14px">{{cg.name}}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">
+                {{cg.gtIds.map(id=>(gameTypes.find(g=>g.id===id)||{name:id}).name).join(', ')}}
+              </div>
+            </div>
+            <div class="list-acts">
+              <button class="icon-btn" @click="openEditCustomGame(cg)" title="Editar">✏️</button>
+              <button class="icon-btn del" @click="deleteCustomGame(cg.id)" title="Eliminar">🗑</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal añadir/editar juego personalizado -->
+        <div v-if="cgModal.show" class="modal-overlay" @click.self="cgModal.show=false" style="z-index:2100">
+          <div class="modal">
+            <div class="modal-header">
+              <div class="modal-title">{{cgModal.editId?'Editar juego':'Nuevo juego'}}</div>
+              <button class="icon-btn" @click="cgModal.show=false" aria-label="Cerrar">✕</button>
+            </div>
+            <div style="padding:16px 0 0">
+              <div class="field">
+                <label class="field-label">Nombre del juego</label>
+                <input class="inp" type="text" maxlength="30" v-model="cgModal.name"
+                  placeholder="Ej: Dominó, Burako, Canasta…" autofocus>
+              </div>
+              <div class="field">
+                <label class="field-label">Modalidades donde aparece</label>
+                <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
+                  <label v-for="gt in genericGameTypes" :key="gt.id"
+                    style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+                    <input type="checkbox" :value="gt.id" v-model="cgModal.gtIds"
+                      style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer">
+                    {{gt.icon}} {{gt.name}}
+                  </label>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:8px">
+                <button class="btn btn-muted" style="flex:1" @click="cgModal.show=false">Cancelar</button>
+                <button class="btn btn-primary" style="flex:1"
+                  :disabled="!cgModal.name.trim()||cgModal.gtIds.length===0"
+                  @click="saveCustomGame()">
+                  {{cgModal.editId?'Guardar cambios':'Añadir juego'}}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -2842,13 +2952,15 @@ createApp({
   data(){
     return {
       view:'home',
+      customGames:[],      // catálogo de juegos personalizados
+      cgModal:{show:false,name:'',gtIds:[],editId:null}, // modal Mis juegos
       stab:'players',     // settings tab
       comboTab:'fixed',   // combos sub-tab: 'fixed' | 'libre'
       gtab:'scores',      // game tab
       showMenu:false,
 
       // Setup wizard
-      setup:{step:0,gameTypeId:'',pIds:[],cIds:[],targetScore:100,totalRounds:10,roundsWinner:'low',livesStart:3,gameName:'',teamA:'Nosotros',teamB:'Ellos',trucoTarget:30},
+      setup:{step:0,gameTypeId:'',pIds:[],cIds:[],targetScore:100,totalRounds:10,roundsWinner:'low',livesStart:3,gameName:'',customGameId:null,teamA:'Nosotros',teamB:'Ellos',trucoTarget:30},
 
       // History filters
       histFilterPlayer:null,
@@ -3043,6 +3155,15 @@ createApp({
     setupIsEscobaMode(){
       const gt=this.gameTypes.find(g=>g.id===this.setup.gameTypeId);
       return gt&&gt.mode==='escoba';
+    },
+    genericGameTypes(){
+      const GENERIC_MODES=['score_low','score_high','rounds','lives'];
+      return this.gameTypes.filter(g=>GENERIC_MODES.includes(g.mode));
+    },
+    cgForSetup(){
+      const gtId=this.setup.gameTypeId;
+      if(!gtId) return [];
+      return this.customGames.filter(cg=>Array.isArray(cg.gtIds)&&cg.gtIds.includes(gtId));
     },
     escobaItems(){
       return [
@@ -4926,10 +5047,52 @@ createApp({
       reader.readAsText(file);
     },
 
+    // ── CATÁLOGO MIS JUEGOS ──
+    openAddCustomGame(){
+      this.cgModal={show:true,name:'',gtIds:[],editId:null};
+    },
+    openEditCustomGame(cg){
+      this.cgModal={show:true,name:cg.name,gtIds:[...cg.gtIds],editId:cg.id};
+    },
+    saveCustomGame(){
+      const name=this.cgModal.name.trim();
+      if(!name||this.cgModal.gtIds.length===0) return;
+      if(this.cgModal.editId){
+        const g=this.customGames.find(x=>x.id===this.cgModal.editId);
+        if(g){ g.name=name; g.gtIds=[...this.cgModal.gtIds]; }
+      } else {
+        this.customGames.push({id:'cg'+Date.now(),name,gtIds:[...this.cgModal.gtIds]});
+      }
+      this.cgModal.show=false;
+      this.save();
+    },
+    deleteCustomGame(id){
+      this.confirmDlg={
+        msg:'¿Eliminar este juego del catálogo?',
+        ok:()=>{ this.customGames=this.customGames.filter(g=>g.id!==id); this.save(); this.confirmDlg=null; }
+      };
+    },
+    selectSetupGame(id, name){
+      this.setup.customGameId=id;
+      this.setup.gameName= id==='otro' ? '' : name;
+    },
+    quickSaveCustomGame(name, gtId){
+      name=name.trim();
+      if(!name||!gtId) return;
+      const exists=this.customGames.find(g=>g.name.toLowerCase()===name.toLowerCase()&&g.gtIds.includes(gtId));
+      if(!exists){
+        this.customGames.push({id:'cg'+Date.now(),name,gtIds:[gtId]});
+        this.save();
+        this.showToast('Juego guardado en catálogo');
+      } else {
+        this.showToast('Ya existe en el catálogo');
+      }
+    },
+
     // ── PERSISTENCIA (save/load) ──
     save(){
       try{
-        const d={players:this.players,combos:this.combos,games:this.games,game:this.game,lastCfg:this.lastCfg};
+        const d={players:this.players,combos:this.combos,games:this.games,game:this.game,lastCfg:this.lastCfg,customGames:this.customGames};
         localStorage.setItem('cartascore_v1',JSON.stringify(d));
       }catch(e){}
     },
@@ -5026,6 +5189,13 @@ createApp({
         if(d.game){
           const g=sanitizeGame(d.game);
           if(g) this.game=g;
+        }
+        if(Array.isArray(d.customGames)){
+          this.customGames=d.customGames.slice(0,100).map(g=>({
+            id:String(g.id||'').slice(0,20),
+            name:String(g.name||'').slice(0,30),
+            gtIds:Array.isArray(g.gtIds)?g.gtIds.slice(0,10).map(x=>String(x).slice(0,20)):[],
+          })).filter(g=>g.id&&g.name&&g.gtIds.length>0);
         }
         if(d.lastCfg&&typeof d.lastCfg==='object'){
           this.lastCfg={
