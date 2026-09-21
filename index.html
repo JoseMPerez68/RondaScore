@@ -1786,6 +1786,37 @@ body{
     </div>
   </div>
 
+  <!-- ===== CUSTOM GAME MODAL ===== -->
+  <div v-if="cgModal.show" class="overlay" @click.self="cgModal.show=false">
+    <div class="modal">
+      <h2 class="modal-title">{{cgModal.editId?'Editar juego':'Nuevo juego'}}</h2>
+      <div class="field" style="margin-top:12px">
+        <label class="field-label">Nombre del juego</label>
+        <input class="inp" type="text" maxlength="30" v-model="cgModal.name"
+          placeholder="Ej: Dominó, Burako, Canasta…" autofocus>
+      </div>
+      <div class="field">
+        <label class="field-label">Modalidades donde aparece</label>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
+          <label v-for="gt in genericGameTypes" :key="gt.id"
+            style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+            <input type="checkbox" :value="gt.id" v-model="cgModal.gtIds"
+              style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer">
+            {{gt.icon}} {{gt.name}}
+          </label>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn btn-muted" style="flex:1" @click="cgModal.show=false">Cancelar</button>
+        <button class="btn btn-primary" style="flex:1"
+          :disabled="!cgModal.name.trim()||cgModal.gtIds.length===0"
+          @click="saveCustomGame()">
+          {{cgModal.editId?'Guardar cambios':'Añadir juego'}}
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== HEADER ===== -->
   <header class="app-hdr">
     <span class="hdr-suit" aria-hidden="true">♠♥</span>
@@ -2222,8 +2253,7 @@ body{
       <div v-if="detailGame">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
           <button class="btn btn-muted btn-sm" @click="detailGame=null">← Volver</button>
-          <button class="btn btn-ghost btn-sm" @click="shareGame(detailGame)">🔗 Compartir</button>
-          <button class="btn btn-ghost btn-sm" @click="shareGameImage(detailGame)">📷 Imagen</button>
+          <button class="btn btn-ghost btn-sm" @click="shareGameImage(detailGame)">📷 Compartir</button>
           <button class="btn btn-sm" style="margin-left:auto;color:var(--red);border-color:var(--red);background:transparent" @click="deleteFromHistory(detailGame)">🗑 Eliminar</button>
         </div>
         <div class="card">
@@ -2701,41 +2731,6 @@ body{
           </div>
         </div>
 
-        <!-- Modal añadir/editar juego personalizado -->
-        <div v-if="cgModal.show" class="modal-overlay" @click.self="cgModal.show=false" style="z-index:2100">
-          <div class="modal">
-            <div class="modal-header">
-              <div class="modal-title">{{cgModal.editId?'Editar juego':'Nuevo juego'}}</div>
-              <button class="icon-btn" @click="cgModal.show=false" aria-label="Cerrar">✕</button>
-            </div>
-            <div style="padding:16px 0 0">
-              <div class="field">
-                <label class="field-label">Nombre del juego</label>
-                <input class="inp" type="text" maxlength="30" v-model="cgModal.name"
-                  placeholder="Ej: Dominó, Burako, Canasta…" autofocus>
-              </div>
-              <div class="field">
-                <label class="field-label">Modalidades donde aparece</label>
-                <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
-                  <label v-for="gt in genericGameTypes" :key="gt.id"
-                    style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
-                    <input type="checkbox" :value="gt.id" v-model="cgModal.gtIds"
-                      style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer">
-                    {{gt.icon}} {{gt.name}}
-                  </label>
-                </div>
-              </div>
-              <div style="display:flex;gap:8px;margin-top:8px">
-                <button class="btn btn-muted" style="flex:1" @click="cgModal.show=false">Cancelar</button>
-                <button class="btn btn-primary" style="flex:1"
-                  :disabled="!cgModal.name.trim()||cgModal.gtIds.length===0"
-                  @click="saveCustomGame()">
-                  {{cgModal.editId?'Guardar cambios':'Añadir juego'}}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- Sugerencias -->
@@ -4584,9 +4579,12 @@ createApp({
       const medals=['🥇','🥈','🥉'];
 
       // calcular alto total
+      const CHART_H=120;
+      const LEG_H=18;
+      const legendRows=Math.ceil(g.pIds.length/2);
       let H=72+PAD+26+SEC+22+(sorted.length*46)+SEC+22+ROW_H;
       g.rounds.forEach(r=>{ H+=ROW_H; if(isEsc&&r.escobaDetail) H+=DET_H; });
-      H+=ROW_H+SEC+28+PAD;
+      H+=ROW_H+SEC+(SEC+6)+CHART_H+18+(legendRows*LEG_H)+SEC+28+PAD;
 
       const canvas=document.createElement('canvas');
       canvas.width=W*DPR; canvas.height=H*DPR;
@@ -4702,6 +4700,82 @@ createApp({
         c.font='bold 14px system-ui,sans-serif'; c.fillStyle='#16a34a'; c.textAlign='center';
         c.fillText(String(final[pid]||0),PAD+LBL+ci*cW+cW/2,y+22);
       }); c.textAlign='left'; y+=ROW_H+SEC;
+
+      // ── GRÁFICA DE EVOLUCIÓN ──
+      if(g.rounds.length>0){
+        // acumulados por jugador
+        const cumul={};
+        for(const pid of g.pIds){
+          cumul[pid]=[0]; let acc=0;
+          for(const r of g.rounds){ acc+=(r.scores[pid]||0); cumul[pid].push(acc); }
+        }
+        const maxV=Math.max(1,...g.pIds.flatMap(pid=>cumul[pid]));
+        const nR=g.rounds.length;
+        const CL=PAD+32;            // left edge (after Y labels)
+        const CW=W-PAD-CL;          // chart width
+
+        // título sección
+        c.font='bold 10px system-ui,sans-serif'; c.fillStyle='#94a3b8';
+        c.fillText('EVOLUCIÓN DE PUNTAJES',PAD,y+10); y+=SEC+6;
+
+        const CT=y; // chart top
+
+        // grid lines + Y labels
+        for(let i=0;i<=3;i++){
+          const gy=CT+CHART_H-(i/3)*CHART_H;
+          c.strokeStyle='#e2e8f0'; c.lineWidth=1;
+          c.beginPath(); c.moveTo(CL,gy); c.lineTo(W-PAD,gy); c.stroke();
+          if(i===0||i===3){
+            const v=Math.round((i/3)*maxV);
+            c.font='9px system-ui,sans-serif'; c.fillStyle='#94a3b8'; c.textAlign='right';
+            c.fillText(String(v),CL-4,gy+3);
+          }
+        }
+        c.textAlign='left';
+
+        // líneas por jugador
+        g.pIds.forEach(pid=>{
+          const color=this.pColor(pid);
+          const vals=cumul[pid];
+          c.strokeStyle=color; c.lineWidth=2.5; c.lineJoin='round'; c.lineCap='round';
+          c.beginPath();
+          vals.forEach((v,i)=>{
+            const px=CL+(i/nR)*CW;
+            const py=CT+CHART_H-(v/maxV)*CHART_H;
+            if(i===0) c.moveTo(px,py); else c.lineTo(px,py);
+          });
+          c.stroke();
+          // punto final
+          const lx=CL+CW;
+          const ly=CT+CHART_H-((cumul[pid][nR]||0)/maxV)*CHART_H;
+          c.fillStyle=color; c.beginPath(); c.arc(lx,ly,4,0,Math.PI*2); c.fill();
+          c.fillStyle='#fff'; c.beginPath(); c.arc(lx,ly,2,0,Math.PI*2); c.fill();
+        });
+
+        // etiquetas eje X
+        const skip=nR>10?2:1;
+        g.rounds.forEach((r,i)=>{
+          if((i+1)%skip!==0&&i!==nR-1) return;
+          const px=CL+((i+1)/nR)*CW;
+          c.font='9px system-ui,sans-serif'; c.fillStyle='#94a3b8'; c.textAlign='center';
+          c.fillText('R'+(i+1),px,CT+CHART_H+12);
+        });
+        c.textAlign='left';
+
+        y+=CHART_H+18; // bajo la gráfica + etiquetas X
+
+        // leyenda
+        g.pIds.forEach((pid,i)=>{
+          const col=Math.floor(i/legendRows);
+          const row=i%legendRows;
+          const lx=PAD+(col*(CW/2+16));
+          const ly=y+row*LEG_H;
+          c.fillStyle=this.pColor(pid); c.beginPath(); c.arc(lx+5,ly+6,5,0,Math.PI*2); c.fill();
+          c.font='11px system-ui,sans-serif'; c.fillStyle='#334155';
+          c.fillText(this.pName(pid).slice(0,15),lx+14,ly+10);
+        });
+        y+=legendRows*LEG_H+SEC;
+      }
 
       // pie
       c.font='10px system-ui,sans-serif'; c.fillStyle='#94a3b8'; c.textAlign='center';
