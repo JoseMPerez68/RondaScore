@@ -2175,6 +2175,7 @@ body{
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
           <button class="btn btn-muted btn-sm" @click="detailGame=null">← Volver</button>
           <button class="btn btn-ghost btn-sm" @click="shareGame(detailGame)">🔗 Compartir</button>
+          <button class="btn btn-ghost btn-sm" @click="shareGameImage(detailGame)">📷 Imagen</button>
           <button class="btn btn-sm" style="margin-left:auto;color:var(--red);border-color:var(--red);background:transparent" @click="deleteFromHistory(detailGame)">🗑 Eliminar</button>
         </div>
         <div class="card">
@@ -4444,6 +4445,162 @@ createApp({
           if(typeof gtag==='function') gtag('event','game_shared',{game_type:g.gtId,method:'clipboard'});
         }catch(e){ this.showToast('No se pudo copiar'); }
       }
+    },
+
+    async shareGameImage(g){
+      if(!g) return;
+      const DPR=Math.min(window.devicePixelRatio||2,3);
+      const W=420;
+      const PAD=20;
+      const ROW_H=36;
+      const DET_H=20;
+      const SEC=14;
+      const gtMode=(this.gameTypes.find(x=>x.id===g.gtId)||{}).mode;
+      const isEsc=gtMode==='escoba';
+      const wantsHigh=gtMode==='score_high'||gtMode==='escoba'||(gtMode==='rounds'&&g.roundsWinner==='high');
+      const final=g.final||{};
+      const sorted=[...g.pIds].sort((a,b)=>wantsHigh?(final[b]||0)-(final[a]||0):(final[a]||0)-(final[b]||0));
+      const medals=['🥇','🥈','🥉'];
+
+      // calcular alto total
+      let H=72+PAD+26+SEC+22+(sorted.length*46)+SEC+22+ROW_H;
+      g.rounds.forEach(r=>{ H+=ROW_H; if(isEsc&&r.escobaDetail) H+=DET_H; });
+      H+=ROW_H+SEC+28+PAD;
+
+      const canvas=document.createElement('canvas');
+      canvas.width=W*DPR; canvas.height=H*DPR;
+      const c=canvas.getContext('2d');
+      c.scale(DPR,DPR);
+
+      function rr(x,y,w,h,r){
+        c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);
+        c.quadraticCurveTo(x+w,y,x+w,y+r);c.lineTo(x+w,y+h-r);
+        c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);c.lineTo(x+r,y+h);
+        c.quadraticCurveTo(x,y+h,x,y+h-r);c.lineTo(x,y+r);
+        c.quadraticCurveTo(x,y,x+r,y);c.closePath();
+      }
+
+      // fondo general
+      c.fillStyle='#f1f5f9'; c.fillRect(0,0,W,H);
+
+      // cabecera verde
+      c.fillStyle='#16a34a'; rr(0,0,W,72,0); c.fill();
+      c.fillStyle='#fff';
+      c.font='bold 20px system-ui,sans-serif'; c.fillText('🎴 CartaScore',PAD,36);
+      c.font='14px system-ui,sans-serif'; c.fillStyle='rgba(255,255,255,.85)';
+      c.fillText(this.gameTypeName(g.gtId),PAD,56);
+
+      let y=80;
+
+      // fecha
+      c.font='12px system-ui,sans-serif'; c.fillStyle='#64748b';
+      c.fillText('📅 '+this.fDate(g.date)+'  ·  '+g.rounds.length+' ronda'+(g.rounds.length!==1?'s':''),PAD,y+14);
+      y+=26+SEC;
+
+      // card blanca (fondo para el resto)
+      c.fillStyle='#fff'; rr(PAD-8,y-8,W-2*PAD+16,H-y-20,10); c.fill();
+
+      // sección resultado
+      c.font='bold 10px system-ui,sans-serif'; c.fillStyle='#94a3b8';
+      c.fillText('RESULTADO FINAL',PAD,y+10); y+=22;
+
+      sorted.forEach((pid,i)=>{
+        const name=this.pName(pid);
+        const score=final[pid]||0;
+        const color=this.pColor(pid);
+        if(i===0){ c.fillStyle='#f0fdf4'; rr(PAD-4,y,W-2*PAD+8,40,8); c.fill(); }
+        // círculo avatar
+        c.fillStyle=color; c.beginPath(); c.arc(PAD+14,y+20,13,0,Math.PI*2); c.fill();
+        c.fillStyle='#fff'; c.font='bold 11px system-ui,sans-serif'; c.textAlign='center';
+        c.fillText(name[0]?.toUpperCase()||'?',PAD+14,y+24); c.textAlign='left';
+        // medalla + nombre
+        c.font=(i===0?'bold ':'')+' 14px system-ui,sans-serif'; c.fillStyle='#1e293b';
+        c.fillText((medals[i]||((i+1)+'.'))+'  '+name,PAD+33,y+24);
+        // puntuación
+        c.font='bold 16px system-ui,sans-serif';
+        c.fillStyle=i===0?'#16a34a':'#334155'; c.textAlign='right';
+        c.fillText(String(score),W-PAD,y+24); c.textAlign='left';
+        y+=46;
+      });
+
+      y+=SEC;
+
+      // sección rondas
+      c.font='bold 10px system-ui,sans-serif'; c.fillStyle='#94a3b8';
+      c.fillText('DETALLE DE RONDAS',PAD,y+10); y+=22;
+
+      const nP=g.pIds.length;
+      const LBL=56;
+      const cW=(W-2*PAD-LBL)/nP;
+
+      // cabecera tabla
+      c.fillStyle='#e2e8f0'; c.fillRect(PAD,y,W-2*PAD,ROW_H);
+      c.font='bold 10px system-ui,sans-serif'; c.fillStyle='#64748b';
+      c.fillText('RONDA',PAD+4,y+22);
+      g.pIds.forEach((pid,ci)=>{
+        c.textAlign='center';
+        c.fillText(this.pName(pid).slice(0,7),PAD+LBL+ci*cW+cW/2,y+22);
+      }); c.textAlign='left'; y+=ROW_H;
+
+      // filas de ronda
+      g.rounds.forEach((r,i)=>{
+        c.fillStyle=i%2===0?'#fff':'#f8fafc'; c.fillRect(PAD,y,W-2*PAD,ROW_H);
+        c.font='bold 13px system-ui,sans-serif'; c.fillStyle='#334155';
+        c.fillText('R'+(i+1),PAD+4,y+22);
+        g.pIds.forEach((pid,ci)=>{
+          const s=r.scores[pid]||0;
+          c.font=(r.winner===pid?'bold ':'')+' 13px system-ui,sans-serif';
+          c.fillStyle=r.winner===pid?'#16a34a':'#334155';
+          c.textAlign='center';
+          c.fillText(String(s),PAD+LBL+ci*cW+cW/2,y+22);
+        }); c.textAlign='left'; y+=ROW_H;
+
+        // desglose Escoba
+        if(isEsc&&r.escobaDetail){
+          c.fillStyle='#f8fafc'; c.fillRect(PAD,y,W-2*PAD,DET_H);
+          c.font='9px system-ui,sans-serif'; c.fillStyle='#94a3b8';
+          c.fillText('desglose',PAD+4,y+13);
+          g.pIds.forEach((pid,ci)=>{
+            const d=r.escobaDetail[pid]||{};
+            let t='';
+            if(d.cartas)t+='C'; if(d.oros)t+='O';
+            if(d.settebello)t+='7'; if(d.primera)t+='P';
+            if(d.escobas)t+='E'+d.escobas;
+            if(!t)t='·';
+            c.font='9px system-ui,sans-serif'; c.fillStyle='#94a3b8'; c.textAlign='center';
+            c.fillText(t,PAD+LBL+ci*cW+cW/2,y+13);
+          }); c.textAlign='left'; y+=DET_H;
+        }
+      });
+
+      // total
+      c.fillStyle='#f0fdf4'; c.fillRect(PAD,y,W-2*PAD,ROW_H);
+      c.font='bold 13px system-ui,sans-serif'; c.fillStyle='#334155';
+      c.fillText('Total',PAD+4,y+22);
+      g.pIds.forEach((pid,ci)=>{
+        c.font='bold 14px system-ui,sans-serif'; c.fillStyle='#16a34a'; c.textAlign='center';
+        c.fillText(String(final[pid]||0),PAD+LBL+ci*cW+cW/2,y+22);
+      }); c.textAlign='left'; y+=ROW_H+SEC;
+
+      // pie
+      c.font='10px system-ui,sans-serif'; c.fillStyle='#94a3b8'; c.textAlign='center';
+      c.fillText('Generado con CartaScore · Los nombres son apodos del usuario',W/2,y+14);
+      c.textAlign='left';
+
+      // exportar
+      canvas.toBlob(async(blob)=>{
+        if(!blob){this.showToast('No se pudo generar la imagen');return;}
+        const file=new File([blob],'cartascore.png',{type:'image/png'});
+        if(navigator.canShare&&navigator.canShare({files:[file]})){
+          try{await navigator.share({files:[file],title:'CartaScore'});}
+          catch(e){if(e.name!=='AbortError')this.showToast('Error al compartir');}
+        } else {
+          const url=URL.createObjectURL(blob);
+          const a=document.createElement('a'); a.href=url; a.download='cartascore.png'; a.click();
+          setTimeout(()=>URL.revokeObjectURL(url),1000);
+          this.showToast('Imagen guardada');
+        }
+      },'image/png');
     },
 
     installApp(){
