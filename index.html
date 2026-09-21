@@ -1531,32 +1531,62 @@ body{
 
       <!-- ── MODO ESCOBA DE QUINCE ── -->
       <template v-if="isEscoba">
-        <p class="modal-hint">Marca los puntos obtenidos en esta mano</p>
-        <div v-for="pid in activePIds" :key="pid" style="margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:12px">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-            <div class="av" :style="{background:pColor(pid)}">{{ini(pName(pid))}}</div>
-            <div style="font-weight:600;font-size:15px;flex:1">{{pName(pid)}}</div>
-            <div style="font-size:14px;font-weight:700;color:var(--green-acc)">{{escobaHandTotal(pid)}} pts</div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
-            <label v-for="item in escobaItems" :key="item.key"
-              :style="{display:'flex',alignItems:'center',gap:'7px',background:escobaRound[pid]&&escobaRound[pid][item.key]?'var(--green-lt)':'var(--bg)',border:'1.5px solid',borderColor:escobaRound[pid]&&escobaRound[pid][item.key]?'var(--green-acc)':'var(--border)',borderRadius:'9px',padding:'8px 10px',cursor:'pointer',fontSize:'13px',fontWeight:escobaRound[pid]&&escobaRound[pid][item.key]?'600':'400',userSelect:'none',WebkitUserSelect:'none',transition:'background .15s,border-color .15s'}">
-              <input type="checkbox" style="width:16px;height:16px;accent-color:var(--green-acc);flex-shrink:0"
-                :checked="escobaRound[pid]&&escobaRound[pid][item.key]"
-                @change="toggleEscobaItem(pid,item.key)">
-              {{item.label}}
-            </label>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:13px;color:var(--muted);flex:1">🥄 Escobas</span>
-            <button type="button" @click="changeEscobas(pid,-1)"
-              style="width:34px;height:34px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);font-size:20px;line-height:1;cursor:pointer;color:var(--text);font-family:var(--ff-ui)">−</button>
-            <span style="font-size:17px;font-weight:700;min-width:28px;text-align:center;font-variant-numeric:tabular-nums">{{escobaRound[pid]&&escobaRound[pid].escobas||0}}</span>
-            <button type="button" @click="changeEscobas(pid,1)"
-              style="width:34px;height:34px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);font-size:20px;line-height:1;cursor:pointer;color:var(--text);font-family:var(--ff-ui)">+</button>
-          </div>
+        <div style="overflow-x:auto;margin:0 -4px">
+          <table style="width:100%;border-collapse:collapse;min-width:200px">
+            <!-- Cabecera: jugadores -->
+            <thead>
+              <tr>
+                <th style="text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:4px 6px 8px;min-width:90px">Puntos</th>
+                <th v-for="pid in activePIds" :key="pid" style="text-align:center;padding:4px 6px 8px;min-width:64px">
+                  <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+                    <div class="av" :style="{background:pColor(pid),width:'30px',height:'30px',fontSize:'11px'}">{{ini(pName(pid))}}</div>
+                    <div style="font-size:11px;font-weight:600;color:var(--text);max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{pName(pid)}}</div>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Filas: Cartas, Oros, Settebello, Primera -->
+              <tr v-for="item in escobaItems" :key="item.key"
+                style="border-top:1px solid var(--border)">
+                <td style="font-size:13px;color:var(--text);padding:10px 6px;font-weight:500">{{item.label}}</td>
+                <td v-for="pid in activePIds" :key="pid" style="text-align:center;padding:6px">
+                  <label style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1.5px solid;cursor:pointer;transition:background .12s,border-color .12s"
+                    :style="{background:escobaRound[pid]&&escobaRound[pid][item.key]?'var(--green-acc)':'var(--bg)',borderColor:escobaRound[pid]&&escobaRound[pid][item.key]?'var(--green-acc)':'var(--border)'}">
+                    <input type="checkbox" style="position:absolute;opacity:0;width:0;height:0"
+                      :checked="escobaRound[pid]&&escobaRound[pid][item.key]"
+                      @change="toggleEscobaItem(pid,item.key)">
+                    <span style="font-size:16px;line-height:1;color:#fff;font-weight:700"
+                      v-if="escobaRound[pid]&&escobaRound[pid][item.key]">✓</span>
+                    <span style="font-size:16px;line-height:1;color:var(--border);font-weight:300"
+                      v-else>○</span>
+                  </label>
+                </td>
+              </tr>
+              <!-- Fila: Escobas (stepper) -->
+              <tr style="border-top:1px solid var(--border)">
+                <td style="font-size:13px;color:var(--text);padding:10px 6px;font-weight:500">🥄 Escobas</td>
+                <td v-for="pid in activePIds" :key="pid" style="text-align:center;padding:6px">
+                  <div style="display:flex;align-items:center;justify-content:center;gap:4px">
+                    <button type="button" @click="changeEscobas(pid,-1)"
+                      style="width:26px;height:26px;border-radius:6px;border:1.5px solid var(--border);background:var(--bg);font-size:16px;line-height:1;cursor:pointer;color:var(--text);font-family:var(--ff-ui);padding:0">−</button>
+                    <span style="font-size:15px;font-weight:700;min-width:20px;text-align:center;font-variant-numeric:tabular-nums">{{escobaRound[pid]&&escobaRound[pid].escobas||0}}</span>
+                    <button type="button" @click="changeEscobas(pid,1)"
+                      style="width:26px;height:26px;border-radius:6px;border:1.5px solid var(--border);background:var(--bg);font-size:16px;line-height:1;cursor:pointer;color:var(--text);font-family:var(--ff-ui);padding:0">+</button>
+                  </div>
+                </td>
+              </tr>
+              <!-- Fila: Total de la mano -->
+              <tr style="border-top:2px solid var(--border);background:var(--green-lt)">
+                <td style="font-size:12px;font-weight:700;color:var(--green-acc);text-transform:uppercase;letter-spacing:.4px;padding:10px 6px">Total mano</td>
+                <td v-for="pid in activePIds" :key="pid" style="text-align:center;padding:10px 6px;font-size:18px;font-weight:700;color:var(--green-acc);font-variant-numeric:tabular-nums">
+                  {{escobaHandTotal(pid)}}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <div class="modal-actions">
+        <div class="modal-actions" style="margin-top:12px">
           <button class="btn btn-muted" @click="showRound=false">Cancelar</button>
           <button class="btn btn-primary" @click="saveRound">Guardar mano</button>
         </div>
@@ -2983,10 +3013,10 @@ createApp({
     },
     escobaItems(){
       return [
-        {key:'cartas',   label:'Cartas'},
-        {key:'oros',     label:'Oros'},
-        {key:'settebello',label:'Settebello'},
-        {key:'primera',  label:'Primera'},
+        {key:'cartas',    label:'Cartas',      unique:true},
+        {key:'oros',      label:'Oros',         unique:true},
+        {key:'settebello',label:'Settebello',   unique:true},
+        {key:'primera',   label:'Primera',      unique:true},
       ];
     },
 
@@ -3753,7 +3783,17 @@ createApp({
     },
     toggleEscobaItem(pid,key){
       if(!this.escobaRound[pid]) return;
-      this.escobaRound[pid][key]=!this.escobaRound[pid][key];
+      const newVal=!this.escobaRound[pid][key];
+      this.escobaRound[pid][key]=newVal;
+      // Si se activa una categoría única, quitarla de los demás jugadores
+      const item=this.escobaItems.find(i=>i.key===key);
+      if(newVal&&item&&item.unique){
+        for(const otherId of this.activePIds){
+          if(otherId!==pid&&this.escobaRound[otherId]){
+            this.escobaRound[otherId][key]=false;
+          }
+        }
+      }
     },
     changeEscobas(pid,delta){
       if(!this.escobaRound[pid]) return;
