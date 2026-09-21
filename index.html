@@ -1368,6 +1368,24 @@ body{
               </div>
             </div>
           </template>
+          <!-- Modo Escoba de Quince -->
+          <template v-if="setupIsEscobaMode">
+            <div class="field">
+              <label class="field-label">Puntos para ganar</label>
+              <div style="display:flex;gap:8px;margin-top:4px">
+                <button type="button" class="btn" style="flex:1;font-size:13px"
+                  :class="setup.targetScore===11?'btn-primary':'btn-muted'"
+                  @click="setup.targetScore=11">11 puntos</button>
+                <button type="button" class="btn" style="flex:1;font-size:13px"
+                  :class="setup.targetScore===16?'btn-primary':'btn-muted'"
+                  @click="setup.targetScore=16">16 puntos</button>
+              </div>
+              <input class="inp" type="number" inputmode="numeric" min="1"
+                v-model.number="setup.targetScore" placeholder="Ej: 11" style="margin-top:8px">
+              <p style="font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5">Gana el primero en llegar a este puntaje acumulando puntos mano a mano.</p>
+            </div>
+          </template>
+
           <!-- Modo vidas -->
           <template v-if="setupIsLivesMode">
             <div class="field">
@@ -1392,7 +1410,7 @@ body{
         <div class="modal-actions" v-if="!setupIsTruco">
           <button class="btn btn-muted" @click="setup.step--">← Atrás</button>
           <button class="btn btn-primary"
-            :disabled="((setupIsFixed||setupIsLibre)&&setup.cIds.length===0)||(setupIsScoreMode&&!(setup.targetScore>0))||(setupIsRoundsMode&&!(setup.totalRounds>0))||(setupIsLivesMode&&(!(setup.livesStart>0)||!(setup.targetScore>0)))"
+            :disabled="((setupIsFixed||setupIsLibre)&&setup.cIds.length===0)||(setupIsScoreMode&&!(setup.targetScore>0))||(setupIsRoundsMode&&!(setup.totalRounds>0))||(setupIsLivesMode&&(!(setup.livesStart>0)||!(setup.targetScore>0)))||(setupIsEscobaMode&&!(setup.targetScore>0))"
             @click="startGame">Iniciar partida</button>
         </div>
       </div>
@@ -1475,6 +1493,22 @@ body{
         </div>
       </template>
 
+      <!-- Escoba de Quince -->
+      <template v-else-if="rulesModal==='escoba'">
+        <h2 class="modal-title">🥄 Reglas: Escoba de Quince</h2>
+        <div class="rules-body">
+          <p class="rules-intro">Juego con baraja española de 40 cartas. El objetivo es capturar cartas de la mesa cuya suma sea 15. Se juegan manos hasta que alguien alcanza el puntaje acordado.</p>
+          <div class="rules-section-title">Puntos por mano</div>
+          <div class="rules-combo-row"><span class="rules-num">1</span><span><strong>Cartas</strong> — quien tenga más cartas capturadas (empate = nadie puntúa)</span></div>
+          <div class="rules-combo-row"><span class="rules-num">1</span><span><strong>Oros</strong> — quien tenga más cartas del palo de oros (empate = nadie puntúa)</span></div>
+          <div class="rules-combo-row"><span class="rules-num">1</span><span><strong>Settebello</strong> — quien tenga el 7 de oros (siempre hay ganador)</span></div>
+          <div class="rules-combo-row"><span class="rules-num">1</span><span><strong>Primera</strong> — mejor primiera: 7=21, 6=18, As=16, 5–2 valor-11, figuras=10</span></div>
+          <div class="rules-combo-row"><span class="rules-num">+1</span><span><strong>Escobas</strong> — 1 punto por cada vez que se capturan todas las cartas de la mesa de un golpe</span></div>
+          <div class="rules-section-title">Fin de partida</div>
+          <p class="rules-intro" style="margin-bottom:0">Gana el primero en alcanzar el puntaje objetivo. Si varios lo superan en la misma mano, gana quien tenga más puntos totales. Las cartas restantes en la mesa al cerrar la última mano las toma el último jugador que capturó, pero no cuentan como escoba.</p>
+        </div>
+      </template>
+
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
         <button class="btn btn-primary btn-block" @click="rulesModal=null">Entendido</button>
         <button class="btn btn-ghost btn-sm" style="width:100%;font-size:12px;color:var(--muted)" @click="rulesModal=null;nav('settings');stab='combos'">⚙️ Editar combinaciones en Ajustes</button>
@@ -1489,14 +1523,47 @@ body{
       <!-- Título + selector de modo -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
         <h2 class="modal-title" style="margin:0">{{roundTitle}}</h2>
-        <div class="mode-toggle" role="group" aria-label="Modo de entrada">
+        <div v-if="!isEscoba" class="mode-toggle" role="group" aria-label="Modo de entrada">
           <button class="mode-btn" :class="{on:roundInputMode==='number'}" @click="setRoundInputMode('number')" aria-label="Entrada numérica">123</button>
           <button class="mode-btn" :class="{on:roundInputMode==='chips'}" @click="setRoundInputMode('chips')" aria-label="Chips de cartas">🃏</button>
         </div>
       </div>
 
+      <!-- ── MODO ESCOBA DE QUINCE ── -->
+      <template v-if="isEscoba">
+        <p class="modal-hint">Marca los puntos obtenidos en esta mano</p>
+        <div v-for="pid in activePIds" :key="pid" style="margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <div class="av" :style="{background:pColor(pid)}">{{ini(pName(pid))}}</div>
+            <div style="font-weight:600;font-size:15px;flex:1">{{pName(pid)}}</div>
+            <div style="font-size:14px;font-weight:700;color:var(--green-acc)">{{escobaHandTotal(pid)}} pts</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+            <label v-for="item in escobaItems" :key="item.key"
+              :style="{display:'flex',alignItems:'center',gap:'7px',background:escobaRound[pid]&&escobaRound[pid][item.key]?'var(--green-lt)':'var(--bg)',border:'1.5px solid',borderColor:escobaRound[pid]&&escobaRound[pid][item.key]?'var(--green-acc)':'var(--border)',borderRadius:'9px',padding:'8px 10px',cursor:'pointer',fontSize:'13px',fontWeight:escobaRound[pid]&&escobaRound[pid][item.key]?'600':'400',userSelect:'none',WebkitUserSelect:'none',transition:'background .15s,border-color .15s'}">
+              <input type="checkbox" style="width:16px;height:16px;accent-color:var(--green-acc);flex-shrink:0"
+                :checked="escobaRound[pid]&&escobaRound[pid][item.key]"
+                @change="toggleEscobaItem(pid,item.key)">
+              {{item.label}}
+            </label>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:13px;color:var(--muted);flex:1">🥄 Escobas</span>
+            <button type="button" @click="changeEscobas(pid,-1)"
+              style="width:34px;height:34px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);font-size:20px;line-height:1;cursor:pointer;color:var(--text);font-family:var(--ff-ui)">−</button>
+            <span style="font-size:17px;font-weight:700;min-width:28px;text-align:center;font-variant-numeric:tabular-nums">{{escobaRound[pid]&&escobaRound[pid].escobas||0}}</span>
+            <button type="button" @click="changeEscobas(pid,1)"
+              style="width:34px;height:34px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);font-size:20px;line-height:1;cursor:pointer;color:var(--text);font-family:var(--ff-ui)">+</button>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-muted" @click="showRound=false">Cancelar</button>
+          <button class="btn btn-primary" @click="saveRound">Guardar mano</button>
+        </div>
+      </template>
+
       <!-- ── MODO NUMÉRICO (existente) ── -->
-      <template v-if="roundInputMode==='number'">
+      <template v-if="!isEscoba && roundInputMode==='number'">
         <p class="modal-hint" v-if="useFreeScore">Ingresa los puntos de cada jugador en esta ronda</p>
         <p class="modal-hint" v-else>👑 Toca la corona del ganador · ingresa las penalizaciones</p>
         <div v-for="pid in activePIds" :key="pid" class="entry-row">
@@ -1530,7 +1597,7 @@ body{
       </template>
 
       <!-- ── MODO CHIPS (stepper por jugador) ── -->
-      <template v-else>
+      <template v-else-if="!isEscoba">
         <!-- Cabecera del jugador actual -->
         <div class="chip-player-hdr" v-if="chipCurrentPid">
           <div class="av" :style="{background:pColor(chipCurrentPid)}">{{ini(pName(chipCurrentPid))}}</div>
@@ -2700,6 +2767,7 @@ const DEF_GTS = [
   {id:'llega_gana',name:'Llega a X — gana',mode:'score_high',icon:'🏆',desc:'Gana el primero en llegar al puntaje objetivo',defaultTarget:100},
   {id:'vidas',name:'Vidas',mode:'lives',icon:'❤️',desc:'Cada jugador tiene N vidas; pierde una al superar el límite de puntos',defaultLives:3,defaultTarget:100},
   // {id:'truco',name:'Truco',mode:'truco',icon:'♠️',desc:'Dos equipos — Nosotros vs Ellos — hasta el puntaje objetivo'}, // deshabilitado temporalmente
+  {id:'escoba',name:'Escoba de Quince',mode:'escoba',icon:'🥄',desc:'Cartas, Oros, Settebello, Primera y Escobas — gana quien llegue primero al objetivo',defaultTarget:11},
 ];
 
 const COLORS = ['#e74c3c','#3498db','#e67e22','#9b59b6','#27ae60','#0891b2','#d35400','#c0392b'];
@@ -2730,6 +2798,7 @@ createApp({
       roundInputMode:'number',  // 'number' | 'chips'
       chipCounts:{},            // { [pid]: { joker:0, ace:0, face:0, '10':0, ... } }
       chipPlayerIdx:0,          // jugador activo en el stepper de chips
+      escobaRound:{},            // {[pid]:{cartas,oros,settebello,primera,escobas}}
 
       // Player modal
       pModal:{open:false,id:null,name:'',color:COLORS[0]},
@@ -2815,7 +2884,8 @@ createApp({
     isRoundsMode(){ return this.gameMode==='rounds'; },
     isLivesMode(){ return this.gameMode==='lives'; },
     isTruco(){ return this.gameMode==='truco'; },
-    useFreeScore(){ return this.isScoreMode||this.isRoundsMode||this.isLivesMode; },
+    isEscoba(){ return this.gameMode==='escoba'; },
+    useFreeScore(){ return this.isScoreMode||this.isRoundsMode||this.isLivesMode||this.isEscoba; },
 
     setupIsTruco(){
       const gt=this.gameTypes.find(g=>g.id===this.setup.gameTypeId);
@@ -2855,7 +2925,7 @@ createApp({
       // Peor puntaje entre jugadores activos según la dirección del modo
       if(!this.game||!this.activePIds.length) return 0;
       const t=this.totals;
-      const desc=this.gameMode==='score_high'||(this.isRoundsMode&&this.game.roundsWinner==='high');
+      const desc=this.gameMode==='score_high'||this.gameMode==='escoba'||(this.isRoundsMode&&this.game.roundsWinner==='high');
       // "peor" = menos favorecido: menor si high-wins, mayor si low-wins
       return this.activePIds.reduce((worst,pid)=>{
         const s=t[pid]||0;
@@ -2907,6 +2977,18 @@ createApp({
       const gt=this.gameTypes.find(g=>g.id===this.setup.gameTypeId);
       return gt&&gt.mode==='lives';
     },
+    setupIsEscobaMode(){
+      const gt=this.gameTypes.find(g=>g.id===this.setup.gameTypeId);
+      return gt&&gt.mode==='escoba';
+    },
+    escobaItems(){
+      return [
+        {key:'cartas',   label:'Cartas'},
+        {key:'oros',     label:'Oros'},
+        {key:'settebello',label:'Settebello'},
+        {key:'primera',  label:'Primera'},
+      ];
+    },
 
     livesState(){
       if(!this.hasGame||!this.isLivesMode) return null;
@@ -2937,7 +3019,7 @@ createApp({
         return [winner, ...pIds.filter(id=>id!==winner)]
           .map(id=>players.find(p=>p.id===id)||{id,name:'?',color:'#999'});
       }
-      const desc = scoringDir==='score_high'||(scoringDir==='rounds'&&roundsWinner==='high');
+      const desc = scoringDir==='score_high'||scoringDir==='escoba'||(scoringDir==='rounds'&&roundsWinner==='high');
       return players.sort((a,b)=>desc?(final[b.id]||0)-(final[a.id]||0):(final[a.id]||0)-(final[b.id]||0));
     },
 
@@ -3002,7 +3084,7 @@ createApp({
         return [...active,...ret];
       }
       const t=this.totals;
-      const desc=this.gameMode==='score_high'||(this.isRoundsMode&&this.game.roundsWinner==='high');
+      const desc=this.gameMode==='score_high'||this.gameMode==='escoba'||(this.isRoundsMode&&this.game.roundsWinner==='high');
       const active=this.activePIds
         .map(id=>this.players.find(p=>p.id===id)||{id,name:'?',color:'#999'})
         .sort((a,b)=>desc?t[b.id]-t[a.id]:t[a.id]-t[b.id]);
@@ -3613,7 +3695,7 @@ createApp({
         winner:null,
         final:null,
         dealerIdx:0,
-        targetScore:(mode==='score_low'||mode==='score_high'||mode==='lives')?(s.targetScore||100):null,
+        targetScore:(mode==='score_low'||mode==='score_high'||mode==='lives'||mode==='escoba')?(s.targetScore||11):null,
         totalRounds:mode==='rounds'?(s.totalRounds||10):null,
         roundsWinner:mode==='rounds'?(s.roundsWinner||'low'):null,
         livesStart:mode==='lives'?(s.livesStart||3):null,
@@ -3663,12 +3745,34 @@ createApp({
       this.nav('game');
     },
 
+    // ── MÉTODOS ESCOBA DE QUINCE ──
+    escobaHandTotal(pid){
+      const r=this.escobaRound&&this.escobaRound[pid];
+      if(!r) return 0;
+      return (r.cartas?1:0)+(r.oros?1:0)+(r.settebello?1:0)+(r.primera?1:0)+(r.escobas||0);
+    },
+    toggleEscobaItem(pid,key){
+      if(!this.escobaRound[pid]) return;
+      this.escobaRound[pid][key]=!this.escobaRound[pid][key];
+    },
+    changeEscobas(pid,delta){
+      if(!this.escobaRound[pid]) return;
+      const v=(this.escobaRound[pid].escobas||0)+delta;
+      this.escobaRound[pid].escobas=Math.max(0,v);
+    },
+
     // ── ENTRADA DE RONDA ──
     openRound(){
       this.roundWinner='';
       this.roundScores={};
       this.chipPlayerIdx=0;
       for(const pid of this.activePIds) this.roundScores[pid]=0;
+      // Inicializar estado de Escoba de Quince
+      if(this.isEscoba){
+        const er={};
+        for(const pid of this.activePIds) er[pid]={cartas:false,oros:false,settebello:false,primera:false,escobas:0};
+        this.escobaRound=er;
+      }
       this.initChipCounts();
       this.showRound=true;
       if(this.roundInputMode==='number'){
@@ -3740,7 +3844,8 @@ createApp({
       const isScoreM=gtMode==='score_low'||gtMode==='score_high';
       const isRoundsM=gtMode==='rounds';
       const isLivesM=gtMode==='lives';
-      const isFreeScore=isScoreM||isRoundsM||isLivesM;
+      const isEscobaM=gtMode==='escoba';
+      const isFreeScore=isScoreM||isRoundsM||isLivesM||isEscobaM;
 
       // Determinar ganador de ronda
       let winner=this.roundWinner;
@@ -3771,11 +3876,19 @@ createApp({
       }
 
       const scores={};
-      for(const pid of this.activePIds){
-        if(!isFreeScore){
-          scores[pid]=pid===winner?0:(parseInt(this.roundScores[pid])||0);
-        } else {
-          scores[pid]=parseInt(this.roundScores[pid])||0;
+      if(isEscobaM){
+        for(const pid of this.activePIds){
+          const r=this.escobaRound[pid]||{};
+          scores[pid]=(r.cartas?1:0)+(r.oros?1:0)+(r.settebello?1:0)+(r.primera?1:0)+(r.escobas||0);
+        }
+        winner=this.activePIds.reduce((a,b)=>(scores[a]||0)>=(scores[b]||0)?a:b);
+      } else {
+        for(const pid of this.activePIds){
+          if(!isFreeScore){
+            scores[pid]=pid===winner?0:(parseInt(this.roundScores[pid])||0);
+          } else {
+            scores[pid]=parseInt(this.roundScores[pid])||0;
+          }
         }
       }
       const roundNum=this.game.round+1;
@@ -3851,6 +3964,22 @@ createApp({
         }
       }
 
+      // Condición de fin para Escoba de Quince
+      if(isEscobaM){
+        const target=this.game.targetScore;
+        if(target){
+          const t={};
+          for(const pid of this.game.pIds) t[pid]=0;
+          for(const r of this.game.rounds) for(const [pid,v] of Object.entries(r.scores)) t[pid]=(t[pid]||0)+v;
+          const w=this.activePIds.find(pid=>t[pid]>=target);
+          if(w){
+            this.showRound=false;
+            this.endGame(w);
+            return;
+          }
+        }
+      }
+
       // Condición de fin para Carioca Libre
       if(gtMode==='libre'){
         const w=this.activePIds.find(pid=>{
@@ -3903,7 +4032,7 @@ createApp({
           }
           winner=activePids.reduce((a,b)=>lL[a]>lL[b]?a:(lL[a]<lL[b]?b:(cS[a]<=cS[b]?a:b)));
         } else {
-          const wantsHigh=mode==='score_high'||(mode==='rounds'&&this.game.roundsWinner==='high');
+          const wantsHigh=mode==='score_high'||mode==='escoba'||(mode==='rounds'&&this.game.roundsWinner==='high');
           winner=wantsHigh
             ?activePids.reduce((a,b)=>final[a]>=final[b]?a:b)
             :activePids.reduce((a,b)=>final[a]<=final[b]?a:b);
