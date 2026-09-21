@@ -2137,6 +2137,22 @@ body{
                       </template>
                     </td>
                   </tr>
+                  <!-- Desglose Escoba -->
+                  <tr v-if="isEscoba&&r.escobaDetail" style="background:transparent">
+                    <td class="lft" style="font-size:9px;color:var(--muted);padding-top:0;padding-bottom:6px">desglose</td>
+                    <td v-for="pid in game.pIds" :key="'esc'+pid" style="font-size:9px;color:var(--muted);text-align:center;padding-top:0;padding-bottom:6px;letter-spacing:.5px">
+                      <template v-if="r.escobaDetail[pid]">
+                        <span v-if="!r.escobaDetail[pid].cartas&&!r.escobaDetail[pid].oros&&!r.escobaDetail[pid].settebello&&!r.escobaDetail[pid].primera&&!r.escobaDetail[pid].escobas">·</span>
+                        <template v-else>
+                          <span v-if="r.escobaDetail[pid].cartas" title="Cartas">🃏</span>
+                          <span v-if="r.escobaDetail[pid].oros" title="Oros">🪙</span>
+                          <span v-if="r.escobaDetail[pid].settebello" title="Settebello">7</span>
+                          <span v-if="r.escobaDetail[pid].primera" title="Primera">P</span>
+                          <span v-if="r.escobaDetail[pid].escobas" title="Escobas">🥄{{r.escobaDetail[pid].escobas}}</span>
+                        </template>
+                      </template>
+                    </td>
+                  </tr>
                 </template>
                 <tr class="tot-row">
                   <td class="lft">Total</td>
@@ -2221,6 +2237,22 @@ body{
                       <template v-if="(detailGame.joinedPIds||[]).some(j=>j.pid===pid&&j.fromRound>i+1)">—</template>
                       <template v-else>
                         <span v-if="detailGame.gtId&&gameTypes.find(x=>x.id===detailGame.gtId)&&gameTypes.find(x=>x.id===detailGame.gtId).mode==='lives'&&roundLostLifeInGame(detailGame,i,pid)" style="font-size:10px">💔</span>{{r.scores[pid]||0}}
+                      </template>
+                    </td>
+                  </tr>
+                  <!-- Desglose Escoba en historial -->
+                  <tr v-if="detailGame.gtId&&gameTypes.find(x=>x.id===detailGame.gtId)&&gameTypes.find(x=>x.id===detailGame.gtId).mode==='escoba'&&r.escobaDetail" style="background:transparent">
+                    <td class="lft" style="font-size:9px;color:var(--muted);padding-top:0;padding-bottom:6px">desglose</td>
+                    <td v-for="pid in detailGame.pIds" :key="'esc'+pid" style="font-size:9px;color:var(--muted);text-align:center;padding-top:0;padding-bottom:6px;letter-spacing:.5px">
+                      <template v-if="r.escobaDetail[pid]">
+                        <span v-if="!r.escobaDetail[pid].cartas&&!r.escobaDetail[pid].oros&&!r.escobaDetail[pid].settebello&&!r.escobaDetail[pid].primera&&!r.escobaDetail[pid].escobas">·</span>
+                        <template v-else>
+                          <span v-if="r.escobaDetail[pid].cartas" title="Cartas">🃏</span>
+                          <span v-if="r.escobaDetail[pid].oros" title="Oros">🪙</span>
+                          <span v-if="r.escobaDetail[pid].settebello" title="Settebello">7</span>
+                          <span v-if="r.escobaDetail[pid].primera" title="Primera">P</span>
+                          <span v-if="r.escobaDetail[pid].escobas" title="Escobas">🥄{{r.escobaDetail[pid].escobas}}</span>
+                        </template>
                       </template>
                     </td>
                   </tr>
@@ -3932,7 +3964,8 @@ createApp({
         }
       }
       const roundNum=this.game.round+1;
-      this.game.rounds.push({roundNum,cId:this.curCombo?this.curCombo.id:null,winner,scores});
+      const escobaDetail=isEscobaM?JSON.parse(JSON.stringify(this.escobaRound)):undefined;
+      this.game.rounds.push({roundNum,cId:this.curCombo?this.curCombo.id:null,winner,scores,...(escobaDetail?{escobaDetail}:{})});
 
       const isFixed=gtMode==='fixed';
       const isLast=isFixed&&this.game.round>=this.game.cIds.length-1;
