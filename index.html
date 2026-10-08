@@ -2953,7 +2953,8 @@ const DEF_GTS = [
 
 const COLORS = ['#e74c3c','#3498db','#e67e22','#9b59b6','#27ae60','#0891b2','#d35400','#c0392b'];
 
-createApp({
+// Referencia a la instancia raíz (la usa el registro del service worker)
+window.cartaVm = createApp({
   // ═══════════════════════════════════════
   // ── DATA ──
   // ═══════════════════════════════════════
@@ -5488,9 +5489,8 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').then(reg => {
       // Si ya había un SW en espera de una sesión anterior, lo recuperamos
       if (reg.waiting && navigator.serviceWorker.controller) {
-        const vueApp = document.querySelector('#app').__vue_app__;
-        if (vueApp) {
-          const vm = vueApp._instance.proxy;
+        const vm = window.cartaVm; // _instance no existe en la versión de producción de Vue
+        if (vm) {
           vm.swUpdate = reg.waiting;
           if (vm.autoUpdate) vm.updateApp();
         }
@@ -5502,9 +5502,8 @@ if ('serviceWorker' in navigator) {
           // Con skipWaiting en el SW, el controllerchange recargará la página solo
           // El banner queda como fallback por si el usuario prefiere hacerlo manual
           if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
-            const vueApp = document.querySelector('#app').__vue_app__;
-            if (vueApp) {
-              const vm = vueApp._instance.proxy;
+            const vm = window.cartaVm; // _instance no existe en la versión de producción de Vue
+            if (vm) {
               vm.swUpdate = newSW;
               if (vm.autoUpdate) vm.updateApp();
             }
