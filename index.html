@@ -2953,7 +2953,10 @@ createApp({
   data(){
     return {
       view:'home',
-      customGames:[],      // catálogo de juegos personalizados
+      customGames:DEF_CUSTOM_GAMES.map(g=>({...g,gtIds:[...g.gtIds]})), // catálogo de juegos personalizados
+      // IDs de valores por defecto ya ofrecidos al usuario: si los elimina, no se vuelven a agregar al cargar
+      seenDefCombos:DEF_COMBOS.map(c=>c.id),
+      seenDefCustomGames:DEF_CUSTOM_GAMES.map(g=>g.id),
       cgModal:{show:false,name:'',gtIds:[],editId:null}, // modal Mis juegos
       stab:'players',     // settings tab
       comboTab:'fixed',   // combos sub-tab: 'fixed' | 'libre'
@@ -5172,7 +5175,7 @@ createApp({
     // ── PERSISTENCIA (save/load) ──
     save(){
       try{
-        const d={players:this.players,combos:this.combos,games:this.games,game:this.game,lastCfg:this.lastCfg,customGames:this.customGames};
+        const d={players:this.players,combos:this.combos,games:this.games,game:this.game,lastCfg:this.lastCfg,customGames:this.customGames,seenDefCombos:this.seenDefCombos,seenDefCustomGames:this.seenDefCustomGames};
         localStorage.setItem('cartascore_v1',JSON.stringify(d));
       }catch(e){}
     },
@@ -5183,6 +5186,10 @@ createApp({
         const d=JSON.parse(raw);
         // Schema guards: reject non-object or unexpected types
         if(!d||typeof d!=='object'||Array.isArray(d)) return;
+        // Defaults ya ofrecidos antes (null = datos antiguos sin este registro)
+        const seenSet=a=>Array.isArray(a)?new Set(a.slice(0,200).map(x=>String(x).slice(0,20))):null;
+        const seenCombos=seenSet(d.seenDefCombos);
+        const seenCG=seenSet(d.seenDefCustomGames);
 
         if(Array.isArray(d.players)){
           this.players=d.players.slice(0,20).map(p=>({
@@ -5205,9 +5212,10 @@ createApp({
           }));
           const sorted=[...loaded].sort((a,b)=>a.order-b.order);
           sorted.forEach((c,i)=>{ c.order=i+1; });
-          // Merge: add any DEF_COMBOS entries not yet in localStorage (e.g. new game modes)
+          // Merge: add DEF_COMBOS entries never offered before (e.g. new game modes),
+          // but not the ones the user already deleted
           const savedIds=new Set(sorted.map(c=>c.id));
-          const missing=DEF_COMBOS.filter(c=>!savedIds.has(c.id)).map(c=>({...c,active:c.active!==false}));
+          const missing=DEF_COMBOS.filter(c=>!savedIds.has(c.id)&&!(seenCombos&&seenCombos.has(c.id))).map(c=>({...c,active:c.active!==false}));
           this.combos=[...sorted,...missing];
         } else {
           this.combos=DEF_COMBOS.map(c=>({...c,active:true}));
@@ -5276,12 +5284,16 @@ createApp({
             name:String(g.name||'').slice(0,30),
             gtIds:Array.isArray(g.gtIds)?g.gtIds.slice(0,10).map(x=>String(x).slice(0,20)):[],
           })).filter(g=>g.id&&g.name&&g.gtIds.length>0);
+          // Solo se agregan juegos predefinidos nunca ofrecidos; los eliminados por el usuario no vuelven
           const savedIds=new Set(loaded.map(g=>g.id));
-          const missing=DEF_CUSTOM_GAMES.filter(g=>!savedIds.has(g.id));
+          const missing=DEF_CUSTOM_GAMES.filter(g=>!savedIds.has(g.id)&&!(seenCG&&seenCG.has(g.id))).map(g=>({...g,gtIds:[...g.gtIds]}));
           this.customGames=[...loaded,...missing];
         } else {
-          this.customGames=[...DEF_CUSTOM_GAMES];
+          this.customGames=DEF_CUSTOM_GAMES.map(g=>({...g,gtIds:[...g.gtIds]}));
         }
+        // Registrar todos los predefinidos actuales como ya ofrecidos
+        this.seenDefCombos=[...new Set([...(seenCombos||[]),...DEF_COMBOS.map(c=>c.id)])];
+        this.seenDefCustomGames=[...new Set([...(seenCG||[]),...DEF_CUSTOM_GAMES.map(g=>g.id)])];
         if(d.lastCfg&&typeof d.lastCfg==='object'){
           this.lastCfg={
             gtId:String(d.lastCfg.gtId||'carioca').slice(0,20),
