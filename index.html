@@ -1,3 +1,6 @@
+<!DOCTYPE html>
+<html lang="es">
+<meta charset="utf-8">
 <title>CartaScore</title>
 <style>html{background:#152f25}
 /* ── SPLASH ── */
@@ -14,7 +17,7 @@
 .brand-header .bh-name{font-size:13px;letter-spacing:1.5px;color:var(--text);font-weight:300}
 .brand-header .bh-name strong{font-weight:700}
 </style>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://www.google-analytics.com; connect-src https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com https://www.googletagmanager.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'">
 <meta name="theme-color" content="#152f25">
 <meta name="mobile-web-app-capable" content="yes">
@@ -526,7 +529,7 @@ body{
 .truco-dealer-bar{display:flex;align-items:center;justify-content:center;gap:10px;padding:6px 0 2px}
 .truco-dealer-label{font-size:12px;color:var(--muted)}
 .truco-dealer-name{font-size:13px;font-weight:700;color:var(--text)}
-.truco-dealer-btn{border:1.5px solid var(--border);background:var(--bg);border-radius:8px;padding:5px 14px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;font-family:var(--ff-ui);-webkit-tap-highlight-color:transparent;transition:background .1s,color .1s}
+.truco-dealer-btn{min-height:36px;min-width:44px;border:1.5px solid var(--border);background:var(--bg);border-radius:8px;padding:5px 14px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;font-family:var(--ff-ui);-webkit-tap-highlight-color:transparent;transition:background .1s,color .1s}
 .truco-dealer-btn:active{background:var(--border);color:var(--text)}
 .truco-team-panel.truco-dealing{border-style:dashed}
 .dealer-order-list{display:flex;flex-direction:column;gap:6px;margin-top:4px}
@@ -780,7 +783,10 @@ body{
   transition:transform .2s;
   box-shadow:0 1px 4px rgba(0,0,0,.25);
 }
+textarea{vertical-align:top} /* evita hueco bajo textarea en modo estándar */
 .combo-toggle.on{background:var(--green-acc)}
+/* Zona táctil ampliada (44px) sin cambiar el aspecto del interruptor */
+.combo-toggle::before{content:'';position:absolute;inset:-10px -2px}
 .combo-toggle.on::after{transform:translateX(18px)}
 
 .list-item.inactive{opacity:.38}
@@ -1196,7 +1202,7 @@ body{
             <button class="btn btn-ghost btn-sm" @click="openAddPlayerFromSetup">+ Nuevo</button>
           </div>
           <p class="modal-hint">Selecciona 2 o más jugadores</p>
-          <div v-if="players.length===0" class="empty" style="padding:20px 0">
+          <div v-if="activePlayers.length===0" class="empty" style="padding:20px 0">
             <p style="margin-bottom:12px">No hay jugadores todavía. Usa el botón "+ Nuevo" de arriba.</p>
           </div>
           <div class="player-chips" v-else>
@@ -1543,7 +1549,7 @@ body{
 
       <!-- Escoba de Quince -->
       <template v-else-if="rulesModal==='escoba'">
-        <h2 class="modal-title">🥄 Reglas: Escoba de Quince</h2>
+        <h2 class="modal-title">🧹 Reglas: Escoba de Quince</h2>
         <div class="rules-body">
           <p class="rules-intro">Juego con baraja española de 40 cartas. El objetivo es capturar cartas de la mesa cuya suma sea 15. Se juegan manos hasta que alguien alcanza el puntaje acordado.</p>
           <div class="rules-section-title">Puntos por mano</div>
@@ -1613,7 +1619,7 @@ body{
               </tr>
               <!-- Fila: Escobas (stepper) -->
               <tr style="border-top:1px solid var(--border)">
-                <td style="font-size:13px;color:var(--text);padding:10px 6px;font-weight:500">🥄 Escobas</td>
+                <td style="font-size:13px;color:var(--text);padding:10px 6px;font-weight:500">🧹 Escobas</td>
                 <td v-for="pid in activePIds" :key="pid" style="text-align:center;padding:6px">
                   <div style="display:flex;align-items:center;justify-content:center;gap:4px">
                     <button type="button" @click="changeEscobas(pid,-1)"
@@ -2628,11 +2634,11 @@ body{
       <!-- PLAYERS -->
       <div v-show="stab==='players'">
         <button class="btn btn-primary btn-block" style="margin-bottom:14px" @click="openNewPlayerModal">+ Agregar jugador</button>
-        <div v-if="players.length===0" class="empty" style="padding:20px 0">
+        <div v-if="activePlayers.length===0" class="empty" style="padding:20px 0">
           <p>Agrega jugadores para comenzar a jugar</p>
         </div>
         <div class="card" v-else style="padding:4px 10px">
-          <div v-for="(p, i) in players" :key="p.id"
+          <div v-for="(p, i) in players" :key="p.id" v-show="!p.archived"
             class="list-item combo-drag-item"
             :class="{'drag-over': playerDragState.toIdx===i && playerDragState.fromIdx!==i && playerDragState.active, 'is-dragging': playerDragState.fromIdx===i && playerDragState.active}"
             :data-player-idx="i"
@@ -2785,7 +2791,7 @@ body{
           </div>
           <button class="combo-toggle" :class="{on:cookieConsent==='accepted'}"
             @click="cookieConsent==='accepted'?rejectCookies():acceptCookies()"
-            role="switch" :aria-checked="cookieConsent==='accepted'"></button>
+            role="switch" :aria-checked="cookieConsent==='accepted'" aria-label="Analítica de uso"></button>
         </div>
 
         <!-- Borrar todos los datos -->
@@ -2893,7 +2899,8 @@ body{
 
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.21/vue.global.prod.min.js"
+<!-- Vue 3.4.21 servido desde el propio sitio para que el service worker lo guarde (uso sin conexión) -->
+<script src="vue.global.prod.min.js"
   integrity="sha384-wdamyDHEiblYHsu/XTokGtIeFekZu7xN37Yvkl0NZ7PnhwRB+nwE1ByT7VlwiypE"
   crossorigin="anonymous"></script>
 <script>
@@ -3111,11 +3118,15 @@ createApp({
         return desc?(s<worst?s:worst):(s>worst?s:worst);
       }, t[this.activePIds[0]]||0);
     },
+    // Jugadores visibles (los archivados solo se conservan para el historial)
+    activePlayers(){
+      return this.players.filter(p=>!p.archived);
+    },
     // Jugadores disponibles para agregar (no están ya en la partida activa)
     addablePlayers(){
       if(!this.game) return [];
       const inGame=new Set(this.game.pIds);
-      return this.players.filter(p=>!inGame.has(p.id));
+      return this.activePlayers.filter(p=>!inGame.has(p.id));
     },
 
     // ── Chips ──
@@ -3389,7 +3400,7 @@ createApp({
 
     canQuickStart(){
       if(!this.lastCfg||!this.lastCfg.pIds||this.lastCfg.pIds.length<2) return false;
-      return this.lastCfg.pIds.every(id=>this.players.some(p=>p.id===id));
+      return this.lastCfg.pIds.every(id=>this.activePlayers.some(p=>p.id===id));
     },
 
     playerStats(){
@@ -3443,7 +3454,7 @@ createApp({
     },
 
     playersSortedByUse(){
-      return [...this.players].sort((a,b)=>{
+      return [...this.activePlayers].sort((a,b)=>{
         const ga=(this.playerStats[a.id]||{games:0}).games;
         const gb=(this.playerStats[b.id]||{games:0}).games;
         return gb-ga||a.name.localeCompare(b.name,'es');
@@ -3779,7 +3790,7 @@ createApp({
       this.setup={
         step:1,
         gameTypeId:gtId,
-        pIds:[...(this.lastCfg.pIds||[])].filter(id=>this.players.some(p=>p.id===id)),
+        pIds:[...(this.lastCfg.pIds||[])].filter(id=>this.activePlayers.some(p=>p.id===id)),
         cIds:[...(this.lastCfg.cIds||[])].filter(id=>this.combos.some(c=>c.id===id)),
         targetScore:(this.lastCfg.targetScore)||(gt&&gt.defaultTarget)||100,
         totalRounds:(this.lastCfg.totalRounds)||(gt&&gt.defaultRounds)||10,
@@ -4123,8 +4134,9 @@ createApp({
             }
           } else {
             // Gana el primero en llegar al objetivo
-            const w=this.activePIds.find(pid=>t[pid]>=target);
-            if(w){
+            const reached=this.activePIds.filter(pid=>t[pid]>=target);
+            if(reached.length){
+              const w=reached.reduce((a,b)=>t[a]>=t[b]?a:b); // el de más puntos
               this.showRound=false;
               this.endGame(w);
               return;
@@ -4170,8 +4182,9 @@ createApp({
           const t={};
           for(const pid of this.game.pIds) t[pid]=0;
           for(const r of this.game.rounds) for(const [pid,v] of Object.entries(r.scores)) t[pid]=(t[pid]||0)+v;
-          const w=this.activePIds.find(pid=>t[pid]>=target);
-          if(w){
+          const reached=this.activePIds.filter(pid=>t[pid]>=target);
+          if(reached.length){
+            const w=reached.reduce((a,b)=>t[a]>=t[b]?a:b); // el de más puntos
             this.showRound=false;
             this.endGame(w);
             return;
@@ -4280,6 +4293,9 @@ createApp({
       }
       const final={};
       for(const pid of this.game.pIds) final[pid]=0;
+      for(const j of (this.game.joinedPIds||[])){
+        if(typeof j.startScore==='number') final[j.pid]=(j.startScore||0);
+      }
       for(const r of this.game.rounds){
         for(const [pid,v] of Object.entries(r.scores)){
           final[pid]=(final[pid]||0)+v;
@@ -4307,7 +4323,9 @@ createApp({
           ok:()=>{ this.confirmDlg=null; this.endGame(winner); }
         };
       } else {
-        winner=mode==='score_high'
+        // Misma regla que endGame(): en Escoba, "Llega a X — gana" y Rondas fijas "gana más" gana el de más puntos
+        const wantsHigh=mode==='score_high'||mode==='escoba'||(mode==='rounds'&&this.game.roundsWinner==='high');
+        winner=wantsHigh
           ?activePidsM.reduce((a,b)=>final[a]>=final[b]?a:b)
           :activePidsM.reduce((a,b)=>final[a]<=final[b]?a:b);
         this.confirmDlg={
@@ -4437,6 +4455,14 @@ createApp({
       if(!trimmed) return;
       // Validar nombre duplicado (ignorar mayúsculas, ignorar el propio jugador al editar)
       const dup=this.players.find(x=>x.name.trim().toLowerCase()===trimmed.toLowerCase()&&x.id!==this.pModal.id);
+      if(dup&&dup.archived&&!this.pModal.id){
+        // Reactivar jugador archivado con el mismo nombre (conserva su historial)
+        dup.archived=false; dup.color=this.pModal.color;
+        if(this._setupReturn&&this.setup.step>0&&!this.setup.pIds.includes(dup.id)) this.setup.pIds.push(dup.id);
+        this._setupReturn=false; this.pModal.open=false; this.save();
+        this.showToast(dup.name+' reactivado/a');
+        return;
+      }
       if(dup){ this.showToast('Ya existe un jugador con ese nombre'); return; }
       if(this.pModal.id){
         const p=this.players.find(x=>x.id===this.pModal.id);
@@ -4454,6 +4480,24 @@ createApp({
       this.save();
     },
     delPlayer(id){
+      const name=this.pName(id);
+      // 1) En partida activa o pausada: no se permite
+      const inUse=(this.game&&(this.game.pIds||[]).includes(id))
+        ||this.games.some(g=>g.status==='paused'&&(g.pIds||[]).includes(id));
+      if(inUse){
+        this.confirmDlg={info:true,msg:`No puedes eliminar a ${name} porque está en una partida en curso o pausada. Termínala o elimínala primero.`,ok:()=>{this.confirmDlg=null;}};
+        return;
+      }
+      // 2) Aparece en el historial: se archiva para conservar su nombre en partidas pasadas
+      const inHistory=this.games.some(g=>(g.pIds||[]).includes(id));
+      if(inHistory){
+        this.confirmDlg={
+          msg:`¿Eliminar a ${name}? Se quitará de tu lista de jugadores, pero su nombre se mantendrá en el historial de partidas.`,
+          ok:()=>{ const p=this.players.find(x=>x.id===id); if(p) p.archived=true; this.save(); this.confirmDlg=null; }
+        };
+        return;
+      }
+      // 3) Nunca jugó: se elimina por completo
       this.confirmDlg={
         msg:'¿Eliminar este jugador?',
         ok:()=>{ this.players=this.players.filter(p=>p.id!==id); this.save(); this.confirmDlg=null; }
@@ -5192,10 +5236,11 @@ createApp({
         const seenCG=seenSet(d.seenDefCustomGames);
 
         if(Array.isArray(d.players)){
-          this.players=d.players.slice(0,20).map(p=>({
+          this.players=d.players.slice(0,200).map(p=>({
             id:String(p.id||'').slice(0,20),
             name:String(p.name||'').slice(0,20),
             color:typeof p.color==='string'&&/^#[0-9a-f]{6}$/i.test(p.color)?p.color:'#888888',
+            ...(p.archived===true?{archived:true}:{}),
           }));
         }
         if(Array.isArray(d.combos)){
@@ -5232,7 +5277,16 @@ createApp({
                 scores[String(k).slice(0,20)]=Math.max(0,Math.min(9999,parseInt(v)||0));
               }
             }
-            return {roundNum:parseInt(r.roundNum)||0,cId:String(r.cId||'').slice(0,20),winner:String(r.winner||'').slice(0,20),scores};
+            // Detalle de mano de Escoba (para historial)
+            let escobaDetail;
+            if(r.escobaDetail&&typeof r.escobaDetail==='object'){
+              escobaDetail={};
+              for(const [k,v] of Object.entries(r.escobaDetail).slice(0,10)){
+                if(!v||typeof v!=='object') continue;
+                escobaDetail[String(k).slice(0,20)]={cartas:!!v.cartas,oros:!!v.oros,settebello:!!v.settebello,primera:!!v.primera,escobas:Math.max(0,Math.min(99,parseInt(v.escobas)||0))};
+              }
+            }
+            return {roundNum:parseInt(r.roundNum)||0,cId:String(r.cId||'').slice(0,20),winner:String(r.winner||'').slice(0,20),scores,...(escobaDetail?{escobaDetail}:{})};
           }):[];
           return {
             id:String(g.id||'').slice(0,20),
@@ -5246,6 +5300,11 @@ createApp({
             doneMap:g.doneMap&&typeof g.doneMap==='object'?g.doneMap:{},
             pauseDate:g.pauseDate?String(g.pauseDate).slice(0,30):undefined,
             targetScore:typeof g.targetScore==='number'&&g.targetScore>0?g.targetScore:null,
+            // Configuración de modos genéricos (antes se perdía al reabrir la app)
+            totalRounds:typeof g.totalRounds==='number'&&g.totalRounds>0?Math.min(999,g.totalRounds):null,
+            roundsWinner:['low','high'].includes(g.roundsWinner)?g.roundsWinner:null,
+            livesStart:typeof g.livesStart==='number'&&g.livesStart>0?Math.min(99,g.livesStart):null,
+            endDate:typeof g.endDate==='string'?g.endDate.slice(0,30):undefined,
             gameName:typeof g.gameName==='string'?g.gameName.slice(0,30):null,
             dealerIdx:typeof g.dealerIdx==='number'?Math.max(0,Math.min(99,g.dealerIdx)):0,
             retiredPIds:Array.isArray(g.retiredPIds)?g.retiredPIds.slice(0,20).map(r=>({
@@ -5300,6 +5359,9 @@ createApp({
             pIds:Array.isArray(d.lastCfg.pIds)?d.lastCfg.pIds.slice(0,10).map(x=>String(x).slice(0,20)):[],
             cIds:Array.isArray(d.lastCfg.cIds)?d.lastCfg.cIds.slice(0,100).map(x=>String(x).slice(0,20)):[],
             targetScore:typeof d.lastCfg.targetScore==='number'&&d.lastCfg.targetScore>0?d.lastCfg.targetScore:null,
+            totalRounds:typeof d.lastCfg.totalRounds==='number'&&d.lastCfg.totalRounds>0?Math.min(999,d.lastCfg.totalRounds):null,
+            roundsWinner:['low','high'].includes(d.lastCfg.roundsWinner)?d.lastCfg.roundsWinner:null,
+            livesStart:typeof d.lastCfg.livesStart==='number'&&d.lastCfg.livesStart>0?Math.min(99,d.lastCfg.livesStart):null,
             gameName:typeof d.lastCfg.gameName==='string'?d.lastCfg.gameName.slice(0,30):'',
           };
         }
