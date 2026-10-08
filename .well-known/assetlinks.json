@@ -1,8 +1,13 @@
-[{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "com.cartascore.app",
-        "sha256_cert_fingerprints": ["DA:99:4B:BB:D5:EC:30:B9:0E:47:1E:9F:88:AF:D2:D6:06:1F:4C:1E:A3:91:64:69:25:00:01:AC:75:23:54:19"]
-      }
-    }]
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.cartascore.app",
+      "sha256_cert_fingerprints": [
+        "08:9E:BA:F7:A2:CE:42:85:10:D4:81:35:89:B2:A2:A3:DD:6E:32:80:8E:90:52:A0:B4:D3:E4:C9:15:3C:5C:A9",
+        "DA:99:4B:BB:D5:EC:30:B9:0E:47:1E:9F:88:AF:D2:D6:06:1F:4C:1E:A3:91:64:69:25:00:01:AC:75:23:54:19"
+      ]
+    }
+  }
+]
