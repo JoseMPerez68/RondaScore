@@ -1796,6 +1796,7 @@ textarea{vertical-align:top} /* evita hueco bajo textarea en modo estándar */
         <template v-if="isTruco"> · {{game.teamA}} {{game.scoreA}}–{{game.scoreB}} {{game.teamB}}</template>
         <template v-else-if="isRoundsMode">{{ ' '+t('ronda_a_b_2',{a:(game.round+1),b:(game.totalRounds)}) }}</template>
         <template v-else-if="isLivesMode">{{ ' '+t('ronda_a_b_3',{a:(game.round+1),b:(game.livesStart)}) }}</template>
+        <template v-else-if="isEscoba">{{ ' '+t('ronda_a',{a:(game.round+1)}) }}<span v-if="game.targetScore">{{ ' '+t('objetivo_a_pts',{a:(game.targetScore)}) }}</span></template>
         <template v-else-if="!isLibre && !isScoreMode">{{ ' '+t('ronda_a_b_2',{a:(game.round+1),b:(game.cIds.length)}) }}</template>
         <template v-else-if="isScoreMode">{{ ' '+t('ronda_a',{a:(game.round+1)}) }}<span v-if="game.targetScore">{{ ' '+t('limite_a_pts',{a:(game.targetScore)}) }}</span></template>
         <template v-else>{{ ' '+t('ronda_a',{a:(game.round+1)}) }}</template>
@@ -2010,6 +2011,22 @@ textarea{vertical-align:top} /* evita hueco bajo textarea en modo estándar */
           <!-- Barra de progreso hacia el límite (score_low) o el objetivo (score_high) -->
           <div v-if="game.targetScore" style="margin-top:10px">
             <div v-for="pid in game.pIds.slice(0,4)" :key="pid" class="libre-prog-row">
+              <div class="av av-sm" :style="{background:pColor(pid),flexShrink:0}">{{ini(pName(pid))}}</div>
+              <div class="libre-prog-bar-wrap">
+                <div class="libre-prog-bar" :style="{width: Math.min(100,Math.round(((totals[pid]||0)/game.targetScore)*100))+'%'}"></div>
+              </div>
+              <span class="libre-prog-pct">{{totals[pid]||0}}/{{game.targetScore}}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Escoba de Quince: mano actual y progreso hacia el objetivo -->
+        <div class="combo-hero" v-else-if="isEscoba">
+          <div class="combo-hero-num">{{activeGameName}}</div>
+          <div class="combo-hero-short" style="font-size:28px">{{ t('ronda_a_2',{a:(game.round+1)}) }}</div>
+          <div class="combo-hero-name" v-if="game.targetScore">{{ t('objetivo_a_pts_gana_quien',{a:(game.targetScore)}) }}</div>
+          <div v-if="game.targetScore" style="margin-top:10px">
+            <div v-for="pid in activePIds.slice(0,4)" :key="pid" class="libre-prog-row">
               <div class="av av-sm" :style="{background:pColor(pid),flexShrink:0}">{{ini(pName(pid))}}</div>
               <div class="libre-prog-bar-wrap">
                 <div class="libre-prog-bar" :style="{width: Math.min(100,Math.round(((totals[pid]||0)/game.targetScore)*100))+'%'}"></div>
@@ -3045,7 +3062,7 @@ const I18N = {
     "escobas":"Escobas",
     "escobas_2":"🧹 Escobas",
     "escribe_tu_sugerencia_aqui":"Escribe tu sugerencia aquí…",
-    "esta_aplicacion_no_esta_dirigida":"Esta aplicación no está dirigida a menores de 16 años (umbral establecido por la Ley 21.719 de Chile). No recopilamos de forma consciente datos de menores. Si eres padre o tutor y crees que un menor ha utilizado la analítica sin supervisión, puedes revocar el consentimiento y borrar los datos desde Ajustes → Privacidad → Borrar todos mis datos.",
+    "esta_aplicacion_no_esta_dirigida":"Esta aplicación no está dirigida a menores de 14 años (edad mínima para consentir el tratamiento de datos según la Ley 21.719 de Chile y la normativa española). No recopilamos de forma consciente datos de menores. Si eres padre, madre o tutor y crees que un menor ha utilizado la analítica sin supervisión, puedes revocar el consentimiento y borrar los datos desde Ajustes → Privacidad → Borrar todos mis datos.",
     "esta_app_usa_cookies_de":"🍪 Esta app usa cookies de analítica",
     "estadisticas_de_jugadores":"Estadísticas de jugadores",
     "estado_de_combinaciones":"Estado de combinaciones",
@@ -3163,6 +3180,7 @@ const I18N = {
     "numero_de_rondas":"Número de rondas",
     "o_empezar_una_nueva":"o empezar una nueva",
     "objetivo":"Objetivo",
+    "objetivo_a_pts":"— objetivo {a} pts",
     "objetivo_a_pts_gana_quien":"Objetivo: {a} pts — gana quien llegue primero",
     "opcional":"(opcional)",
     "orden_de_reparto":"Orden de reparto",
@@ -3518,7 +3536,7 @@ const I18N = {
     "escobas":"Escombres",
     "escobas_2":"🧹 Escombres",
     "escribe_tu_sugerencia_aqui":"Escriu el teu suggeriment aquí…",
-    "esta_aplicacion_no_esta_dirigida":"Aquesta aplicació no està adreçada a menors de 16 anys (llindar establert per la Llei 21.719 de Xile). No recollim conscientment dades de menors. Si ets pare, mare o tutor i creus que un menor ha fet servir l'analítica sense supervisió, pots revocar el consentiment i esborrar les dades des de Configuració → Privadesa → Esborra totes les meves dades.",
+    "esta_aplicacion_no_esta_dirigida":"Aquesta aplicació no està adreçada a menors de 14 anys (edat mínima per consentir el tractament de dades segons la Llei 21.719 de Xile i la normativa espanyola). No recollim conscientment dades de menors. Si ets pare, mare o tutor i creus que un menor ha fet servir l'analítica sense supervisió, pots revocar el consentiment i esborrar les dades des de Configuració → Privadesa → Esborra totes les meves dades.",
     "esta_app_usa_cookies_de":"🍪 Aquesta app fa servir galetes d'analítica",
     "estadisticas_de_jugadores":"Estadístiques dels jugadors",
     "estado_de_combinaciones":"Estat de les combinacions",
@@ -3636,6 +3654,7 @@ const I18N = {
     "numero_de_rondas":"Nombre de rondes",
     "o_empezar_una_nueva":"o comença'n una de nova",
     "objetivo":"Objectiu",
+    "objetivo_a_pts":"— objectiu {a} pts",
     "objetivo_a_pts_gana_quien":"Objectiu: {a} pts — guanya qui hi arribi primer",
     "opcional":"(opcional)",
     "orden_de_reparto":"Ordre de repartiment",

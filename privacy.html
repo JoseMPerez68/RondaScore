@@ -1,48 +1,139 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Política de Privacidad – CartaScore</title>
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #333; line-height: 1.6; }
-    h1 { color: #1a1a2e; }
-    h2 { color: #16213e; margin-top: 30px; }
-    a { color: #0066cc; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Política de Privacidad – CartaScore</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: Arial, sans-serif; max-width: 800px; margin: 32px auto; padding: 0 20px; color: #333; background: #fff; line-height: 1.6; }
+  h1 { color: #152f25; font-size: 1.6em; margin-bottom: 4px; }
+  h2 { color: #1f4a39; font-size: 1.15em; margin-top: 28px; }
+  a { color: #0b6b4b; }
+  .updated { color: #666; font-size: .9em; margin-top: 0; }
+  .lang { display: flex; gap: 8px; margin: 0 0 20px; }
+  .lang button { font: inherit; padding: 6px 14px; border-radius: 8px; border: 1.5px solid #1f4a39; background: #fff; color: #1f4a39; cursor: pointer; min-height: 36px; }
+  .lang button[aria-pressed="true"] { background: #1f4a39; color: #fff; }
+  code { background: #f1f1f1; padding: 1px 5px; border-radius: 4px; }
+  [hidden] { display: none !important; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #121815; color: #e6e6e6; }
+    h1, h2 { color: #9fd8bd; }
+    a { color: #7fd1ab; }
+    .updated { color: #aaa; }
+    .lang button { background: #121815; color: #9fd8bd; border-color: #9fd8bd; }
+    .lang button[aria-pressed="true"] { background: #9fd8bd; color: #121815; }
+    code { background: #22302a; }
+  }
+</style>
 </head>
 <body>
+
+<div class="lang" role="group" aria-label="Idioma / Language">
+  <button type="button" data-lang="es" lang="es" aria-pressed="true">Español</button>
+  <button type="button" data-lang="ca" lang="ca" aria-pressed="false">Català</button>
+</div>
+
+<!-- ───────────── ESPAÑOL ───────────── -->
+<main id="es" lang="es">
   <h1>Política de Privacidad de CartaScore</h1>
-  <p><em>Última actualización: septiembre de 2026</em></p>
+  <p class="updated">Última actualización: octubre de 2026</p>
+  <p>CartaScore es una aplicación para anotar puntuaciones en juegos de cartas (Carioca, Continental, Escoba de Quince y modos genéricos como rondas fijas, llegar a un puntaje o vidas). Esta política explica qué datos se tratan y cómo.</p>
 
-  <p>CartaScore es una aplicación para anotar puntuaciones en juegos de cartas (Carioca, Continental, Rummy, Tute, Mus y otros). Esta política explica cómo se trata la información de los usuarios.</p>
+  <h2>1. Responsable del tratamiento</h2>
+  <p>Jose M. Pérez — <a href="mailto:CartaScore68@gmail.com">CartaScore68@gmail.com</a>. Para ejercer tus derechos o hacer cualquier consulta sobre privacidad, escríbenos a esa dirección.</p>
 
-  <h2>1. Datos que recopilamos</h2>
-  <p>CartaScore <strong>no recopila ni almacena datos personales</strong> en servidores externos. Toda la información de partidas y puntuaciones se guarda exclusivamente en el dispositivo del usuario (almacenamiento local del navegador).</p>
-  <p>De forma opcional, si el usuario acepta el uso de analíticas, la aplicación puede recopilar datos de uso anónimos a través de Google Analytics 4 (GA4), como pantallas visitadas y duración de sesión. Estos datos no incluyen información que permita identificar al usuario.</p>
+  <h2>2. Datos que tratamos</h2>
+  <p><strong>Nombres de jugadores, partidas y ajustes:</strong> se almacenan únicamente en tu dispositivo (almacenamiento local). No se envían a ningún servidor.</p>
+  <p><strong>Datos de uso (solo si aceptas la analítica):</strong> si das tu consentimiento, Google Analytics 4 recoge tu dirección IP anonimizada, el tipo de dispositivo y eventos de uso (partida iniciada, rondas guardadas, resultado compartido). Finalidad: mejorar la app. La analítica está desactivada hasta que la aceptas.</p>
 
-  <h2>2. Uso de los datos</h2>
-  <p>Los datos de uso anónimos recopilados a través de GA4 se utilizan exclusivamente para mejorar la aplicación (detectar errores, entender qué funcionalidades se usan más). No se utilizan con fines publicitarios ni se venden a terceros.</p>
+  <h2>3. Base legal</h2>
+  <p>El tratamiento de los datos de uso se basa en tu <strong>consentimiento</strong> (RGPD art. 6.1.a), que puedes retirar en cualquier momento desde Ajustes → Privacidad dentro de la app.</p>
 
-  <h2>3. Publicidad</h2>
-  <p>CartaScore <strong>no muestra publicidad</strong> y no utiliza identificadores de publicidad (Advertising ID).</p>
+  <h2>4. Publicidad y permisos</h2>
+  <p>CartaScore no muestra publicidad, no utiliza el identificador de publicidad (Advertising ID) y no vende ni comparte tus datos con anunciantes. No solicita permisos especiales del dispositivo (cámara, micrófono, ubicación, contactos, etc.).</p>
 
-  <h2>4. Permisos</h2>
-  <p>CartaScore no solicita permisos especiales del dispositivo (cámara, micrófono, ubicación, contactos, etc.).</p>
+  <h2>5. Transferencia internacional</h2>
+  <p>Google LLC (EE. UU.) procesa los datos analíticos. Google está certificado bajo el EU–US Data Privacy Framework (Decisión de Adecuación de la Comisión Europea, julio de 2023). Más información: <a href="https://policies.google.com/privacy">policies.google.com/privacy</a>.</p>
 
-  <h2>5. Menores de edad</h2>
-  <p>CartaScore no está dirigida específicamente a menores de 13 años. No recopilamos conscientemente información personal de menores.</p>
+  <h2>6. Conservación</h2>
+  <p>Los datos locales se conservan hasta que los borres. Google Analytics conserva los datos de uso durante 14 meses (configuración predeterminada de GA4).</p>
 
-  <h2>6. Servicios de terceros</h2>
-  <p>La aplicación puede utilizar Google Analytics 4. Puedes consultar la política de privacidad de Google en: <a href="https://policies.google.com/privacy" target="_blank">https://policies.google.com/privacy</a></p>
+  <h2>7. Cookies</h2>
+  <p>Si aceptas la analítica, Google Analytics instala las cookies <code>_ga</code> (duración 2 años) y <code>_ga_EYZJ48R2RV</code> (2 años) para identificar sesiones y medir el uso. Si no la aceptas, no se instalan.</p>
 
-  <h2>7. Derechos del usuario</h2>
-  <p>Como no recopilamos datos personales identificables, no hay datos que solicitar, modificar ni eliminar. Los datos de partidas almacenados localmente pueden borrarse en cualquier momento desde la configuración del navegador.</p>
+  <h2>8. Tus derechos</h2>
+  <p>Tienes derecho a acceder, rectificar, suprimir, limitar y portar tus datos, y a oponerte a su tratamiento (RGPD arts. 15–22 y Ley 21.719 de Chile). Para los datos guardados en tu dispositivo, usa el botón <strong>Borrar todos mis datos</strong> en Ajustes de la app. Para los datos de Google Analytics (solo si aceptaste la analítica), visita <a href="https://myaccount.google.com">myaccount.google.com</a> o escríbenos.</p>
 
-  <h2>8. Cambios en esta política</h2>
-  <p>Cualquier cambio en esta política se publicará en esta misma página con la fecha de actualización correspondiente.</p>
+  <h2>9. Menores de edad</h2>
+  <p>CartaScore no está dirigida a menores de 14 años (edad mínima para consentir el tratamiento de datos según la Ley 21.719 de Chile y la normativa española). No recopilamos de forma consciente datos de menores. Si eres padre, madre o tutor y crees que un menor ha aceptado la analítica sin supervisión, puedes revocar el consentimiento y borrar los datos desde Ajustes → Privacidad → Borrar todos mis datos, o escribirnos.</p>
 
-  <h2>9. Contacto</h2>
-  <p>Para cualquier consulta relacionada con la privacidad, puedes escribir a: <a href="mailto:CartaScore68@gmail.com">CartaScore68@gmail.com</a></p>
+  <h2>10. Cambios en esta política</h2>
+  <p>Cualquier cambio se publicará en esta misma página, con su fecha de actualización.</p>
+
+  <h2>11. Contacto</h2>
+  <p><a href="mailto:CartaScore68@gmail.com">CartaScore68@gmail.com</a></p>
+</main>
+
+<!-- ───────────── CATALÀ ───────────── -->
+<main id="ca" lang="ca" hidden>
+  <h1>Política de privadesa de CartaScore</h1>
+  <p class="updated">Darrera actualització: octubre del 2026</p>
+  <p>CartaScore és una aplicació per anotar puntuacions en jocs de cartes (Carioca, Continental, Escombra i modes genèrics com rondes fixes, arribar a una puntuació o vides). Aquesta política explica quines dades es tracten i com.</p>
+
+  <h2>1. Responsable del tractament</h2>
+  <p>Jose M. Pérez — <a href="mailto:CartaScore68@gmail.com">CartaScore68@gmail.com</a>. Per exercir els teus drets o fer qualsevol consulta sobre privadesa, escriu-nos a aquesta adreça.</p>
+
+  <h2>2. Dades que tractem</h2>
+  <p><strong>Noms de jugadors, partides i configuració:</strong> només es desen al teu dispositiu (emmagatzematge local). No s'envien a cap servidor.</p>
+  <p><strong>Dades d'ús (només si acceptes l'analítica):</strong> si hi dones el consentiment, Google Analytics 4 recull la teva adreça IP anonimitzada, el tipus de dispositiu i esdeveniments d'ús (partida iniciada, rondes desades, resultat compartit). Finalitat: millorar l'app. L'analítica està desactivada fins que l'acceptes.</p>
+
+  <h2>3. Base legal</h2>
+  <p>El tractament de les dades d'ús es basa en el teu <strong>consentiment</strong> (RGPD art. 6.1.a), que pots retirar en qualsevol moment des de Configuració → Privadesa dins de l'app.</p>
+
+  <h2>4. Publicitat i permisos</h2>
+  <p>CartaScore no mostra publicitat, no fa servir l'identificador de publicitat (Advertising ID) i no ven ni comparteix les teves dades amb anunciants. No demana permisos especials del dispositiu (càmera, micròfon, ubicació, contactes, etc.).</p>
+
+  <h2>5. Transferència internacional</h2>
+  <p>Google LLC (EUA) tracta les dades analítiques. Google està certificada en el marc EU–US Data Privacy Framework (Decisió d'adequació de la Comissió Europea, juliol del 2023). Més informació: <a href="https://policies.google.com/privacy">policies.google.com/privacy</a>.</p>
+
+  <h2>6. Conservació</h2>
+  <p>Les dades locals es conserven fins que les esborris. Google Analytics conserva les dades d'ús durant 14 mesos (configuració predeterminada de GA4).</p>
+
+  <h2>7. Galetes</h2>
+  <p>Si acceptes l'analítica, Google Analytics instal·la les galetes <code>_ga</code> (durada de 2 anys) i <code>_ga_EYZJ48R2RV</code> (2 anys) per identificar sessions i mesurar l'ús. Si no l'acceptes, no s'instal·len.</p>
+
+  <h2>8. Els teus drets</h2>
+  <p>Tens dret a accedir a les teves dades, a rectificar-les, suprimir-les, limitar-ne el tractament i portar-les, i a oposar-te al seu tractament (RGPD art. 15–22 i Llei 21.719 de Xile). Per a les dades desades al teu dispositiu, fes servir el botó <strong>Esborra totes les meves dades</strong> de la Configuració de l'app. Per a les dades de Google Analytics (només si has acceptat l'analítica), visita <a href="https://myaccount.google.com">myaccount.google.com</a> o escriu-nos.</p>
+
+  <h2>9. Menors d'edat</h2>
+  <p>CartaScore no està adreçada a menors de 14 anys (edat mínima per consentir el tractament de dades segons la Llei 21.719 de Xile i la normativa espanyola). No recollim conscientment dades de menors. Si ets pare, mare o tutor i creus que un menor ha acceptat l'analítica sense supervisió, pots revocar el consentiment i esborrar les dades des de Configuració → Privadesa → Esborra totes les meves dades, o escriure'ns.</p>
+
+  <h2>10. Canvis en aquesta política</h2>
+  <p>Qualsevol canvi es publicarà en aquesta mateixa pàgina, amb la data d'actualització.</p>
+
+  <h2>11. Contacte</h2>
+  <p><a href="mailto:CartaScore68@gmail.com">CartaScore68@gmail.com</a></p>
+</main>
+
+<script>
+(function(){
+  var langs=['es','ca'];
+  function show(l){
+    if(langs.indexOf(l)<0) l='es';
+    langs.forEach(function(x){ document.getElementById(x).hidden=(x!==l); });
+    document.documentElement.lang=l;
+    document.title = l==='ca' ? 'Política de privadesa – CartaScore' : 'Política de Privacidad – CartaScore';
+    var bs=document.querySelectorAll('.lang button');
+    for(var i=0;i<bs.length;i++) bs[i].setAttribute('aria-pressed', bs[i].getAttribute('data-lang')===l ? 'true':'false');
+  }
+  // Idioma: ?lang=ca|es, si no, el del navegador (catalán → ca; resto → es)
+  var q=(location.search.match(/[?&]lang=(\w+)/)||[])[1];
+  var nav=((navigator.languages&&navigator.languages[0])||navigator.language||'es').toLowerCase();
+  show(q || (nav.indexOf('ca')===0 ? 'ca' : 'es'));
+  var bs=document.querySelectorAll('.lang button');
+  for(var i=0;i<bs.length;i++) bs[i].addEventListener('click', function(){ show(this.getAttribute('data-lang')); });
+})();
+</script>
 </body>
 </html>
