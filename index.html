@@ -3522,6 +3522,52 @@ window.cartaVm = createApp({
     // nav
     nav(v){ this.view=v; this.detailGame=null; this.showMenu=false; },
 
+    // ── BOTÓN ATRÁS (Android) ──
+    // Cierra la capa superior abierta o vuelve a Inicio. Devuelve true si hizo algo.
+    closeTopLayer(){
+      if(this.privacyModal){ this.privacyModal=false; return true; }
+      if(this.confirmDlg){ this.confirmDlg=null; return true; }
+      if(this.retirePlayerDlg){ this.retirePlayerDlg=null; return true; }
+      if(this.editStartScoreDlg){ this.editStartScoreDlg=null; return true; }
+      if(this.editScoreDlg){ this.editScoreDlg=null; return true; }
+      if(this.pModal&&this.pModal.open){ this.pModal.open=false; return true; }
+      if(this.cModal&&this.cModal.open){ this.cModal.open=false; return true; }
+      if(this.cgModal&&this.cgModal.show){ this.cgModal.show=false; return true; }
+      if(this.rulesModal){ this.rulesModal=null; return true; }
+      if(this.addPlayerModal){ this.addPlayerModal=null; return true; }
+      if(this.showRound){
+        if(this.roundInputMode==='chips'&&this.chipPlayerIdx>0) this.chipPlayerIdx--;
+        else this.showRound=false;
+        return true;
+      }
+      if(this.setup&&this.setup.step>0){
+        // Paso anterior del asistente (sin perder lo elegido); en el paso 1 se cierra
+        if(this.setup.step>1) this.setup.step--; else this.setup.step=0;
+        return true;
+      }
+      if(this.winnerModal){ this.winnerModal=null; this.nav('home'); return true; } // la partida ya está guardada
+      if(this.showMenu){ this.showMenu=false; return true; }
+      if(this.detailGame){ this.detailGame=null; return true; }
+      if(this.view!=='home'){ this.nav('home'); return true; }
+      return false;
+    },
+    onBackButton(){
+      // Se acaba de consumir la entrada "guardia" del historial
+      if(this.closeTopLayer()){ this._pushBackGuard(); return; }
+      // En Inicio sin nada abierto: pedir confirmación con un segundo "atrás"
+      this._exitArmed=true;
+      this.showToast('Pulsa atrás otra vez para salir');
+      clearTimeout(this._exitTimer);
+      this._exitTimer=setTimeout(()=>this._disarmExit(),2500);
+    },
+    _pushBackGuard(){ history.pushState({cartascore:'guard'},''); },
+    _disarmExit(){
+      if(!this._exitArmed) return;
+      this._exitArmed=false;
+      clearTimeout(this._exitTimer);
+      this._pushBackGuard();
+    },
+
     // utils
     uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); },
     ini(name){ return name?name.charAt(0).toUpperCase():'?'; },
@@ -5380,6 +5426,16 @@ window.cartaVm = createApp({
     const splash=document.getElementById('splash');
     if(splash){ splash.classList.add('hidden'); setTimeout(()=>splash.remove(),500); }
     this.load();
+
+    // Botón atrás de Android: una entrada "guardia" en el historial evita que la app se cierre;
+    // cada "atrás" cierra la ventana abierta o vuelve a Inicio, y en Inicio pide un segundo "atrás" para salir.
+    try{
+      history.replaceState({cartascore:'base'},'');
+      this._pushBackGuard();
+      window.addEventListener('popstate', ()=>this.onBackButton());
+      // Si tras el primer "atrás" el usuario sigue usando la app, se repone la guardia
+      document.addEventListener('pointerdown', ()=>this._disarmExit(), true);
+    }catch(e){}
 
     // Accesibilidad: cerrar modales con Escape (WCAG 2.1 — SC 1.4.13 / SC 2.1.2)
     window.addEventListener('keydown', e => {
