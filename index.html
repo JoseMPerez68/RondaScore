@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" translate="no">
 <meta charset="utf-8">
+<meta name="google" content="notranslate">
 <title>CartaScore</title>
 <style>html{background:#152f25}
 /* ── SPLASH ── */
@@ -4482,6 +4483,11 @@ window.cartaVm = createApp({
     // Combinaciones predefinidas que el usuario no ha renombrado: se muestran en el idioma activo.
     // Si el nombre coincide con el predeterminado de cualquier idioma, se reemplaza; si lo editó, se respeta.
     localizeDefaults(){
+      // Reparar el juego de las combinaciones predefinidas (datos antiguos sin gtId o con uno erróneo)
+      for(const c of this.combos){
+        const def=DEF_COMBOS.find(d=>d.id===c.id);
+        if(def&&c.gtId!==def.gtId) c.gtId=def.gtId;
+      }
       for(const c of this.combos){
         const key='combo_'+c.id;
         if(I18N.es[key]==null) continue;
@@ -5984,11 +5990,12 @@ window.cartaVm = createApp({
     commitDrag(){
       const { fromIdx, toIdx }=this.dragState;
       if(fromIdx!==null && toIdx!==null && fromIdx!==toIdx){
-        const sorted=[...this.combos].sort((a,b)=>(a.order||0)-(b.order||0));
-        const [moved]=sorted.splice(fromIdx,1);
-        sorted.splice(toIdx,0,moved);
-        sorted.forEach((c,i)=>{ c.order=i+1; });
-        this.combos=[...sorted];
+        // Reordenar solo dentro de la lista visible (Carioca o Continental), no mezclarlas
+        const list=[...this.tabCombos];
+        const [moved]=list.splice(fromIdx,1);
+        list.splice(toIdx,0,moved);
+        list.forEach((c,i)=>{ c.order=i+1; });
+        this.combos=[...this.combos];
         this.save();
       }
       this.dragState={ active:false, fromIdx:null, toIdx:null };
@@ -6051,10 +6058,12 @@ window.cartaVm = createApp({
         const c=this.combos.find(x=>x.id===this.cModal.id);
         if(c){ c.name=this.cModal.name.trim(); c.short=this.cModal.short.trim()||c.name.slice(0,4); }
       } else {
-        const maxOrder=Math.max(0,...this.combos.map(c=>c.order||0));
+        const gtId=this.comboTab==='continental'?'continental':'carioca';
+        const maxOrderTab=Math.max(0,...this.combos.filter(c=>(c.gtId||'carioca')===gtId).map(c=>c.order||0));
         this.combos.push({
           id:this.uid(),
-          order:maxOrder+1,
+          gtId,
+          order:maxOrderTab+1,
           name:this.cModal.name.trim(),
           short:this.cModal.short.trim()||this.cModal.name.slice(0,4),
           active:true,
