@@ -1,6 +1,6 @@
 // ── CARTASCORE SERVICE WORKER ──
 // Cambiar CACHE_VERSION con cada deploy para forzar actualización
-const CACHE_VERSION = 'cartascore-v2';
+const CACHE_VERSION = 'cartascore-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -54,7 +54,7 @@ self.addEventListener('fetch', event => {
           }
           return res;
         })
-        .catch(() => caches.match(req)) // offline: sirve desde caché
+        .catch(() => caches.match(req, {ignoreSearch: true})) // offline: sirve desde caché (también con ?mesa=)
     );
     return;
   }

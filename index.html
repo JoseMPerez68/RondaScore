@@ -19,7 +19,7 @@
 .brand-header .bh-name strong{font-weight:700}
 </style>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://www.google-analytics.com; connect-src https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com https://www.googletagmanager.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://www.google-analytics.com; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.firebasedatabase.app https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com https://www.googletagmanager.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'">
 <meta name="theme-color" content="#152f25">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -153,6 +153,31 @@ body{
   transition:background .15s;
 }
 .hdr-btn:hover{background:rgba(255,255,255,.1)}
+
+/* ── MESA COMPARTIDA ── */
+.mesa-pill{display:flex;align-items:center;gap:6px;width:100%;margin-bottom:10px;padding:8px 12px;border-radius:10px;border:1.5px solid var(--green-acc);background:transparent;color:var(--green-acc);font:600 13px var(--ff-ui);cursor:pointer;text-align:left}
+.mesa-pill.pending{border-color:var(--gold);color:var(--gold)}
+.mesa-p{font-size:14px;line-height:1.55;color:var(--text);margin-bottom:10px}
+.mesa-warn{color:var(--red);font-size:13px}
+.mesa-qr{width:min(64vw,240px);margin:6px auto 12px;background:#fff;border-radius:12px;padding:6px}
+.mesa-qr svg{display:block;width:100%;height:auto}
+.mesa-code-lbl{text-align:center;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:var(--muted)}
+.mesa-code{text-align:center;font:700 34px/1.2 ui-monospace,Menlo,Consolas,monospace;letter-spacing:6px;color:var(--text);margin:2px 0 6px;cursor:pointer}
+.mesa-stop{margin-top:12px;background:transparent;color:var(--red);border:none;font-size:14px}
+.mesa-inp{flex:1;text-transform:uppercase;letter-spacing:3px;font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700}
+.mesa-recent{display:flex;flex-direction:column;align-items:flex-start;width:100%;padding:10px 12px;margin-bottom:6px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;text-align:left;font-family:var(--ff-ui)}
+.mesa-recent-name{font-size:14px;font-weight:600}
+.mesa-recent-meta{font-size:12px;color:var(--muted);margin-top:2px}
+#mesa-root:not([hidden]){position:fixed;inset:0;z-index:600;background:var(--bg);max-width:430px;margin:0 auto;overflow-y:auto;overscroll-behavior:contain}
+body.mesa-open{overflow:hidden}
+.mesa-ov{min-height:100%;display:flex;flex-direction:column}
+.mesa-ov .content{padding-bottom:24px}
+.mesa-status{margin-bottom:10px;padding:8px 12px;border-radius:10px;background:var(--surface);box-shadow:var(--shadow);font-size:13px;font-weight:600;color:var(--text)}
+.mesa-status.st-live{color:var(--green-acc)}
+.mesa-status.st-wait{color:var(--gold)}
+.mesa-ov .editable-cell{cursor:default}
+.mesa-install{display:block;margin:-4px 0 10px;font-size:12px;color:var(--green-acc);text-decoration:none;text-align:center}
+.mesa-ov .toggle{cursor:default}
 
 /* ── CONTENT ── */
 .content{
@@ -930,6 +955,71 @@ textarea{vertical-align:top} /* evita hueco bajo textarea en modo estándar */
   <div v-if="toast" class="toast" role="status" aria-live="polite" aria-atomic="true">{{toast}}</div>
 
   <!-- ===== CONFIRM DIALOG ===== -->
+  <!-- ===== MESA COMPARTIDA: compartir (quien anota) ===== -->
+  <div class="overlay" v-if="mesaShare" @click.self="mesaShare=null" style="z-index:700">
+    <div class="modal" role="dialog" aria-modal="true" :aria-label="t('mesa_titulo')">
+      <div class="modal-pull"></div>
+      <template v-if="mesaShare.step==='notice'">
+        <div class="modal-title">{{ t('mesa_aviso_titulo') }}</div>
+        <p class="mesa-p">{{ t('mesa_aviso_texto') }}</p>
+        <p class="mesa-p">{{ t('mesa_aviso_texto2') }}</p>
+        <div class="modal-actions">
+          <button class="btn btn-muted" @click="mesaShare=null">{{ t('cancelar') }}</button>
+          <button class="btn btn-primary" @click="mesaStartShare()">{{ t('mesa_aviso_ok') }}</button>
+        </div>
+      </template>
+      <template v-else-if="mesaShare.step==='busy'">
+        <div class="modal-title">{{ t('mesa_titulo') }}</div>
+        <div class="empty" style="padding:28px 10px"><div class="empty-ico">📡</div><div class="empty-title">{{ t('mesa_conectando') }}</div></div>
+      </template>
+      <template v-else-if="mesaShare.step==='error'">
+        <div class="modal-title">{{ t('mesa_titulo') }}</div>
+        <p class="mesa-p" style="text-align:center">{{ t('mesa_error_conexion') }}</p>
+        <div class="modal-actions">
+          <button class="btn btn-muted" @click="mesaShare=null">{{ t('cerrar') }}</button>
+          <button class="btn btn-primary" @click="mesaStartShare()">{{ t('mesa_reintentar') }}</button>
+        </div>
+      </template>
+      <template v-else-if="mesaCode">
+        <div class="modal-title">{{ t('mesa_titulo') }}</div>
+        <p class="modal-hint">{{ t('mesa_instrucciones') }}</p>
+        <div class="mesa-qr" v-if="mesaQR">
+          <svg viewBox="0 0 100 100" role="img" :aria-label="t('mesa_qr_alt',{code:mesaCode})" shape-rendering="crispEdges"><rect width="100" height="100" fill="#fff"/><path :d="mesaQR.d" :transform="'scale('+(100/mesaQR.n)+')'" fill="#000"/></svg>
+        </div>
+        <div class="mesa-code-lbl">{{ t('mesa_codigo') }}</div>
+        <div class="mesa-code" @click="mesaCopyCode">{{ mesaCode }}</div>
+        <p v-if="mesaNet==='pending'" class="mesa-p mesa-warn">{{ t('mesa_pendiente_aviso') }}</p>
+        <div class="modal-actions">
+          <button class="btn btn-muted" @click="mesaCopyCode">{{ t('mesa_copiar_codigo') }}</button>
+          <button class="btn btn-primary" @click="mesaSendLink">{{ t('mesa_enviar_enlace') }}</button>
+        </div>
+        <button class="btn btn-block mesa-stop" @click="mesaStopShare">{{ t('mesa_dejar') }}</button>
+      </template>
+    </div>
+  </div>
+
+  <!-- ===== MESA COMPARTIDA: ver la de otro jugador ===== -->
+  <div class="overlay" v-if="mesaJoin" @click.self="mesaJoin=null" style="z-index:700">
+    <div class="modal" role="dialog" aria-modal="true" :aria-label="t('mesa_ver_titulo')">
+      <div class="modal-pull"></div>
+      <div class="modal-title">{{ t('mesa_ver_titulo') }}</div>
+      <p class="modal-hint">{{ t('mesa_ver_ayuda') }}</p>
+      <form @submit.prevent="mesaJoinGo()" style="display:flex;gap:8px">
+        <input class="inp mesa-inp" v-model="mesaJoin.code" @input="mesaJoin.err=''" maxlength="64" autocomplete="off" autocapitalize="characters" spellcheck="false"
+          :aria-label="t('mesa_codigo')" placeholder="K7P2Q9" enterkeyhint="go">
+        <button class="btn btn-primary" type="submit">{{ t('mesa_ver_btn') }}</button>
+      </form>
+      <p v-if="mesaJoin.err" class="mesa-p mesa-warn" role="alert">{{ mesaJoin.err }}</p>
+      <template v-if="mesaRecent.length">
+        <div class="card-label" style="margin:20px 0 8px">{{ t('mesa_recientes') }}</div>
+        <button v-for="r in mesaRecent" :key="r.c" class="mesa-recent" @click="mesaJoinGo(r.c)">
+          <span class="mesa-recent-name">{{ r.n }}</span>
+          <span class="mesa-recent-meta">{{ r.c }} · {{ mesaAgo(r.t) }}</span>
+        </button>
+      </template>
+    </div>
+  </div>
+
   <div class="overlay" v-if="confirmDlg" @click.self="confirmDlg=null" style="z-index:800">
     <div class="modal" style="border-radius:22px;max-height:auto;margin:auto">
       <p class="confirm-msg">{{ confirmDlg.msg }}</p>
@@ -1809,6 +1899,7 @@ textarea{vertical-align:top} /* evita hueco bajo textarea en modo estándar */
   <!-- game overflow menu -->
   <div v-if="showMenu" style="position:fixed;inset:0;z-index:250" @click="showMenu=false">
     <div class="game-menu" @click.stop>
+      <button v-if="mesaEnabled" class="gm-item" @click="mesaOpenShare()">📡 {{ mesaCode ? t('mesa_titulo') : t('mesa_menu') }}</button>
       <button class="gm-item" @click="showMenu=false;undoLastRound()" :disabled="!hasGame||!game.rounds.length" style="opacity:1" :style="{opacity:hasGame&&game.rounds.length?1:.4}">{{ t('deshacer_ultima_ronda') }}</button>
       <button class="gm-item" @click="showMenu=false;manualFinish()">{{ t('terminar_partida_ahora') }}</button>
       <button class="gm-item" @click="showMenu=false;pauseGame()">{{ t('pausar_partida') }}</button>
@@ -1864,6 +1955,9 @@ textarea{vertical-align:top} /* evita hueco bajo textarea en modo estándar */
 
       <!-- Quick start -->
       <button v-if="canQuickStart" class="btn btn-ghost btn-block" style="margin-bottom:14px" @click="quickStart">{{ t('repetir_ultima_configuracion') }}</button>
+
+      <!-- Ver la mesa compartida de otro jugador -->
+      <button v-if="mesaEnabled" class="btn btn-ghost btn-block" style="margin-bottom:14px" @click="mesaOpenJoin">👀 {{ t('mesa_ver') }}</button>
 
 
       <!-- Recent history -->
@@ -1923,13 +2017,18 @@ textarea{vertical-align:top} /* evita hueco bajo textarea en modo estándar */
         </template>
       </div>
 
-      <div v-else>
+      <div v-else id="game-board">
+
+        <!-- Mesa compartida: estado (solo quien anota) -->
+        <button v-if="!ro&&mesaCode" class="mesa-pill" :class="{pending:mesaNet==='pending'}" @click="mesaOpenShare()">
+          <span aria-hidden="true">📡</span> {{ mesaNet==='pending' ? t('mesa_pill_pendiente',{code:mesaCode}) : t('mesa_pill_vivo',{code:mesaCode}) }}
+        </button>
 
         <!-- Indicador de reparto (modos no-Truco) -->
         <div v-if="!isTruco && currentDealerName" class="truco-dealer-bar" style="margin-bottom:4px">
           <span class="truco-dealer-label">{{ t('reparte') }}</span>
           <span class="truco-dealer-name">{{currentDealerName}}</span>
-          <button class="truco-dealer-btn" @click="pasarReparto" :aria-label="t('pasar_turno_de_reparto')">{{ t('pasar') }}</button>
+          <button v-if="!ro" class="truco-dealer-btn" @click="pasarReparto" :aria-label="t('pasar_turno_de_reparto')">{{ t('pasar') }}</button>
         </div>
 
         <!-- ══════════ TRUCO BOARD ══════════ -->
@@ -1940,7 +2039,7 @@ textarea{vertical-align:top} /* evita hueco bajo textarea en modo estándar */
               <div class="truco-score-big">{{game.scoreA}}</div>
               <div class="truco-of-target">{{ t('de_a',{a:(game.target)}) }}</div>
               <div class="truco-prog"><div class="truco-prog-fill" :style="{width:Math.min(100,Math.round(game.scoreA/game.target*100))+'%'}"></div></div>
-              <div class="truco-add-btns">
+              <div class="truco-add-btns" v-if="!ro">
                 <button v-for="pts in [1,2,3,4]" :key="pts" class="truco-add-btn"
                   @click="trucoAdd('A',pts)" :aria-label="game.teamA + ' +' + pts">+{{pts}}</button>
               </div>
@@ -1950,7 +2049,7 @@ textarea{vertical-align:top} /* evita hueco bajo textarea en modo estándar */
               <div class="truco-score-big">{{game.scoreB}}</div>
               <div class="truco-of-target">{{ t('de_a',{a:(game.target)}) }}</div>
               <div class="truco-prog"><div class="truco-prog-fill" :style="{width:Math.min(100,Math.round(game.scoreB/game.target*100))+'%'}"></div></div>
-              <div class="truco-add-btns">
+              <div class="truco-add-btns" v-if="!ro">
                 <button v-for="pts in [1,2,3,4]" :key="pts" class="truco-add-btn"
                   @click="trucoAdd('B',pts)" :aria-label="game.teamB + ' +' + pts">+{{pts}}</button>
               </div>
@@ -1959,9 +2058,9 @@ textarea{vertical-align:top} /* evita hueco bajo textarea en modo estándar */
           <div class="truco-dealer-bar">
             <span class="truco-dealer-label">{{ t('reparte') }}</span>
             <span class="truco-dealer-name">{{trucoDealerName}}</span>
-            <button class="truco-dealer-btn" @click="trucoPasarReparto" :aria-label="t('pasar_turno_de_reparto')">{{ t('pasar') }}</button>
+            <button v-if="!ro" class="truco-dealer-btn" @click="trucoPasarReparto" :aria-label="t('pasar_turno_de_reparto')">{{ t('pasar') }}</button>
           </div>
-          <div class="truco-undo-row">
+          <div class="truco-undo-row" v-if="!ro">
             <button class="truco-undo-btn" @click="trucoUndo" :disabled="!game.history.length"
               :aria-label="t('deshacer_ultimo_punto')">{{ t('deshacer') }}</button>
           </div>
@@ -2069,7 +2168,7 @@ textarea{vertical-align:top} /* evita hueco bajo textarea en modo estándar */
         <div class="card" v-show="!isTruco&&(!isLibre || useFreeScore || gtab==='scores')">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
             <div class="card-label" style="margin:0">{{ t('puntuacion_acumulada') }}</div>
-            <div style="display:flex;gap:6px;align-items:center">
+            <div style="display:flex;gap:6px;align-items:center" v-if="!ro">
               <button v-if="!isTruco" class="btn btn-muted btn-sm" @click="openAddPlayer" style="font-size:12px;padding:6px 10px">{{ t('jugador') }}</button>
               <button class="btn btn-primary btn-sm" @click="openRound">{{ t('registrar_ronda') }}</button>
             </div>
@@ -2098,7 +2197,7 @@ textarea{vertical-align:top} /* evita hueco bajo textarea en modo estándar */
                 </div>
               </template>
               <div v-else class="score-val" :class="{zero:totals[p.id]===0}">{{totals[p.id]}}</div>
-              <button v-if="!retiredSet.has(p.id)&&activePIds.length>2" class="retire-btn" @click="confirmRetirePlayer(p.id)" :title="t('retirar_a')+p.name" :aria-label="t('retirar_jugador')">✕</button>
+              <button v-if="!ro&&!retiredSet.has(p.id)&&activePIds.length>2" class="retire-btn" @click="confirmRetirePlayer(p.id)" :title="t('retirar_a')+p.name" :aria-label="t('retirar_jugador')">✕</button>
             </div>
           </div>
 
@@ -2119,7 +2218,7 @@ textarea{vertical-align:top} /* evita hueco bajo textarea en modo estándar */
           </div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
             <div class="card-label" style="margin:0">{{ t('estado_de_combinaciones') }}</div>
-            <button class="btn btn-primary btn-sm" @click="openRound">{{ t('registrar_ronda') }}</button>
+            <button v-if="!ro" class="btn btn-primary btn-sm" @click="openRound">{{ t('registrar_ronda') }}</button>
           </div>
           <div style="overflow-x:auto">
             <table class="libre-tbl">
@@ -2152,14 +2251,14 @@ textarea{vertical-align:top} /* evita hueco bajo textarea en modo estándar */
               </tbody>
             </table>
           </div>
-          <p style="font-size:12px;color:var(--muted);margin-top:10px;text-align:center">{{ ' '+t('toca_una_celda_para_marcar')+' ' }}</p>
+          <p v-if="!ro" style="font-size:12px;color:var(--muted);margin-top:10px;text-align:center">{{ ' '+t('toca_una_celda_para_marcar')+' ' }}</p>
         </div>
 
         <!-- Round detail (fixed + libre + score) -->
         <div class="card" v-if="game.rounds.length>0 && (!isLibre || useFreeScore || gtab==='scores')">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
             <div class="card-label" style="margin:0">{{ t('detalle_por_ronda') }}</div>
-            <span v-if="game.rounds.length>0" style="font-size:11px;color:var(--muted)">{{ t('toca_un_puntaje_para_corregirlo') }}</span>
+            <span v-if="!ro&&game.rounds.length>0" style="font-size:11px;color:var(--muted)">{{ t('toca_un_puntaje_para_corregirlo') }}</span>
           </div>
           <div v-if="game.pIds.length>4" style="font-size:11px;color:var(--muted);text-align:right;margin-bottom:4px">{{ t('desliza') }}</div>
           <div style="overflow-x:auto">
@@ -2812,6 +2911,9 @@ textarea{vertical-align:top} /* evita hueco bajo textarea en modo estándar */
         <p style="margin-bottom:4px"><strong>{{ t('nombres_de_jugadores_y_partidas') }}</strong>{{ ' '+t('se_almacenan_unicamente_en_tu') }}</p>
         <p style="margin-bottom:14px"><strong>{{ t('datos_de_uso_solo_si') }}</strong>{{ ' '+t('si_consientes_google_analytics_4') }}</p>
 
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px">{{ t('mesa_priv_titulo') }}</div>
+        <p style="margin-bottom:14px">{{ t('mesa_priv_texto') }}</p>
+
         <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px">{{ t('base_legal') }}</div>
         <p style="margin-bottom:14px">{{ t('el_tratamiento_de_datos_de')+' ' }}<strong>{{ t('consentimiento') }}</strong>{{ ' '+t('rgpd_art_6_1_a') }}</p>
 
@@ -2860,6 +2962,9 @@ textarea{vertical-align:top} /* evita hueco bajo textarea en modo estándar */
 
 </div>
 
+<!-- Mesa de otro jugador (solo lectura): se monta aquí como una segunda instancia de la app -->
+<div id="mesa-root" hidden></div>
+
 <!-- Vue 3.4.21 servido desde el propio sitio para que el service worker lo guarde (uso sin conexión) -->
 
 <script src="vue.global.prod.min.js"
@@ -2877,6 +2982,55 @@ window._pwaInstallPrompt = null;
 // las claves que falten se muestran en español. Plurales: "{n} {n:ronda|rondas}".
 const I18N = {
   es: {
+    "mesa_menu":"Compartir mesa",
+    "mesa_titulo":"Mesa compartida",
+    "mesa_aviso_titulo":"Antes de compartir",
+    "mesa_aviso_texto":"Para que los demás jugadores sigan la partida en su teléfono, CartaScore sube a un servidor de Google Firebase (en la Unión Europea) el nombre de la partida, los nombres de los jugadores y los puntajes.",
+    "mesa_aviso_texto2":"Quien tenga el código o el enlace podrá verla, pero no modificarla. Se borra sola 24 h después de la última anotación (7 días si la pausas y 2 h después de terminar). Si lo prefieres, usa apodos o iniciales.",
+    "mesa_aviso_ok":"Compartir",
+    "mesa_conectando":"Conectando…",
+    "mesa_error_conexion":"No se pudo conectar. Revisa tu conexión a internet e inténtalo de nuevo.",
+    "mesa_reintentar":"Reintentar",
+    "mesa_instrucciones":"Los demás pueden escanear el QR con la cámara, abrir el enlace o escribir el código en CartaScore → Ver una mesa.",
+    "mesa_qr_alt":"Código QR de la mesa {code}",
+    "mesa_codigo":"Código",
+    "mesa_copiar_codigo":"Copiar código",
+    "mesa_codigo_copiado":"Código copiado",
+    "mesa_enviar_enlace":"Enviar enlace",
+    "mesa_enlace_copiado":"Enlace copiado",
+    "mesa_share_text":"Sigue nuestra partida de {name} en CartaScore (mesa {code}):",
+    "mesa_dejar":"Dejar de compartir",
+    "mesa_dejar_confirm":"Los demás dejarán de ver esta partida. ¿Dejar de compartirla?",
+    "mesa_pill_vivo":"Mesa {code} · compartida en vivo",
+    "mesa_pill_pendiente":"Mesa {code} · sin conexión, se enviará al reconectar",
+    "mesa_pendiente_aviso":"Hay cambios sin enviar: se enviarán solos cuando vuelva la conexión.",
+    "mesa_codigo_nuevo":"La mesa tiene un código nuevo: {code}",
+    "mesa_ver":"Ver una mesa",
+    "mesa_ver_titulo":"Ver la mesa de otro jugador",
+    "mesa_ver_ayuda":"Escribe el código de 6 caracteres que aparece en el teléfono de quien anota.",
+    "mesa_ver_btn":"Ver",
+    "mesa_codigo_invalido":"El código tiene 6 caracteres (letras y números).",
+    "mesa_recientes":"Mesas recientes",
+    "mesa_hace_min":"hace {n} min",
+    "mesa_hace_h":"hace {n} h",
+    "mesa_hace_d":"hace {n} {n:día|días}",
+    "mesa_solo_lectura":"solo lectura",
+    "mesa_en_vivo":"En vivo",
+    "mesa_en_pausa":"Partida en pausa",
+    "mesa_terminada":"Partida terminada",
+    "mesa_reconectando":"Reconectando…",
+    "mesa_actualizado_hace":"última anotación hace {n} min",
+    "mesa_no_activa_titulo":"Esta mesa no está activa",
+    "mesa_no_activa_texto":"Puede que el código no sea correcto, que la partida se haya borrado o que la mesa haya caducado. Si estaba en pausa, volverá a verse cuando quien anota la reanude.",
+    "mesa_instalar_sugerencia":"¿Anotas tú tus partidas? Instala CartaScore gratis",
+    "mesa_gate_titulo":"Abre esta mesa en la app",
+    "mesa_gate_texto":"Para seguir la partida en vivo necesitas la app CartaScore en tu teléfono.",
+    "mesa_gate_abrir":"Ya la tengo: abrir la app",
+    "mesa_gate_instalar":"Instalar desde Google Play",
+    "mesa_version_titulo":"Actualiza CartaScore",
+    "mesa_version_texto":"Esta mesa se creó con una versión más nueva de la app. Actualízala para verla.",
+    "mesa_priv_titulo":"Mesa compartida (opcional)",
+    "mesa_priv_texto":"Solo si eliges «Compartir mesa» en una partida, se suben a Google Firebase (Realtime Database, servidores en la Unión Europea) el nombre de la partida, los nombres de los jugadores, sus colores y los puntajes, junto con un identificador anónimo de tu teléfono. Finalidad: que los demás jugadores la vean en vivo. Base legal: tu solicitud y consentimiento al compartir. Quien tenga el código puede verla. Se borra sola 24 h después de la última anotación (7 días si está en pausa, 2 h tras terminar), al dejar de compartir, al eliminar la partida o con «Borrar todos mis datos».",
     "0_pts":"0 pts",
     "0_puntos":"0 puntos",
     "11_puntos":"11 puntos",
@@ -2936,7 +3090,8 @@ const I18N = {
     "borrar_todos_mis_datos_2":"Borrar todos mis datos",
     "cancelar":"Cancelar",
     "carioca":"Carioca",
-    "carioca_libre":"Carioca Libre",
+    "carioca_libre":"Carioca Libre",
+
     "cartas":"Cartas",
     "cartascore":"CartaScore",
     "cartascore68_gmail_com":"CartaScore68@gmail.com",
@@ -3266,8 +3421,9 @@ const I18N = {
     "rondas":"Rondas",
     "round":"Ronda",
     "round_n":"Ronda {n}",
-    "round_n_of":"Ronda {n} de {t}",
-    "se_almacenan_unicamente_en_tu":"se almacenan únicamente en tu dispositivo (localStorage). No se envían a ningún servidor.",
+    "round_n_of":"Ronda {n} de {t}",
+
+    "se_almacenan_unicamente_en_tu":"se almacenan únicamente en tu dispositivo (localStorage). No se envían a ningún servidor, salvo que compartas una mesa (ver más abajo).",
     "se_eliminara_de_la_partida":"Se eliminará de la partida sin dejar rastro.",
     "seleccion":"(selección)",
     "selecciona_2_o_mas_jugadores":"Selecciona 2 o más jugadores",
@@ -3351,6 +3507,55 @@ const I18N = {
     "winner_meta":"{n} {n:ronda|rondas} · {pts} puntos"
   },
   ca: {
+    "mesa_menu":"Compartir la taula",
+    "mesa_titulo":"Taula compartida",
+    "mesa_aviso_titulo":"Abans de compartir",
+    "mesa_aviso_texto":"Perquè la resta de jugadors segueixin la partida al seu telèfon, CartaScore puja a un servidor de Google Firebase (a la Unió Europea) el nom de la partida, els noms dels jugadors i les puntuacions.",
+    "mesa_aviso_texto2":"Qui tingui el codi o l'enllaç la podrà veure, però no modificar. S'esborra sola 24 h després de l'última anotació (7 dies si la poses en pausa i 2 h després d'acabar). Si ho prefereixes, fes servir àlies o inicials.",
+    "mesa_aviso_ok":"Compartir",
+    "mesa_conectando":"Connectant…",
+    "mesa_error_conexion":"No s'ha pogut connectar. Revisa la connexió a internet i torna-ho a provar.",
+    "mesa_reintentar":"Torna-ho a provar",
+    "mesa_instrucciones":"La resta poden escanejar el QR amb la càmera, obrir l'enllaç o escriure el codi a CartaScore → Veure una taula.",
+    "mesa_qr_alt":"Codi QR de la taula {code}",
+    "mesa_codigo":"Codi",
+    "mesa_copiar_codigo":"Copia el codi",
+    "mesa_codigo_copiado":"Codi copiat",
+    "mesa_enviar_enlace":"Envia l'enllaç",
+    "mesa_enlace_copiado":"Enllaç copiat",
+    "mesa_share_text":"Segueix la nostra partida de {name} a CartaScore (taula {code}):",
+    "mesa_dejar":"Deixa de compartir",
+    "mesa_dejar_confirm":"La resta deixaran de veure aquesta partida. Vols deixar de compartir-la?",
+    "mesa_pill_vivo":"Taula {code} · compartida en directe",
+    "mesa_pill_pendiente":"Taula {code} · sense connexió, s'enviarà en reconnectar",
+    "mesa_pendiente_aviso":"Hi ha canvis sense enviar: s'enviaran sols quan torni la connexió.",
+    "mesa_codigo_nuevo":"La taula té un codi nou: {code}",
+    "mesa_ver":"Veure una taula",
+    "mesa_ver_titulo":"Veure la taula d'un altre jugador",
+    "mesa_ver_ayuda":"Escriu el codi de 6 caràcters que apareix al telèfon de qui anota.",
+    "mesa_ver_btn":"Veure",
+    "mesa_codigo_invalido":"El codi té 6 caràcters (lletres i números).",
+    "mesa_recientes":"Taules recents",
+    "mesa_hace_min":"fa {n} min",
+    "mesa_hace_h":"fa {n} h",
+    "mesa_hace_d":"fa {n} {n:dia|dies}",
+    "mesa_solo_lectura":"només lectura",
+    "mesa_en_vivo":"En directe",
+    "mesa_en_pausa":"Partida en pausa",
+    "mesa_terminada":"Partida acabada",
+    "mesa_reconectando":"Reconnectant…",
+    "mesa_actualizado_hace":"última anotació fa {n} min",
+    "mesa_no_activa_titulo":"Aquesta taula no està activa",
+    "mesa_no_activa_texto":"Potser el codi no és correcte, la partida s'ha esborrat o la taula ha caducat. Si estava en pausa, es tornarà a veure quan qui anota la reprengui.",
+    "mesa_instalar_sugerencia":"Anotes tu les partides? Instal·la CartaScore gratis",
+    "mesa_gate_titulo":"Obre aquesta taula a l'app",
+    "mesa_gate_texto":"Per seguir la partida en directe necessites l'app CartaScore al telèfon.",
+    "mesa_gate_abrir":"Ja la tinc: obre l'app",
+    "mesa_gate_instalar":"Instal·la-la des de Google Play",
+    "mesa_version_titulo":"Actualitza CartaScore",
+    "mesa_version_texto":"Aquesta taula s'ha creat amb una versió més nova de l'app. Actualitza-la per veure-la.",
+    "mesa_priv_titulo":"Taula compartida (opcional)",
+    "mesa_priv_texto":"Només si tries «Compartir la taula» en una partida, es pugen a Google Firebase (Realtime Database, servidors a la Unió Europea) el nom de la partida, els noms dels jugadors, els seus colors i les puntuacions, juntament amb un identificador anònim del teu telèfon. Finalitat: que la resta de jugadors la vegin en directe. Base legal: la teva sol·licitud i consentiment en compartir. Qui tingui el codi la pot veure. S'esborra sola 24 h després de l'última anotació (7 dies si està en pausa, 2 h després d'acabar), en deixar de compartir, en eliminar la partida o amb «Esborra totes les meves dades».",
     "0_pts":"0 pts",
     "0_puntos":"0 punts",
     "11_puntos":"11 punts",
@@ -3410,7 +3615,8 @@ const I18N = {
     "borrar_todos_mis_datos_2":"Esborra totes les meves dades",
     "cancelar":"Cancel·la",
     "carioca":"Carioca",
-    "carioca_libre":"Carioca Lliure",
+    "carioca_libre":"Carioca Lliure",
+
     "cartas":"Cartes",
     "cartascore":"CartaScore",
     "cartascore68_gmail_com":"CartaScore68@gmail.com",
@@ -3740,8 +3946,9 @@ const I18N = {
     "rondas":"Rondes",
     "round":"Ronda",
     "round_n":"Ronda {n}",
-    "round_n_of":"Ronda {n} de {t}",
-    "se_almacenan_unicamente_en_tu":"només es desen al teu dispositiu (localStorage). No s'envien a cap servidor.",
+    "round_n_of":"Ronda {n} de {t}",
+
+    "se_almacenan_unicamente_en_tu":"només es desen al teu dispositiu (localStorage). No s'envien a cap servidor, tret que comparteixis una taula (mira més avall).",
     "se_eliminara_de_la_partida":"S'eliminarà de la partida sense deixar rastre.",
     "seleccion":"(selecció)",
     "selecciona_2_o_mas_jugadores":"Selecciona 2 jugadors o més",
@@ -3881,8 +4088,366 @@ const DEF_GTS = [
 
 const COLORS = ['#e74c3c','#3498db','#e67e22','#9b59b6','#27ae60','#0891b2','#d35400','#c0392b'];
 
-// Referencia a la instancia raíz (la usa el registro del service worker)
-window.cartaVm = createApp({
+// Limpia y acota una partida guardada o recibida (esquema fijo, longitudes máximas)
+function sanitizeGameData(g){
+  if(!g||typeof g!=='object') return null;
+  const pIds=Array.isArray(g.pIds)?g.pIds.slice(0,10).map(x=>String(x).slice(0,20)):[];
+  const cIds=Array.isArray(g.cIds)?g.cIds.slice(0,100).map(x=>String(x).slice(0,20)):[];
+  const rounds=Array.isArray(g.rounds)?g.rounds.slice(0,200).map(r=>{
+    const scores={};
+    if(r.scores&&typeof r.scores==='object'){
+      for(const [k,v] of Object.entries(r.scores)){
+        scores[String(k).slice(0,20)]=Math.max(0,Math.min(9999,parseInt(v)||0));
+      }
+    }
+    // Detalle de mano de Escoba (para historial)
+    let escobaDetail;
+    if(r.escobaDetail&&typeof r.escobaDetail==='object'){
+      escobaDetail={};
+      for(const [k,v] of Object.entries(r.escobaDetail).slice(0,10)){
+        if(!v||typeof v!=='object') continue;
+        escobaDetail[String(k).slice(0,20)]={cartas:!!v.cartas,oros:!!v.oros,settebello:!!v.settebello,primera:!!v.primera,escobas:Math.max(0,Math.min(99,parseInt(v.escobas)||0))};
+      }
+    }
+    return {roundNum:parseInt(r.roundNum)||0,cId:String(r.cId||'').slice(0,20),winner:String(r.winner||'').slice(0,20),scores,...(escobaDetail?{escobaDetail}:{})};
+  }):[];
+  return {
+    id:String(g.id||'').slice(0,20),
+    date:typeof g.date==='string'?g.date.slice(0,30):'',
+    gtId:String(g.gtId||'').slice(0,20),
+    status:['active','paused','finished'].includes(g.status)?g.status:'active',
+    pIds, cIds, rounds,
+    round:Math.max(0,Math.min(999,parseInt(g.round)||0)),
+    winner:g.winner?String(g.winner).slice(0,20):null,
+    final:g.final&&typeof g.final==='object'?g.final:null,
+    doneMap:g.doneMap&&typeof g.doneMap==='object'?g.doneMap:{},
+    pauseDate:g.pauseDate?String(g.pauseDate).slice(0,30):undefined,
+    targetScore:typeof g.targetScore==='number'&&g.targetScore>0?g.targetScore:null,
+    // Configuración de modos genéricos (antes se perdía al reabrir la app)
+    totalRounds:typeof g.totalRounds==='number'&&g.totalRounds>0?Math.min(999,g.totalRounds):null,
+    roundsWinner:['low','high'].includes(g.roundsWinner)?g.roundsWinner:null,
+    livesStart:typeof g.livesStart==='number'&&g.livesStart>0?Math.min(99,g.livesStart):null,
+    endDate:typeof g.endDate==='string'?g.endDate.slice(0,30):undefined,
+    gameName:typeof g.gameName==='string'?g.gameName.slice(0,30):null,
+    dealerIdx:typeof g.dealerIdx==='number'?Math.max(0,Math.min(99,g.dealerIdx)):0,
+    retiredPIds:Array.isArray(g.retiredPIds)?g.retiredPIds.slice(0,20).map(r=>({
+      pid:String(r.pid||'').slice(0,20),
+      fromRound:Math.max(0,Math.min(999,parseInt(r.fromRound)||0)),
+    })):[],
+    joinedPIds:Array.isArray(g.joinedPIds)?g.joinedPIds.slice(0,20).map(j=>({
+      pid:String(j.pid||'').slice(0,20),
+      fromRound:Math.max(0,Math.min(999,parseInt(j.fromRound)||0)),
+      startScore:Math.max(0,Math.min(9999,parseInt(j.startScore)||0)),
+    })):[],
+    // Campos Truco
+    dealer:['A','B'].includes(g.dealer)?g.dealer:null,
+    teamA:typeof g.teamA==='string'?g.teamA.slice(0,30):null,
+    teamB:typeof g.teamB==='string'?g.teamB.slice(0,30):null,
+    scoreA:typeof g.scoreA==='number'?Math.max(0,Math.min(9999,g.scoreA)):undefined,
+    scoreB:typeof g.scoreB==='number'?Math.max(0,Math.min(9999,g.scoreB)):undefined,
+    target:typeof g.target==='number'&&g.target>0?Math.min(9999,g.target):undefined,
+    history:Array.isArray(g.history)?g.history.slice(0,500).map(h=>({
+      A:Math.max(0,Math.min(9999,parseInt(h.A)||0)),
+      B:Math.max(0,Math.min(9999,parseInt(h.B)||0)),
+    })):[],
+  };
+}
+
+// ═══════════════════════════════════════
+// ── MESA COMPARTIDA ──
+// Quien anota publica la partida en Firebase Realtime Database (API REST, sin SDK) y los demás
+// jugadores la siguen en vivo, en solo lectura, con el código de 6 caracteres, el enlace o el QR.
+// Datos en el servidor: /m/{código} = {o: uid del anotador, v: versión de formato, s: 'a'|'p'|'f'
+// (activa, pausada, terminada), exp: caducidad (ms), u: última actualización (hora del servidor),
+// d: la partida en JSON}. Las reglas de seguridad solo dejan escribir al anotador y leer lo no caducado.
+// ═══════════════════════════════════════
+const MESA_CFG=Object.assign({
+  // Proyecto Firebase "cartascore" (la clave no es secreta: la seguridad la dan las reglas de la base de datos)
+  apiKey:'AIzaSyAjvP6IIDyerSaw0GhBszj8uh0n_10nlUM',
+  db:'https://cartascore-default-rtdb.europe-west1.firebasedatabase.app',
+  idt:'https://identitytoolkit.googleapis.com',
+  sts:'https://securetoken.googleapis.com',
+  requireApp:false, // false: sin la app, la mesa también se ve en el navegador (iPhone, PC…)
+  playUrl:'https://play.google.com/store/apps/details?id=com.cartascore.app',
+  shareBase:'https://josemperez68.github.io/RondaScore/',
+}, window.MESA_TEST_CFG||{});
+const MESA_V=1;                                    // versión del formato de datos
+const MESA_CHARS='23456789ABCDEFGHJKMNPQRSTUVWXYZ'; // sin 0/O ni 1/I/L para evitar confusiones
+const MESA_TTL={a:24*3600e3, p:7*24*3600e3, f:2*3600e3}; // activa 24 h · pausada 7 días · terminada 2 h
+const MESA_MAX_D=60000;                            // tamaño máximo de la partida en JSON (igual que la regla)
+
+const Mesa={
+  enabled(){ return !!(MESA_CFG.apiKey&&MESA_CFG.db); },
+  validCode(c){ return /^[2-9A-HJ-NP-Z]{6}$/.test(c||''); },
+  // Acepta el código escrito a mano o un enlace pegado
+  parseCode(s){
+    s=String(s||'').trim();
+    const m=s.match(/[?&]mesa=([0-9A-Za-z]{6})/);
+    if(m) s=m[1];
+    s=s.toUpperCase().replace(/[^0-9A-Z]/g,'');
+    return this.validCode(s)?s:null;
+  },
+  newCode(){
+    const a=new Uint32Array(6); crypto.getRandomValues(a);
+    return Array.from(a,x=>MESA_CHARS[x%MESA_CHARS.length]).join('');
+  },
+  link(code){ return MESA_CFG.shareBase+'?mesa='+code; },
+  // Android con Chrome: abre directamente la app instalada
+  intentLink(code){
+    const u=new URL(this.link(code));
+    return 'intent://'+u.host+u.pathname+u.search+'#Intent;scheme=https;package=com.cartascore.app;S.browser_fallback_url='+encodeURIComponent(MESA_CFG.playUrl)+';end';
+  },
+  // ¿Se está ejecutando como app instalada (TWA de Google Play o PWA instalada)?
+  isApp(){
+    try{
+      if(sessionStorage.getItem('cartascore_isapp')==='1') return true;
+      const yes=(window.matchMedia&&(matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches))
+        ||navigator.standalone===true||String(document.referrer).startsWith('android-app://');
+      if(yes) sessionStorage.setItem('cartascore_isapp','1');
+      return !!yes;
+    }catch(e){ return false; }
+  },
+
+  // ── Estado local (identidad anónima, mesas propias, mesas vistas) ──
+  store(){
+    try{
+      const s=JSON.parse(localStorage.getItem('cartascore_mesa')||'{}');
+      if(!s||typeof s!=='object'||Array.isArray(s)) return {owned:{},recent:[]};
+      if(!s.owned||typeof s.owned!=='object') s.owned={};
+      if(!Array.isArray(s.recent)) s.recent=[];
+      return s;
+    }catch(e){ return {owned:{},recent:[]}; }
+  },
+  saveStore(s){ try{ localStorage.setItem('cartascore_mesa',JSON.stringify(s)); }catch(e){} },
+
+  // ── Identidad anónima (Firebase Authentication por REST) ──
+  _tok:null, _tokExp:0, _tokP:null,
+  token(){
+    if(this._tok&&Date.now()<this._tokExp-60e3) return Promise.resolve(this._tok);
+    if(!this._tokP) this._tokP=this._fetchToken().finally(()=>{ this._tokP=null; });
+    return this._tokP;
+  },
+  async _fetchToken(){
+    const st=this.store(), key=encodeURIComponent(MESA_CFG.apiKey);
+    if(st.rt){
+      const r=await fetch(MESA_CFG.sts+'/v1/token?key='+key,{method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body:'grant_type=refresh_token&refresh_token='+encodeURIComponent(st.rt)});
+      if(r.ok){
+        const j=await r.json();
+        this._tok=j.id_token; this._tokExp=Date.now()+(parseInt(j.expires_in)||3600)*1e3;
+        const s2=this.store(); s2.rt=j.refresh_token||st.rt; s2.uid=j.user_id||st.uid; this.saveStore(s2);
+        return this._tok;
+      }
+      if(r.status<400||r.status>=500) throw new Error('net');
+      // Identidad revocada o borrada: se crea una nueva (las mesas antiguas cambiarán de código)
+    }
+    const r=await fetch(MESA_CFG.idt+'/v1/accounts:signUp?key='+key,{method:'POST',
+      headers:{'Content-Type':'application/json'},body:'{"returnSecureToken":true}'});
+    if(!r.ok) throw new Error('auth '+r.status);
+    const j=await r.json();
+    this._tok=j.idToken; this._tokExp=Date.now()+(parseInt(j.expiresIn)||3600)*1e3;
+    const s2=this.store(); s2.rt=j.refreshToken; s2.uid=j.localId; this.saveStore(s2);
+    return this._tok;
+  },
+  _url(code,tok){ return MESA_CFG.db.replace(/\/$/,'')+'/m/'+code+'.json'+(tok?'?auth='+encodeURIComponent(tok):''); },
+  // Publica (crea o reemplaza) la mesa. Devuelve 'ok' | 'denied' (código ajeno o identidad nueva).
+  async put(code,s,d){
+    const tok=await this.token();
+    const uid=this.store().uid;
+    const body={o:uid,v:MESA_V,s,exp:Date.now()+MESA_TTL[s],u:{'.sv':'timestamp'},d};
+    const r=await fetch(this._url(code,tok),{method:'PUT',body:JSON.stringify(body)});
+    if(r.ok) return 'ok';
+    if(r.status===401||r.status===403) return 'denied';
+    throw new Error('put '+r.status);
+  },
+  async remove(code){
+    const tok=await this.token();
+    const r=await fetch(this._url(code,tok),{method:'DELETE'});
+    return r.ok||r.status===401||r.status===403;
+  },
+  // Sigue una mesa en vivo (Server-Sent Events). cb({type:'data',node}|{type:'state',state})
+  watch(code,cb){
+    let node=null, es=null, closed=false;
+    const setPath=(path,data,merge)=>{
+      const parts=String(path||'/').split('/').filter(Boolean);
+      if(!parts.length){
+        if(merge){ node=Object.assign({},node||{},data||{}); } else node=data;
+        return;
+      }
+      if(!node||typeof node!=='object') node={};
+      let o=node;
+      for(let i=0;i<parts.length-1;i++){ if(!o[parts[i]]||typeof o[parts[i]]!=='object') o[parts[i]]={}; o=o[parts[i]]; }
+      const last=parts[parts.length-1];
+      if(merge) o[last]=Object.assign({},o[last]||{},data||{});
+      else if(data===null) delete o[last]; else o[last]=data;
+    };
+    const parse=e=>{ try{ return JSON.parse(e.data); }catch(_){ return null; } };
+    try{ es=new EventSource(this._url(code)); }catch(e){ cb({type:'state',state:'error'}); return ()=>{}; }
+    es.onopen=()=>{ if(!closed) cb({type:'state',state:'live'}); };
+    // Firebase responde 401 (sin evento) cuando la mesa caducó: se comprueba con una lectura normal
+    // para no quedarse reintentando para siempre
+    let checking=false;
+    es.onerror=()=>{
+      if(closed) return;
+      cb({type:'state',state:'reconnecting'});
+      if(checking) return; checking=true;
+      fetch(this._url(code)).then(r=>{
+        if(closed) return;
+        if(r.status===401||r.status===403){ closed=true; try{ es.close(); }catch(_){} node=null; cb({type:'data',node:null}); }
+      }).catch(()=>{}).finally(()=>{ checking=false; });
+    };
+    es.addEventListener('put',e=>{ const m=parse(e); if(!m||closed) return; setPath(m.path,m.data,false); cb({type:'data',node}); });
+    es.addEventListener('patch',e=>{ const m=parse(e); if(!m||closed) return; setPath(m.path,m.data,true); cb({type:'data',node}); });
+    // Permiso denegado (mesa caducada): se deja de escuchar
+    es.addEventListener('cancel',()=>{ if(closed) return; node=null; cb({type:'data',node:null}); es.close(); cb({type:'state',state:'closed'}); });
+    es.addEventListener('auth_revoked',()=>{});
+    return ()=>{ closed=true; try{ es.close(); }catch(_){} };
+  },
+};
+
+// Limpia y acota los datos recibidos de una mesa (vienen de la red: nunca se confía en ellos)
+function mesaSanitize(node){
+  if(!node||typeof node!=='object'||typeof node.d!=='string'||node.d.length>MESA_MAX_D) return null;
+  let d; try{ d=JSON.parse(node.d); }catch(e){ return null; }
+  if(!d||typeof d!=='object') return null;
+  const g=sanitizeGameData(d.g);
+  if(!g||!g.id) return null;
+  const doneMap={};
+  if(d.g&&d.g.doneMap&&typeof d.g.doneMap==='object'){
+    for(const [k,v] of Object.entries(d.g.doneMap).slice(0,10)){
+      if(Array.isArray(v)) doneMap[String(k).slice(0,20)]=v.slice(0,100).map(x=>String(x).slice(0,20));
+    }
+  }
+  g.doneMap=doneMap;
+  g.final=null;
+  const players=(Array.isArray(d.p)?d.p:[]).slice(0,10).map(p=>({
+    id:String(p&&p.id||'').slice(0,20),
+    name:String(p&&p.name||'?').slice(0,20),
+    color:p&&typeof p.color==='string'&&/^#[0-9a-f]{6}$/i.test(p.color)?p.color:'#888888',
+  }));
+  const combos=(Array.isArray(d.c)?d.c:[]).slice(0,100).map((c,i)=>({
+    id:String(c&&c.id||'').slice(0,20),
+    name:String(c&&c.name||'').slice(0,50),
+    short:String(c&&c.short||'').slice(0,8),
+    active:true, order:i+1,
+  }));
+  const s=['a','p','f'].includes(node.s)?node.s:'a';
+  return {s, u:typeof node.u==='number'?node.u:0, v:typeof node.v==='number'?node.v:0, game:g, players, combos};
+}
+
+// ── Código QR (modo byte, corrección M, versiones 1–10) — basado en el algoritmo de Project Nayuki (MIT) ──
+const QR=(function(){
+  const ECC=[0,10,16,26,18,24,16,18,22,22,26], NB=[0,1,1,1,2,2,4,4,4,5,5];
+  const rawMods=v=>{ let r=(16*v+128)*v+64; if(v>=2){ const n=Math.floor(v/7)+2; r-=(25*n-10)*n-55; if(v>=7) r-=36; } return r; };
+  const dataCw=v=>Math.floor(rawMods(v)/8)-ECC[v]*NB[v];
+  const mul=(x,y)=>{ let z=0; for(let i=7;i>=0;i--){ z=(z<<1)^((z>>>7)*0x11D); z^=((y>>>i)&1)*x; } return z&0xFF; };
+  const rsDiv=deg=>{ const r=new Array(deg).fill(0); r[deg-1]=1; let root=1;
+    for(let i=0;i<deg;i++){ for(let j=0;j<r.length;j++){ r[j]=mul(r[j],root); if(j+1<r.length) r[j]^=r[j+1]; } root=mul(root,2); } return r; };
+  const rsRem=(data,div)=>{ const r=div.map(()=>0);
+    for(const b of data){ const f=b^r.shift(); r.push(0); div.forEach((c,i)=>{ r[i]^=mul(c,f); }); } return r; };
+  const bit=(x,i)=>((x>>>i)&1)!==0;
+
+  function encode(text){
+    const bytes=Array.from(new TextEncoder().encode(text));
+    let v=1;
+    for(;v<=10;v++){ if(4+(v<10?8:16)+bytes.length*8<=dataCw(v)*8) break; }
+    if(v>10) return null;
+    const bits=[]; const push=(val,n)=>{ for(let i=n-1;i>=0;i--) bits.push((val>>>i)&1); };
+    push(4,4); push(bytes.length,v<10?8:16); bytes.forEach(b=>push(b,8));
+    const cap=dataCw(v)*8;
+    push(0,Math.min(4,cap-bits.length)); push(0,(8-bits.length%8)%8);
+    for(let p=0xEC;bits.length<cap;p^=0xEC^0x11) push(p,8);
+    const data=[]; for(let i=0;i<bits.length;i+=8){ let b=0; for(let j=0;j<8;j++) b=(b<<1)|bits[i+j]; data.push(b); }
+    // Bloques con corrección de errores, intercalados
+    const nb=NB[v], ecl=ECC[v], raw=Math.floor(rawMods(v)/8), nShort=nb-raw%nb, shortLen=Math.floor(raw/nb);
+    const div=rsDiv(ecl), blocks=[];
+    for(let i=0,k=0;i<nb;i++){
+      const dat=data.slice(k,k+shortLen-ecl+(i<nShort?0:1)); k+=dat.length;
+      const ec=rsRem(dat,div); if(i<nShort) dat.push(0); blocks.push(dat.concat(ec));
+    }
+    const cw=[];
+    for(let i=0;i<blocks[0].length;i++) blocks.forEach((b,j)=>{ if(i!==shortLen-ecl||j>=nShort) cw.push(b[i]); });
+
+    const size=v*4+17;
+    const M=[...Array(size)].map(()=>Array(size).fill(false));
+    const F=[...Array(size)].map(()=>Array(size).fill(false));
+    const fn=(x,y,d)=>{ M[y][x]=d; F[y][x]=true; };
+    for(let i=0;i<size;i++){ fn(6,i,i%2===0); fn(i,6,i%2===0); }
+    const finder=(x,y)=>{ for(let dy=-4;dy<=4;dy++) for(let dx=-4;dx<=4;dx++){
+      const d=Math.max(Math.abs(dx),Math.abs(dy)), xx=x+dx, yy=y+dy;
+      if(xx>=0&&xx<size&&yy>=0&&yy<size) fn(xx,yy,d!==2&&d!==4); } };
+    finder(3,3); finder(size-4,3); finder(3,size-4);
+    if(v>1){
+      const n=Math.floor(v/7)+2, step=Math.ceil((v*4+4)/(n*2-2))*2, pos=[6];
+      for(let p=size-7;pos.length<n;p-=step) pos.splice(1,0,p);
+      for(let i=0;i<n;i++) for(let j=0;j<n;j++){
+        if((i===0&&j===0)||(i===0&&j===n-1)||(i===n-1&&j===0)) continue;
+        for(let dy=-2;dy<=2;dy++) for(let dx=-2;dx<=2;dx++) fn(pos[i]+dx,pos[j]+dy,Math.max(Math.abs(dx),Math.abs(dy))!==1);
+      }
+    }
+    const format=mask=>{
+      const data=(0<<3)|mask; let rem=data;           // corrección M = 0b00
+      for(let i=0;i<10;i++) rem=(rem<<1)^((rem>>>9)*0x537);
+      const b=((data<<10)|rem)^0x5412;
+      for(let i=0;i<=5;i++) fn(8,i,bit(b,i));
+      fn(8,7,bit(b,6)); fn(8,8,bit(b,7)); fn(7,8,bit(b,8));
+      for(let i=9;i<15;i++) fn(14-i,8,bit(b,i));
+      for(let i=0;i<8;i++) fn(size-1-i,8,bit(b,i));
+      for(let i=8;i<15;i++) fn(8,size-15+i,bit(b,i));
+      fn(8,size-8,true);
+    };
+    format(0);
+    if(v>=7){
+      let rem=v; for(let i=0;i<12;i++) rem=(rem<<1)^((rem>>>11)*0x1F25);
+      const b=(v<<12)|rem;
+      for(let i=0;i<18;i++){ const a=size-11+i%3, c=Math.floor(i/3); fn(a,c,bit(b,i)); fn(c,a,bit(b,i)); }
+    }
+    // Datos en zigzag
+    let i=0;
+    for(let right=size-1;right>=1;right-=2){
+      if(right===6) right=5;
+      for(let vert=0;vert<size;vert++) for(let j=0;j<2;j++){
+        const x=right-j, up=((right+1)&2)===0, y=up?size-1-vert:vert;
+        if(!F[y][x]&&i<cw.length*8){ M[y][x]=bit(cw[i>>>3],7-(i&7)); i++; }
+      }
+    }
+    const maskFn=[(x,y)=>(x+y)%2===0,(x,y)=>y%2===0,(x,y)=>x%3===0,(x,y)=>(x+y)%3===0,
+      (x,y)=>(Math.floor(x/3)+Math.floor(y/2))%2===0,(x,y)=>x*y%2+x*y%3===0,
+      (x,y)=>(x*y%2+x*y%3)%2===0,(x,y)=>((x+y)%2+x*y%3)%2===0];
+    const apply=m=>{ for(let y=0;y<size;y++) for(let x=0;x<size;x++) if(!F[y][x]&&maskFn[m](x,y)) M[y][x]=!M[y][x]; };
+    // Penalización simplificada (rachas, bloques 2x2 y equilibrio claro/oscuro) para elegir la máscara
+    const penalty=()=>{
+      let p=0, dark=0;
+      for(let y=0;y<size;y++){
+        let rx=1, ry=1;
+        for(let x=0;x<size;x++){
+          if(M[y][x]) dark++;
+          if(x>0){ if(M[y][x]===M[y][x-1]){ rx++; if(rx===5) p+=3; else if(rx>5) p++; } else rx=1;
+                   if(M[x][y]===M[x-1][y]){ ry++; if(ry===5) p+=3; else if(ry>5) p++; } else ry=1; }
+          if(x<size-1&&y<size-1){ const c=M[y][x]; if(c===M[y][x+1]&&c===M[y+1][x]&&c===M[y+1][x+1]) p+=3; }
+        }
+      }
+      const total=size*size;
+      p+=(Math.ceil(Math.abs(dark*20-total*10)/total)-1)*10;
+      return p;
+    };
+    let best=0, bestP=Infinity;
+    for(let m=0;m<8;m++){ apply(m); format(m); const p=penalty(); if(p<bestP){ bestP=p; best=m; } apply(m); }
+    apply(best); format(best);
+    return {size,M};
+  }
+  // Trazado SVG con 4 módulos de margen
+  function svgPath(text){
+    const q=encode(text); if(!q) return null;
+    let d='';
+    for(let y=0;y<q.size;y++) for(let x=0;x<q.size;x++) if(q.M[y][x]) d+='M'+(x+4)+','+(y+4)+'h1v1h-1z';
+    return {d, n:q.size+8};
+  }
+  return {encode, svgPath};
+})();
+
+const AppDef={
   // ═══════════════════════════════════════
   // ── DATA ──
   // ═══════════════════════════════════════
@@ -3971,6 +4536,13 @@ window.cartaVm = createApp({
       cookieConsent:null,   // null=pendiente, 'accepted'=aceptado, 'rejected'=rechazado
       privacyModal:false,   // muestra modal de Política de Privacidad
 
+      // Mesa compartida
+      ro:false,             // true solo en la vista de solo lectura (mesa de otro jugador)
+      mesaShare:null,       // modal Compartir mesa: {step:'notice'|'busy'|'ready'|'error'}
+      mesaJoin:null,        // modal Ver una mesa: {code, err}
+      mesaNet:'ok',         // 'ok' | 'pending' (cambios sin enviar por falta de conexión)
+      mesaTick:0,           // fuerza el recálculo de las mesas propias guardadas fuera de Vue
+
       // Persisted
       players:[],
       combos:DEF_COMBOS.map(c=>({...c})),
@@ -3986,6 +4558,16 @@ window.cartaVm = createApp({
   // ── COMPUTED ──
   // ═══════════════════════════════════════
   computed:{
+    // ── Mesa compartida ──
+    mesaEnabled(){ return Mesa.enabled(); },
+    mesaCode(){
+      this.mesaTick;
+      if(!this.hasGame) return null;
+      return Mesa.store().owned[this.game.id]||null;
+    },
+    mesaQR(){ return this.mesaCode?QR.svgPath(Mesa.link(this.mesaCode)):null; },
+    mesaRecent(){ this.mesaTick; return Mesa.store().recent.slice(0,5); },
+
     // ── Estado de partida / modo ──
     hasGame(){ return !!this.game && this.game.status==='active'; },
 
@@ -4500,6 +5082,9 @@ window.cartaVm = createApp({
     // ── BOTÓN ATRÁS (Android) ──
     // Cierra la capa superior abierta o vuelve a Inicio. Devuelve true si hizo algo.
     closeTopLayer(){
+      if(MesaViewer.isOpen()){ MesaViewer.close(); return true; }
+      if(this.mesaShare){ this.mesaShare=null; return true; }
+      if(this.mesaJoin){ this.mesaJoin=null; return true; }
       if(this.privacyModal){ this.privacyModal=false; return true; }
       if(this.confirmDlg){ this.confirmDlg=null; return true; }
       if(this.retirePlayerDlg){ this.retirePlayerDlg=null; return true; }
@@ -4962,6 +5547,9 @@ window.cartaVm = createApp({
         gameName:m.gameName||null,
       };
       this.lastCfg={gtId:m.gtId,pIds:[...m.pIds],cIds:[...m.cIds||[]],targetScore:m.targetScore||null,totalRounds:m.totalRounds||null,roundsWinner:m.roundsWinner||null,livesStart:m.livesStart||null,gameName:m.gameName||''};
+      // Si la partida anterior estaba compartida, los demás siguen la revancha con el mismo código
+      const ms=Mesa.store();
+      if(m.gameId&&ms.owned[m.gameId]){ ms.owned[this.game.id]=ms.owned[m.gameId]; delete ms.owned[m.gameId]; Mesa.saveStore(ms); this.mesaTick++; }
       this.save();
       this.nav('game');
     },
@@ -5281,6 +5869,7 @@ window.cartaVm = createApp({
       // Guardar datos para el modal ANTES de limpiar el juego
       const gt2=this.gameTypes.find(g=>g.id===this.game.gtId);
       this.winnerModal={
+        gameId:this.game.id,
         winner,
         final,
         pIds:[...activePids],
@@ -5921,6 +6510,10 @@ window.cartaVm = createApp({
     },
 
     clearAllData(){
+      // Borrar del servidor las mesas compartidas desde este teléfono (si hay conexión)
+      const owned=Object.values(Mesa.store().owned);
+      if(Mesa.enabled()) owned.forEach(c=>Mesa.remove(c).catch(()=>{}));
+      localStorage.removeItem('cartascore_mesa');
       localStorage.removeItem('cartascore_v1');
       localStorage.removeItem('cartascore_prefs');
       localStorage.removeItem('cartascore_theme');
@@ -5930,7 +6523,7 @@ window.cartaVm = createApp({
         document.cookie=name+'=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain='+location.hostname;
         document.cookie=name+'=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.'+location.hostname;
       });
-      setTimeout(()=>window.location.reload(),300);
+      setTimeout(()=>window.location.reload(),owned.length?1500:300);
     },
 
     setTheme(t){
@@ -6242,12 +6835,144 @@ window.cartaVm = createApp({
       }
     },
 
+    // ── MESA COMPARTIDA ──
+    // Tras cada guardado se publican los cambios de las partidas compartidas
+    // (con una pequeña espera para agrupar anotaciones seguidas)
+    mesaSync(delay){
+      if(this.ro||!Mesa.enabled()) return;
+      if(!Object.keys(Mesa.store().owned).length) return;
+      clearTimeout(this._mesaT);
+      this._mesaT=setTimeout(()=>this.mesaFlush(),delay==null?600:delay);
+    },
+    // Lo que ven los demás: la partida, y solo los jugadores y combinaciones que usa
+    mesaPayload(g){
+      const p=(g.pIds||[]).map(id=>{ const x=this.players.find(q=>q.id===id); return {id,name:x?x.name:'?',color:x?x.color:'#888888'}; });
+      const c=(g.cIds||[]).map(id=>{ const x=this.combos.find(q=>q.id===id); return x?{id,name:x.name,short:x.short}:null; }).filter(Boolean);
+      const {final,...rest}=g;
+      return {g:rest,p,c};
+    },
+    async mesaFlush(){
+      if(this._mesaBusy){ this._mesaAgain=true; return; }
+      this._mesaBusy=true;
+      this._mesaSent=this._mesaSent||{};
+      let pending=false, changed=false;
+      const forget=gid=>{ const s2=Mesa.store(); delete s2.owned[gid]; Mesa.saveStore(s2); changed=true; };
+      try{
+        for(const [gid,code] of Object.entries(Mesa.store().owned)){
+          let g=null, s=null;
+          if(this.game&&this.game.id===gid&&this.game.status==='active'){ g=this.game; s='a'; }
+          else{
+            const h=this.games.find(x=>x.id===gid);
+            if(h&&h.status==='paused'){ g=h; s='p'; }
+            else if(h&&h.status==='finished'){
+              // Terminada: se muestra el resultado 2 h y luego la mesa caduca sola
+              if(Date.now()-(Date.parse(h.endDate||'')||0)<MESA_TTL.f){ g=h; s='f'; }
+              else { forget(gid); continue; }
+            }
+          }
+          try{
+            if(!g){ // partida eliminada: se borra también la mesa
+              if(await Mesa.remove(code)){ forget(gid); delete this._mesaSent[code]; }
+              else pending=true;
+              continue;
+            }
+            const d=JSON.stringify(this.mesaPayload(g));
+            if(d.length>MESA_MAX_D) continue;
+            const key=s+d;
+            if(this._mesaSent[code]===key) continue;
+            if(await Mesa.put(code,s,d)==='denied'){
+              // El código ya no es de este teléfono (identidad nueva): se publica con un código nuevo
+              const nc=Mesa.newCode();
+              const s2=Mesa.store(); s2.owned[gid]=nc; Mesa.saveStore(s2); changed=true;
+              if(await Mesa.put(nc,s,d)==='ok'){ this._mesaSent[nc]=key; if(s==='a') this.showToast(this.t('mesa_codigo_nuevo',{code:nc})); }
+              continue;
+            }
+            this._mesaSent[code]=key;
+          }catch(e){ pending=true; }
+        }
+      }finally{
+        this._mesaBusy=false;
+        if(changed) this.mesaTick++;
+        this.mesaNet=pending?'pending':'ok';
+        clearTimeout(this._mesaRetry);
+        if(pending) this._mesaRetry=setTimeout(()=>this.mesaFlush(),30000);
+        if(this._mesaAgain){ this._mesaAgain=false; this.mesaSync(0); }
+      }
+    },
+    mesaOpenShare(){
+      this.showMenu=false;
+      if(!this.hasGame) return;
+      if(this.mesaCode){ this.mesaShare={step:'ready'}; return; }
+      if(!Mesa.store().ok){ this.mesaShare={step:'notice'}; return; }
+      this.mesaStartShare();
+    },
+    async mesaStartShare(){
+      if(!this.hasGame) return;
+      const st=Mesa.store(); st.ok=1; Mesa.saveStore(st);
+      this.mesaShare={step:'busy'};
+      const gid=this.game.id;
+      try{
+        const d=JSON.stringify(this.mesaPayload(this.game));
+        let c=Mesa.store().owned[gid]||Mesa.newCode();
+        let r=await Mesa.put(c,'a',d);
+        if(r==='denied'){ c=Mesa.newCode(); r=await Mesa.put(c,'a',d); } // código ocupado (muy improbable)
+        if(r!=='ok') throw new Error('denied');
+        const s2=Mesa.store(); s2.owned[gid]=c; Mesa.saveStore(s2);
+        this._mesaSent=this._mesaSent||{}; this._mesaSent[c]='a'+d;
+        this.mesaTick++; this.mesaNet='ok';
+        if(this.mesaShare) this.mesaShare={step:'ready'};
+        if(typeof gtag==='function') gtag('event','table_shared',{game_type:this.game&&this.game.gtId});
+      }catch(e){
+        if(this.mesaShare) this.mesaShare={step:'error'};
+      }
+    },
+    mesaStopShare(){
+      const code=this.mesaCode; if(!code) return;
+      this.mesaShare=null;
+      this.confirmDlg={msg:this.t('mesa_dejar_confirm'), ok:()=>{
+        this.confirmDlg=null;
+        const st=Mesa.store();
+        for(const [gid,c] of Object.entries(st.owned)) if(c===code) delete st.owned[gid];
+        Mesa.saveStore(st); this.mesaTick++;
+        if(this._mesaSent) delete this._mesaSent[code];
+        Mesa.remove(code).catch(()=>{});
+      }};
+    },
+    async mesaSendLink(){
+      const code=this.mesaCode; if(!code) return;
+      const url=Mesa.link(code);
+      const text=this.t('mesa_share_text',{name:this.activeGameName,code});
+      if(navigator.share){
+        try{ await navigator.share({title:'CartaScore',text,url}); return; }
+        catch(e){ if(e&&e.name==='AbortError') return; }
+      }
+      try{ await navigator.clipboard.writeText(text+' '+url); this.showToast(this.t('mesa_enlace_copiado')); }catch(e){}
+    },
+    async mesaCopyCode(){
+      try{ await navigator.clipboard.writeText(this.mesaCode); this.showToast(this.t('mesa_codigo_copiado')); }catch(e){}
+    },
+    mesaOpenJoin(){ this.mesaJoin={code:'',err:''}; this.mesaTick++; },
+    mesaJoinGo(raw){
+      const code=Mesa.parseCode(raw!=null?raw:(this.mesaJoin&&this.mesaJoin.code));
+      if(!code){ if(this.mesaJoin) this.mesaJoin.err=this.t('mesa_codigo_invalido'); return; }
+      this.mesaJoin=null;
+      MesaViewer.open(code,this.lang);
+    },
+    mesaAgo(ts){
+      const m=Math.max(0,Math.round((Date.now()-ts)/60000));
+      if(m<60) return this.t('mesa_hace_min',{n:m});
+      const h=Math.round(m/60);
+      if(h<48) return this.t('mesa_hace_h',{n:h});
+      return this.t('mesa_hace_d',{n:Math.round(h/24)});
+    },
+
     // ── PERSISTENCIA (save/load) ──
     save(){
       try{
         const d={players:this.players,combos:this.combos,games:this.games,game:this.game,lastCfg:this.lastCfg,customGames:this.customGames,seenDefCombos:this.seenDefCombos,seenDefCustomGames:this.seenDefCustomGames};
         localStorage.setItem('cartascore_v1',JSON.stringify(d));
       }catch(e){}
+      this.mesaSync();
     },
     load(){
       try{
@@ -6292,69 +7017,7 @@ window.cartaVm = createApp({
           this.combos=DEF_COMBOS.map(c=>({...c,active:true}));
         }
 
-        const sanitizeGame=g=>{
-          if(!g||typeof g!=='object') return null;
-          const pIds=Array.isArray(g.pIds)?g.pIds.slice(0,10).map(x=>String(x).slice(0,20)):[];
-          const cIds=Array.isArray(g.cIds)?g.cIds.slice(0,100).map(x=>String(x).slice(0,20)):[];
-          const rounds=Array.isArray(g.rounds)?g.rounds.slice(0,200).map(r=>{
-            const scores={};
-            if(r.scores&&typeof r.scores==='object'){
-              for(const [k,v] of Object.entries(r.scores)){
-                scores[String(k).slice(0,20)]=Math.max(0,Math.min(9999,parseInt(v)||0));
-              }
-            }
-            // Detalle de mano de Escoba (para historial)
-            let escobaDetail;
-            if(r.escobaDetail&&typeof r.escobaDetail==='object'){
-              escobaDetail={};
-              for(const [k,v] of Object.entries(r.escobaDetail).slice(0,10)){
-                if(!v||typeof v!=='object') continue;
-                escobaDetail[String(k).slice(0,20)]={cartas:!!v.cartas,oros:!!v.oros,settebello:!!v.settebello,primera:!!v.primera,escobas:Math.max(0,Math.min(99,parseInt(v.escobas)||0))};
-              }
-            }
-            return {roundNum:parseInt(r.roundNum)||0,cId:String(r.cId||'').slice(0,20),winner:String(r.winner||'').slice(0,20),scores,...(escobaDetail?{escobaDetail}:{})};
-          }):[];
-          return {
-            id:String(g.id||'').slice(0,20),
-            date:typeof g.date==='string'?g.date.slice(0,30):'',
-            gtId:String(g.gtId||'').slice(0,20),
-            status:['active','paused','finished'].includes(g.status)?g.status:'active',
-            pIds, cIds, rounds,
-            round:Math.max(0,Math.min(999,parseInt(g.round)||0)),
-            winner:g.winner?String(g.winner).slice(0,20):null,
-            final:g.final&&typeof g.final==='object'?g.final:null,
-            doneMap:g.doneMap&&typeof g.doneMap==='object'?g.doneMap:{},
-            pauseDate:g.pauseDate?String(g.pauseDate).slice(0,30):undefined,
-            targetScore:typeof g.targetScore==='number'&&g.targetScore>0?g.targetScore:null,
-            // Configuración de modos genéricos (antes se perdía al reabrir la app)
-            totalRounds:typeof g.totalRounds==='number'&&g.totalRounds>0?Math.min(999,g.totalRounds):null,
-            roundsWinner:['low','high'].includes(g.roundsWinner)?g.roundsWinner:null,
-            livesStart:typeof g.livesStart==='number'&&g.livesStart>0?Math.min(99,g.livesStart):null,
-            endDate:typeof g.endDate==='string'?g.endDate.slice(0,30):undefined,
-            gameName:typeof g.gameName==='string'?g.gameName.slice(0,30):null,
-            dealerIdx:typeof g.dealerIdx==='number'?Math.max(0,Math.min(99,g.dealerIdx)):0,
-            retiredPIds:Array.isArray(g.retiredPIds)?g.retiredPIds.slice(0,20).map(r=>({
-              pid:String(r.pid||'').slice(0,20),
-              fromRound:Math.max(0,Math.min(999,parseInt(r.fromRound)||0)),
-            })):[],
-            joinedPIds:Array.isArray(g.joinedPIds)?g.joinedPIds.slice(0,20).map(j=>({
-              pid:String(j.pid||'').slice(0,20),
-              fromRound:Math.max(0,Math.min(999,parseInt(j.fromRound)||0)),
-              startScore:Math.max(0,Math.min(9999,parseInt(j.startScore)||0)),
-            })):[],
-            // Campos Truco
-            dealer:['A','B'].includes(g.dealer)?g.dealer:null,
-            teamA:typeof g.teamA==='string'?g.teamA.slice(0,30):null,
-            teamB:typeof g.teamB==='string'?g.teamB.slice(0,30):null,
-            scoreA:typeof g.scoreA==='number'?Math.max(0,Math.min(9999,g.scoreA)):undefined,
-            scoreB:typeof g.scoreB==='number'?Math.max(0,Math.min(9999,g.scoreB)):undefined,
-            target:typeof g.target==='number'&&g.target>0?Math.min(9999,g.target):undefined,
-            history:Array.isArray(g.history)?g.history.slice(0,500).map(h=>({
-              A:Math.max(0,Math.min(9999,parseInt(h.A)||0)),
-              B:Math.max(0,Math.min(9999,parseInt(h.B)||0)),
-            })):[],
-          };
-        };
+        const sanitizeGame=sanitizeGameData;
 
         if(Array.isArray(d.games)){
           this.games=d.games.slice(0,500).map(sanitizeGame).filter(Boolean);
@@ -6407,6 +7070,22 @@ window.cartaVm = createApp({
     this.load();
     this.localizeDefaults();
 
+    // Mesa compartida: enlace ?mesa=CÓDIGO (se quita de la dirección) o mesa abierta antes de una recarga
+    Mesa.isApp();
+    let mesaToOpen=null;
+    try{
+      const q=new URLSearchParams(location.search);
+      if(q.has('mesa')){
+        mesaToOpen=Mesa.parseCode(q.get('mesa'));
+        q.delete('mesa');
+        const qs=q.toString();
+        history.replaceState(history.state,'',location.pathname+(qs?'?'+qs:'')+location.hash);
+      }
+      if(!mesaToOpen) mesaToOpen=Mesa.parseCode(sessionStorage.getItem('cartascore_watch')||'');
+    }catch(e){}
+    window.addEventListener('online',()=>this.mesaSync(0));
+    this.mesaSync(1500);
+
     // Botón atrás de Android: una entrada "guardia" en el historial evita que la app se cierre;
     // cada "atrás" cierra la ventana abierta o vuelve a Inicio, y en Inicio pide un segundo "atrás" para salir.
     try{
@@ -6417,9 +7096,14 @@ window.cartaVm = createApp({
       document.addEventListener('pointerdown', ()=>this._disarmExit(), true);
     }catch(e){}
 
+    if(mesaToOpen) MesaViewer.open(mesaToOpen,this.lang);
+
     // Accesibilidad: cerrar modales con Escape (WCAG 2.1 — SC 1.4.13 / SC 2.1.2)
     window.addEventListener('keydown', e => {
       if (e.key !== 'Escape') return;
+      if (MesaViewer.isOpen()) { MesaViewer.close(); return; }
+      if (this.mesaShare)       { this.mesaShare = null; return; }
+      if (this.mesaJoin)        { this.mesaJoin = null; return; }
       if (this.privacyModal)    { this.privacyModal = false; return; }
       if (this.rulesModal)      { this.rulesModal = null; return; }
       if (this.winnerModal)     { /* no cerrar: resultado de partida */ return; }
@@ -6513,7 +7197,140 @@ window.cartaVm = createApp({
       },{passive:true});
     }
   }
-}).mount('#app');
+};
+// ═══════════════════════════════════════
+// ── VISOR DE MESA (solo lectura) ──
+// Segunda instancia de la app, con la misma lógica y el mismo tablero de partida, pero con los
+// datos recibidos de la mesa y sin controles de edición. Nunca guarda nada en este teléfono,
+// salvo la lista de mesas recientes.
+// ═══════════════════════════════════════
+const MESA_BOARD_TPL=(()=>{
+  const el=document.getElementById('game-board');
+  return el?el.outerHTML.replace(/\sv-else(="")?/,' v-if="hasGame"'):'';
+})();
+const MesaViewer=(function(){
+  let app=null, vm=null, stop=null, tick=null;
+  const host=()=>document.getElementById('mesa-root');
+  const TPL=`<div class="mesa-ov" role="dialog" aria-modal="true" :aria-label="t('mesa_ver_titulo')">
+  <header class="app-hdr">
+    <button class="hdr-btn" @click="mvClose" :aria-label="t('cerrar')">✕</button>
+    <div class="hdr-titles">
+      <div class="hdr-main">{{ mvTitle }}</div>
+      <div class="hdr-sub">{{ t('mesa_codigo') }} {{ mvCode }} · {{ t('mesa_solo_lectura') }}</div>
+    </div>
+  </header>
+  <main class="content"><div class="view">
+    <div v-if="mvState==='gate'" class="empty">
+      <div class="empty-ico">📲</div>
+      <div class="empty-title">{{ t('mesa_gate_titulo') }}</div>
+      <p class="mesa-p">{{ t('mesa_gate_texto') }}</p>
+      <div class="mesa-code-lbl">{{ t('mesa_codigo') }}</div>
+      <div class="mesa-code">{{ mvCode }}</div>
+      <a v-if="mvAndroid" class="btn btn-primary btn-block" style="margin-top:12px" :href="mvIntent">{{ t('mesa_gate_abrir') }}</a>
+      <a class="btn btn-ghost btn-block" style="margin-top:10px" :href="mvPlay" target="_blank" rel="noopener">{{ t('mesa_gate_instalar') }}</a>
+    </div>
+    <div v-else-if="mvState==='loading'" class="empty">
+      <div class="empty-ico">📡</div><div class="empty-title">{{ t('mesa_conectando') }}</div>
+    </div>
+    <div v-else-if="mvState==='old'" class="empty">
+      <div class="empty-ico">⬆️</div><div class="empty-title">{{ t('mesa_version_titulo') }}</div>
+      <p class="mesa-p">{{ t('mesa_version_texto') }}</p>
+    </div>
+    <div v-else-if="mvState==='missing'||mvState==='disabled'" class="empty">
+      <div class="empty-ico">🕳️</div><div class="empty-title">{{ t('mesa_no_activa_titulo') }}</div>
+      <p class="mesa-p">{{ t('mesa_no_activa_texto') }}</p>
+      <button v-if="mvState==='missing'" class="btn btn-primary" style="margin-top:8px" @click="mvRetry">{{ t('mesa_reintentar') }}</button>
+    </div>
+    <template v-else>
+      <div class="mesa-status" :class="'st-'+mvKind" role="status">{{ mvStatus }}</div>
+      <a v-if="mvBrowserAndroid" class="mesa-install" :href="mvPlay" target="_blank" rel="noopener">📲 {{ t('mesa_instalar_sugerencia') }}</a>
+      ${MESA_BOARD_TPL}
+    </template>
+  </div></main>
+</div>`;
+  const NOOP=()=>{};
+  function close(){
+    if(stop){ stop(); stop=null; }
+    clearInterval(tick); tick=null;
+    if(app){ app.unmount(); app=null; vm=null; }
+    const h=host(); if(h){ h.hidden=true; h.innerHTML=''; }
+    document.body.classList.remove('mesa-open');
+    try{ sessionStorage.removeItem('cartascore_watch'); }catch(e){}
+    if(window.cartaVm) window.cartaVm.mesaTick++;
+  }
+  function remember(code,name){
+    const st=Mesa.store();
+    st.recent=[{c:code,n:String(name||'').slice(0,40),t:Date.now()},...st.recent.filter(r=>r&&r.c!==code)].slice(0,5);
+    Mesa.saveStore(st);
+  }
+  function open(code,lang){
+    close();
+    const h=host(); if(!h) return;
+    try{ sessionStorage.setItem('cartascore_watch',code); }catch(e){}
+    const def={
+      ...AppDef,
+      template:TPL,
+      data(){
+        const d=AppDef.data.call(this);
+        return Object.assign(d,{ro:true,view:'game',lang:I18N[lang]?lang:d.lang,
+          mvCode:code, mvState:'loading', mvS:'a', mvU:0, mvConn:'live', mvNow:Date.now(),
+          mvAndroid:/Android/i.test(navigator.userAgent), mvBrowserAndroid:/Android/i.test(navigator.userAgent)&&!Mesa.isApp(), mvIntent:Mesa.intentLink(code), mvPlay:MESA_CFG.playUrl});
+      },
+      computed:{
+        ...AppDef.computed,
+        mvTitle(){ return this.hasGame?this.activeGameName:'CartaScore'; },
+        mvKind(){ return this.mvConn!=='live'||this.mvS!=='a'?'wait':'live'; },
+        mvStatus(){
+          if(this.mvConn!=='live') return '⏳ '+this.t('mesa_reconectando');
+          if(this.mvS==='p') return '⏸ '+this.t('mesa_en_pausa');
+          if(this.mvS==='f'){
+            const w=this.game&&this.game.winner;
+            return '🏁 '+this.t('mesa_terminada')+(w?' · 🏆 '+this.gameWinnerDisplay(this.game):'');
+          }
+          const min=this.mvU?Math.floor((this.mvNow-this.mvU)/60000):0;
+          return '🟢 '+this.t('mesa_en_vivo')+(min>=2?' · '+this.t('mesa_actualizado_hace',{n:min}):'');
+        },
+      },
+      methods:{
+        ...AppDef.methods,
+        // Sin persistencia ni edición en la vista de solo lectura
+        save:NOOP, savePrefs:NOOP, mesaSync:NOOP, openRound:NOOP, openAddPlayer:NOOP, pasarReparto:NOOP,
+        trucoAdd:NOOP, trucoUndo:NOOP, trucoPasarReparto:NOOP, confirmRetirePlayer:NOOP,
+        toggleComboDone:NOOP, openEditScore:NOOP, openEditStartScore:NOOP,
+        mvClose(){ close(); },
+        mvRetry(){ open(code,this.lang); },
+      },
+      mounted(){},
+    };
+    app=Vue.createApp(def);
+    h.hidden=false;
+    vm=app.mount(h);
+    document.body.classList.add('mesa-open');
+    if(!Mesa.enabled()){ vm.mvState='disabled'; return; }
+    if(MESA_CFG.requireApp&&!Mesa.isApp()){ vm.mvState='gate'; return; }
+    if(typeof gtag==='function') gtag('event','table_viewed');
+    tick=setInterval(()=>{ if(vm) vm.mvNow=Date.now(); },30000);
+    stop=Mesa.watch(code,ev=>{
+      if(!vm) return;
+      if(ev.type==='state'){ vm.mvConn=ev.state==='live'?'live':'reconnecting'; if(ev.state==='closed') vm.mvConn='live'; return; }
+      vm.mvConn='live';
+      if(ev.node&&typeof ev.node.v==='number'&&ev.node.v>MESA_V){ vm.mvState='old'; return; }
+      const m=mesaSanitize(ev.node);
+      if(!m){ vm.mvState='missing'; vm.game=null; return; }
+      vm.players=m.players;
+      vm.combos=m.combos;
+      vm.localizeDefaults();
+      vm.game={...m.game,status:'active'};
+      vm.mvS=m.s; vm.mvU=m.u; vm.mvNow=Date.now();
+      vm.mvState='live';
+      remember(code,vm.activeGameName);
+    });
+  }
+  return {open,close,isOpen:()=>!!app};
+})();
+
+// Referencia a la instancia raíz (la usa el registro del service worker)
+window.cartaVm = createApp(AppDef).mount('#app');
 // Mostrar app una vez Vue montó
 const appEl = document.getElementById('app');
 if (appEl) appEl.style.display = '';
